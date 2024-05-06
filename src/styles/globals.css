@@ -1,0 +1,93 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body {
+  overflow-x: hidden;
+  background: #000000;
+}
+
+@layer base {
+  :root {
+    --background: 220 3.45% 17.06%;
+    --foreground: 0 0% 98%;
+    --card: 240 3.45% 11.37%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 3.45% 8.37%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 220 3.45% 17.06%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 220 3.45% 17.06%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 220 3.45% 17.06%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 220 3.45% 17.06%;
+    --input: 220 3.45% 17.06%;
+    --ring: 240 4.9% 83.9%;
+    --radius: 0.5rem;
+    --link: #377ae8;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings:
+      "rlig" 1,
+      "calt" 1;
+  }
+}
+
+* {
+  /* Fix for Safari */
+  -webkit-backface-visibility: hidden;
+  -moz-backface-visibility: hidden;
+  backface-visibility: hidden;
+
+  /* Fix for Chrome */
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+
+  /* Fix for Edge */
+  -ms-font-smoothing: antialiased;
+  -webkit-font-smoothing: antialiased;
+
+  /* Fix for IE */
+  -ms-text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 3px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.4);
+}
+
+::-webkit-scrollbar-thumb:active {
+  background-color: rgba(255, 255, 255, 0.6);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
