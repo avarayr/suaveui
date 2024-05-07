@@ -228,7 +228,7 @@ export const ChatBubble = React.memo(
             `will-change-transform [--h:3px] [--w:3px]`,
             `[--them-bg:linear-gradient(to_bottom,#343435,#343435)]`,
             `[--me-bg:linear-gradient(to_bottom,#137BFF,#117BFF)]`,
-            `relative max-w-[255px] select-none list-none whitespace-pre-wrap break-words rounded-[18px] px-[calc(var(--w)*4)] py-[calc(var(--h)*2)] [-webkit-user-select:none]
+            `relative max-w-[70dvw] select-none list-none whitespace-pre-wrap break-words rounded-[18px] px-[calc(var(--w)*4)] py-[calc(var(--h)*2)] [-webkit-user-select:none]
       before:absolute before:bottom-0 before:h-[calc(var(--h)*5)]
       before:w-[calc(var(--h)*4)] before:transition-opacity before:content-[''] after:absolute
       after:bottom-0 after:h-[30px] after:w-[24px] after:bg-black
@@ -241,9 +241,12 @@ export const ChatBubble = React.memo(
               `chat-bubble-me self-end text-white [background:var(--me-bg)] 
       before:right-[-5px] before:rounded-bl-[18px_14px] before:[background:var(--me-bg)] after:right-[-24px] after:rounded-bl-[10px]`,
             !tail && `before:opacity-0 after:opacity-0`,
+            // shadow if focused
             (isFocused || isBackdropAnimating) && "z-[100] shadow-xl",
             // offset
             shouldOffset && `!-translate-y-[var(--offset)] transition-transform duration-300`,
+            // has reactions -> margin top
+            reactions?.length && "mb-1 mt-5",
           )}
           style={{ "--offset": shouldOffset ? `${shouldOffset}px` : undefined } as React.CSSProperties}
           {...longPressProps}
@@ -253,7 +256,7 @@ export const ChatBubble = React.memo(
             {isReactionsOpen && (
               <motion.div
                 initial={{ opacity: 0, width: 0 }}
-                animate={{ opacity: 1, width: "278px" }}
+                animate={{ opacity: 1, width: "auto" }}
                 exit={{ opacity: 0, transition: { duration: 0.1 } }}
                 transition={{
                   type: "spring",
@@ -264,7 +267,7 @@ export const ChatBubble = React.memo(
                 style={{ transformOrigin: "center center" }}
                 className={twMerge(
                   "[--bg:#333335]",
-                  "absolute bottom-[100%] z-[100] mb-1 flex gap-4 rounded-full bg-[var(--bg)] p-3 text-[#757577]",
+                  "absolute bottom-[100%] z-[100] mb-1 rounded-full bg-[var(--bg)]  text-[#757577]",
                   from === "me" && "right-0 [transform-origin:bottom_right]",
                   from === "them" && "left-0 [transform-origin:bottom_left]",
                   // little circles
@@ -278,34 +281,46 @@ export const ChatBubble = React.memo(
                     "after:absolute after:bottom-[-6px] after:right-[-1px] after:size-[0.35rem] after:rounded-full after:bg-[var(--bg)] after:content-['']",
                 )}
               >
-                {reactionsSymbols.map((reaction, i) => (
-                  <motion.div
-                    key={reaction.id}
-                    className={twMerge(
-                      "relative flex cursor-pointer items-center justify-center gap-1 text-[#757577] *:size-6 before:opacity-0 before:transition-opacity",
-                      reactions?.find((r) => r.type === reaction.id)?.from === "me" &&
-                        "z-[2] !text-white before:absolute before:-left-2 before:-top-2 before:size-10 before:rounded-full before:bg-[#137BFF] before:opacity-100 before:content-['']",
-                    )}
-                    onClick={() => reactToMessage(reaction.id)}
-                  >
-                    <reaction.icon className="z-[10]" transition={{ delay: i * 0.05 + 0.2 }} />
-                  </motion.div>
-                ))}
+                <div className="flex w-full items-center justify-center gap-5 overflow-hidden p-3">
+                  {reactionsSymbols.map((reaction, i) => (
+                    <motion.div
+                      key={reaction.id}
+                      className={twMerge(
+                        "relative flex cursor-pointer items-center justify-center gap-1 text-[#757577] *:size-6",
+                        // active reaction has a white background
+                        reactions?.find((r) => r.type === reaction.id)?.from === "me" &&
+                          "text-white before:absolute before:-left-2 before:-top-2 before:size-10 before:rounded-full before:bg-[#137BFF] before:opacity-100",
+                        // if active reaction is a heart, text is red
+                        reactions?.find((r) => r.type === reaction.id && r.type === "heart" && r.from === "me") &&
+                          "text-[#F9538B]",
+                      )}
+                      onClick={() => reactToMessage(reaction.id)}
+                    >
+                      <reaction.icon className="z-[10]" transition={{ delay: i * 0.05 + 0.2 }} />
+                    </motion.div>
+                  ))}
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
 
           {/* Applied Reactions on the right top edge */}
-          <AnimatePresence>
+          <AnimatePresence initial={false}>
             {reactions?.map((reaction) => {
               return (
                 <motion.div
                   key={reaction.type}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.3, ease: "easeInOut" }}
+                  initial={{ opacity: 0, scale: 0 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{
+                    delay: 1,
+                    type: "spring",
+                    stiffness: 300,
+                    damping: 25,
+                  }}
                   className={twMerge(
                     `absolute -top-5 z-[10] flex h-8 w-8 items-center justify-center  rounded-full text-white
+                    [transform-origin:bottom_right]
                   *:size-4
                   `,
                     // two little blobs
@@ -325,6 +340,10 @@ export const ChatBubble = React.memo(
                     reaction.from === "them" && `bg-[#222225] before:bg-[#222225] after:bg-[#222225]`,
                     from === "me" && reaction.from === "me" && "z-[10] ring-[1px] ring-black/30",
                     from === "them" && reaction.from === "them" && "z-[10] ring-[1px] ring-black/30",
+                    // if focused, opacity is 30%
+                    isFocused && "!opacity-0 transition-opacity",
+                    // if reaction is a heart, text is red
+                    reaction.type === "heart" && "text-[#F9538B]",
                   )}
                 >
                   {reactionsSymbols?.find((r) => r.id === reaction.type)?.icon?.({})}
