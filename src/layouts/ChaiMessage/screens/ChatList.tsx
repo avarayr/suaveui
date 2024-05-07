@@ -1,5 +1,6 @@
 "use client";
 
+import { Link } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronRight, Search, Settings } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -10,7 +11,6 @@ import { type ChatListProps } from "../../types";
 import { Avatar } from "../components/Avatar";
 import { Padded } from "../components/Padded";
 import { ChaiColors } from "../types";
-import { Link, useNavigate } from "@tanstack/react-router";
 
 export const ChatList = ({ chats, onNewChatClick, loading }: ChatListProps) => {
   const [loadingChatId, setLoadingChatId] = useState<string | undefined>(undefined);

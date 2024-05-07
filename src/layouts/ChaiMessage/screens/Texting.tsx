@@ -26,7 +26,7 @@ export const Texting = ({
   const chatMessagesRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState("");
-  const chat = data?.chat;
+
   const messages = useMemo(() => {
     return [...(data?.messages ?? [])].sort(
       (a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime(),
@@ -152,7 +152,7 @@ export const Texting = ({
           ref={inputRef}
           type="text"
           autoComplete="off"
-          className="h-9 w-full flex-grow rounded-full border border-[#1F2021] bg-transparent px-3 py-2 text-white placeholder-[#434346] caret-blue-600 outline-none selection:bg-[#346DD9]/30"
+          className="h-9 w-full flex-grow rounded-full border border-[#1F2021] bg-transparent px-3 py-2 pr-10 text-white placeholder-[#434346] caret-blue-600 outline-none selection:bg-[#346DD9]/30"
           placeholder="Message..."
           value={message}
           onChange={(e) => setMessage(e.target.value)}

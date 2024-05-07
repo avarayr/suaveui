@@ -3,15 +3,31 @@ import react from "@vitejs/plugin-react";
 import { TanStackRouterVite } from "@tanstack/router-vite-plugin";
 import { VitePWA } from "vite-plugin-pwa";
 import tsconfigPaths from "vite-tsconfig-paths";
-import { hattip } from "@hattip/vite";
+import devServer from "@hono/vite-dev-server";
 // https://vitejs.dev/config/
 
 export default defineConfig({
+  build: {
+    outDir: "dist",
+  },
   optimizeDeps: {
     include: ["react", "react-dom"],
   },
   plugins: [
-    hattip(),
+    devServer({
+      entry: "src/hono.ts", // The file path of your application.
+      exclude: [
+        // We need to override this option since the default setting doesn't fit
+        /.*\.tsx?($|\?)/,
+        /.*\.(s?css|less)($|\?)/,
+        /.*\.(svg|png)($|\?)/,
+        /^\/@.+$/,
+        /^\/favicon\.ico$/,
+        /^\/(public|assets|static|dev-dist)\/.+/,
+        /^\/node_modules\/.*/,
+      ],
+      injectClientScript: false,
+    }),
     react(),
     tsconfigPaths(),
     VitePWA({

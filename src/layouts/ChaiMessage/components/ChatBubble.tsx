@@ -128,8 +128,11 @@ export const ChatBubble = React.memo(
         return (e: React.MouseEvent<HTMLDivElement>) => {
           e.preventDefault();
           e.stopPropagation();
+
           onTapBackDismiss();
-          void callback?.();
+          setTimeout(() => {
+            void callback?.();
+          }, 100);
         };
       };
 

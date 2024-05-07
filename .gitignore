@@ -46,4 +46,4 @@ yarn-error.log*
 
 # pwa
 dist
-dev_dist
+dev-dist

@@ -13,6 +13,9 @@ registerSW({
   onOfflineReady() {
     console.log("SW is ready");
   },
+  onNeedRefresh() {
+    location.reload();
+  },
 });
 
 const router = createRouter({ routeTree });

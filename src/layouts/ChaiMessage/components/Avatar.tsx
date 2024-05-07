@@ -19,7 +19,7 @@ export function Avatar({ className, src, displayName }: AvatarProps) {
     // Placeholder
     <div
       className={twMerge(
-        "font-sans-rounded flex size-[2.8rem] items-center justify-center rounded-full bg-gradient-to-b from-[#9CA0AE] to-[#7D8089] text-xl font-bold uppercase text-white",
+        "flex size-[2.8rem] items-center justify-center rounded-full bg-gradient-to-b from-[#9CA0AE] to-[#7D8089] font-sans-rounded text-xl font-bold uppercase text-white",
         className,
       )}
     >

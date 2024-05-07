@@ -4,17 +4,18 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "hattip serve ./hattip-entry.ts",
-    "build": "NODE_ENV=production hattip build ./hattip-entry.ts",
+    "dev": "bun --bun vite --host",
+    "build": "bun --bun vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "renovate": "bunx npm-check-updates -i",
-    "preview": "vite preview"
+    "preview": "NODE_ENV=production bun src/hono.ts"
   },
   "dependencies": {
     "@ctrl/golang-template": "^1.4.1",
     "@hattip/core": "^0.0.45",
     "@hattip/router": "^0.0.45",
     "@hattip/vite": "^0.0.45",
+    "@hono/vite-dev-server": "^0.12.0",
     "@hookform/error-message": "^2.0.1",
     "@hookform/resolvers": "^3.3.4",
     "@la55u/react-spring-bottom-sheet-updated": "^1.0.3",
@@ -41,6 +42,7 @@
     "date-fns": "^3.6.0",
     "dotenv": "^16.4.5",
     "framer-motion": "^11.1.8",
+    "hono": "^4.3.2",
     "lodash": "^4.17.21",
     "lucide-react": "^0.378.0",
     "ollama": "^0.5.0",
