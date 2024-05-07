@@ -1,15 +1,13 @@
+import { useMutation } from "@tanstack/react-query";
 import { useLongPress } from "@uidotdev/usehooks";
-import { useAnimationControls, AnimatePresence, motion } from "framer-motion";
-import { Heart, ThumbsUp, ThumbsDown, Files, Trash, DraftingCompass, ShipWheel } from "lucide-react";
-import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { AnimatePresence, motion, useAnimationControls } from "framer-motion";
+import { Files, RotateCcw, ShipWheel, Trash } from "lucide-react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { twMerge } from "tailwind-merge";
 import { useInView } from "~/hooks/useInView";
+import type { Reaction as TReaction } from "~/layouts/types";
 import { Reaction } from "./reactions/Reaction";
-import React from "react";
-import { SpinnerIcon } from "~/components/primitives/SpinnerIcon";
 import { SpoilerParticles } from "./SpoilerParticles";
-import { useMutation } from "@tanstack/react-query";
-
 export type TapbackAction = {
   label: string;
   icon: React.ReactNode;
@@ -19,7 +17,7 @@ export type TapbackAction = {
 };
 
 export type Reaction = {
-  id: string;
+  id: TReaction["type"];
   icon: (props: React.ComponentProps<typeof motion.svg>) => JSX.Element;
 };
 
@@ -30,23 +28,29 @@ export const ChatBubble = React.memo(
     tail,
     layoutId,
     typing,
+    reactions,
     onDelete,
     onSteer,
-    refreshing,
+    onReact,
+    onRegenerate,
   }: {
     from: "me" | "them";
     text: string;
     tail?: boolean;
     layoutId: string;
     typing?: boolean;
-    refreshing?: boolean;
+    reactions?: TReaction[] | null;
     onSteer: () => Promise<void>;
+    onRegenerate: () => Promise<void>;
+    onReact: (reaction: TReaction["type"]) => Promise<void>;
     onDelete?: () => void;
   }) => {
     const [isFocused, setIsFocused] = useState(false);
     const [isReactionsOpen, setIsReactionsOpen] = useState(false);
     const [isBackdropAnimating, setIsBackdropAnimating] = useState(false);
+    const [shouldOffset, setShouldOffset] = useState<number | undefined>(undefined);
 
+    const dropdownMenuRef = useRef<HTMLDivElement>(null);
     const [ref, inView] = useInView(undefined);
     const animator = useAnimationControls();
 
@@ -54,17 +58,13 @@ export const ChatBubble = React.memo(
       mutationFn: onSteer,
     });
 
-    const shouldOffset = useMemo(() => {
-      /*
-       * If the message is too far on the bottom, we should return true here
-       * so we can offset it using translateY
-       */
-      const offset = 200;
-      const bottom = ref.current?.getBoundingClientRect().bottom ?? 0;
-      const windowHeight = window.innerHeight;
+    const regenerateMutation = useMutation({
+      mutationFn: onRegenerate,
+    });
 
-      return isFocused && bottom > windowHeight - offset;
-    }, [isFocused, ref]);
+    const reactMutation = useMutation({
+      mutationFn: onReact,
+    });
 
     const onTapBack = useCallback(() => {
       /**
@@ -74,15 +74,33 @@ export const ChatBubble = React.memo(
 
       setIsFocused(true);
       setIsReactionsOpen(true);
+
+      requestIdleCallback(() => {
+        if (dropdownMenuRef.current?.children?.[0]) {
+          const rect = (dropdownMenuRef.current?.children?.[0] as HTMLDivElement)?.getBoundingClientRect();
+          // if off screen, offset
+          const top = rect?.top ?? 0;
+          const height = (dropdownMenuRef.current?.children?.[0] as HTMLDivElement)?.offsetHeight ?? 0;
+          const windowHeight = window.innerHeight;
+
+          if (top + height > windowHeight) {
+            const offset = top - windowHeight + height + 20;
+            setShouldOffset(offset);
+          } else {
+            setShouldOffset(undefined);
+          }
+        }
+      });
     }, []);
 
     const onTapBackDismiss = useCallback(() => {
+      setShouldOffset(undefined);
       setIsBackdropAnimating(true);
       setIsFocused(false);
       setIsReactionsOpen(false);
     }, []);
 
-    const reactions = useMemo(() => {
+    const reactionsSymbols = useMemo(() => {
       return [
         { id: "heart", icon: Reaction.Heart },
         { id: "thumbs-up", icon: Reaction.ThumbsUp },
@@ -102,6 +120,11 @@ export const ChatBubble = React.memo(
 
       onTapBackDismiss();
     }, [onTapBackDismiss, text]);
+
+    const reactToMessage = useCallback(async (reaction: TReaction["type"]) => {
+      reactMutation.mutate(reaction);
+      setTimeout(onTapBackDismiss, 700);
+    }, []);
 
     useEffect(() => {
       if (inView) {
@@ -148,6 +171,11 @@ export const ChatBubble = React.memo(
           onPress: beforeAction(steerMutation.mutate),
         },
         {
+          label: "Regenerate",
+          icon: <RotateCcw className="size-5" />,
+          onPress: beforeAction(regenerateMutation.mutate),
+        },
+        {
           label: "Delete",
           icon: <Trash className="size-5" />,
           onPress: beforeAction(onDelete),
@@ -157,6 +185,10 @@ export const ChatBubble = React.memo(
     }, [onCopy, onDelete, onTapBackDismiss, steerMutation.mutate]);
 
     const longPressProps = useLongPress(onTapBack);
+
+    const isRefreshing = useMemo(() => {
+      return regenerateMutation.isPending || steerMutation.isPending;
+    }, [regenerateMutation.isPending, steerMutation.isPending]);
 
     return (
       <>
@@ -210,8 +242,10 @@ export const ChatBubble = React.memo(
       before:right-[-5px] before:rounded-bl-[18px_14px] before:[background:var(--me-bg)] after:right-[-24px] after:rounded-bl-[10px]`,
             !tail && `before:opacity-0 after:opacity-0`,
             (isFocused || isBackdropAnimating) && "z-[100] shadow-xl",
-            shouldOffset && "!-translate-y-28 transition-transform duration-300",
+            // offset
+            shouldOffset && `!-translate-y-[var(--offset)] transition-transform duration-300`,
           )}
+          style={{ "--offset": shouldOffset ? `${shouldOffset}px` : undefined } as React.CSSProperties}
           {...longPressProps}
         >
           {/* Reactions */}
@@ -219,7 +253,7 @@ export const ChatBubble = React.memo(
             {isReactionsOpen && (
               <motion.div
                 initial={{ opacity: 0, width: 0 }}
-                animate={{ opacity: 1, width: "248px" }}
+                animate={{ opacity: 1, width: "278px" }}
                 exit={{ opacity: 0, transition: { duration: 0.1 } }}
                 transition={{
                   type: "spring",
@@ -244,21 +278,61 @@ export const ChatBubble = React.memo(
                     "after:absolute after:bottom-[-6px] after:right-[-1px] after:size-[0.35rem] after:rounded-full after:bg-[var(--bg)] after:content-['']",
                 )}
               >
-                {reactions.map((reaction, i) => (
+                {reactionsSymbols.map((reaction, i) => (
                   <motion.div
                     key={reaction.id}
-                    className="flex items-center justify-center gap-1 text-[#757577] *:size-6"
+                    className={twMerge(
+                      "relative flex cursor-pointer items-center justify-center gap-1 text-[#757577] *:size-6 before:opacity-0 before:transition-opacity",
+                      reactions?.find((r) => r.type === reaction.id)?.from === "me" &&
+                        "z-[2] !text-white before:absolute before:-left-2 before:-top-2 before:size-10 before:rounded-full before:bg-[#137BFF] before:opacity-100 before:content-['']",
+                    )}
+                    onClick={() => reactToMessage(reaction.id)}
                   >
-                    <reaction.icon transition={{ delay: i * 0.05 + 0.2 }} />
+                    <reaction.icon className="z-[10]" transition={{ delay: i * 0.05 + 0.2 }} />
                   </motion.div>
                 ))}
               </motion.div>
             )}
           </AnimatePresence>
 
+          {/* Applied Reactions on the right top edge */}
+          <AnimatePresence>
+            {reactions?.map((reaction) => {
+              return (
+                <motion.div
+                  key={reaction.type}
+                  className={twMerge(
+                    `absolute -top-5 z-[10] flex h-8 w-8 items-center justify-center  rounded-full text-white
+                  *:size-4
+                  `,
+                    // two little blobs
+                    from === "me" &&
+                      `
+                    -left-4
+                    before:absolute before:-left-0 before:top-6 before:size-[0.6rem] before:rounded-full  before:content-['']
+                    after:absolute after:-left-1  after:top-8 after:size-[0.3rem] after:rounded-full after:content-['']
+                  `,
+                    from === "them" &&
+                      `
+                    -right-4
+                    before:absolute before:-right-0 before:top-6 before:size-[0.6rem] before:rounded-full  before:content-['']
+                    after:absolute after:-right-1  after:top-8 after:size-[0.3rem] after:rounded-full after:content-['']
+                  `,
+                    reaction.from === "me" && `bg-[#137BFF] before:bg-[#137BFF] after:bg-[#137BFF]`,
+                    reaction.from === "them" && `bg-[#222225] before:bg-[#222225] after:bg-[#222225]`,
+                    from === "me" && reaction.from === "me" && "z-[10] ring-[1px] ring-black/30",
+                    from === "them" && reaction.from === "them" && "z-[10] ring-[1px] ring-black/30",
+                  )}
+                >
+                  {reactionsSymbols?.find((r) => r.id === reaction.type)?.icon?.({})}
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
+
           <div className="chat-bubble-text relative">
             {text}
-            <AnimatePresence mode="wait">{steerMutation.isPending && <SpoilerParticles />}</AnimatePresence>
+            <AnimatePresence mode="wait">{isRefreshing && <SpoilerParticles />}</AnimatePresence>
           </div>
 
           {typing && (
@@ -271,39 +345,41 @@ export const ChatBubble = React.memo(
           )}
 
           {/* Context menu (copy, etc.) */}
-          <AnimatePresence>
-            {isFocused && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0 }}
-                transition={{ duration: 0.3, ease: [0, 0, 0, 1.05] }}
-                className={twMerge(
-                  "[--bg:#1A1A1A]",
-                  "absolute top-[100%] z-[100] mb-1 mt-1 flex min-w-[180px] flex-col divide-y divide-white/5 rounded-xl bg-[var(--bg)]  text-white backdrop-blur-xl",
-                  from === "me" && "right-0 [transform-origin:top_right]",
-                  from === "them" && "left-0 [transform-origin:top_left]",
-                )}
-              >
-                {tapbackActions.map(
-                  (action) =>
-                    action.visible !== false && (
-                      <div
-                        key={action.label}
-                        className={twMerge(
-                          "flex w-full cursor-pointer items-center justify-between gap-2 px-4 py-3",
-                          action.className,
-                        )}
-                        onClick={(e) => void action.onPress?.(e)}
-                      >
-                        <span>{action.label}</span>
-                        {action.icon}
-                      </div>
-                    ),
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <div ref={dropdownMenuRef}>
+            <AnimatePresence>
+              {isFocused && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0 }}
+                  transition={{ duration: 0.3, ease: [0, 0, 0, 1.05] }}
+                  className={twMerge(
+                    "[--bg:#1A1A1A]",
+                    "absolute top-[100%] z-[100] mb-1 mt-1 flex min-w-[180px] flex-col divide-y divide-white/5 rounded-xl bg-[var(--bg)]  text-white backdrop-blur-xl",
+                    from === "me" && "right-0 [transform-origin:top_right]",
+                    from === "them" && "left-0 [transform-origin:top_left]",
+                  )}
+                >
+                  {tapbackActions.map(
+                    (action) =>
+                      action.visible !== false && (
+                        <div
+                          key={action.label}
+                          className={twMerge(
+                            "flex w-full cursor-pointer items-center justify-between gap-2 px-4 py-3",
+                            action.className,
+                          )}
+                          onClick={(e) => void action.onPress?.(e)}
+                        >
+                          <span>{action.label}</span>
+                          {action.icon}
+                        </div>
+                      ),
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </motion.div>
       </>
     );

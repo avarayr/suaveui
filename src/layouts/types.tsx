@@ -12,6 +12,8 @@ export interface TextingProps {
   onMessageSend: (message: string) => Promise<void>;
   onMessageDelete: (messageId: string) => Promise<void>;
   onMessageSteer: (messageId: string) => Promise<void>;
+  onMessageRegenerate: (messageId: string) => Promise<void>;
+  onMessageReact: (messageId: string, reaction: Reaction["type"]) => Promise<void>;
 }
 
 export interface Chat {
@@ -51,6 +53,6 @@ export interface OllamaChatMessage {
 }
 
 export interface Reaction {
-  type: "heart" | "thumbs-up" | "thumbs-down";
+  type: "heart" | "thumbs-up" | "thumbs-down" | "haha" | "exclamation" | "question";
   from: "me" | "them";
 }

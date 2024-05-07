@@ -1,14 +1,10 @@
 import { createId } from "@paralleldrive/cuid2";
 import { db } from "~/server/db";
 import type { TChatWithPersonas, TChat } from "../schema/Chat";
-import {
-  MessageSchema,
-  MessageSchemaWithID,
-  type TMessageWithID,
-  type TMessage,
-} from "../schema/Message";
+import { MessageSchema, MessageSchemaWithID, type TMessageWithID, type TMessage } from "../schema/Message";
 import { Persona } from "./Persona";
 import { type z } from "zod";
+import { Reaction } from "~/layouts/types";
 
 /**
  * CRUD operations for the chats collection
@@ -18,9 +14,7 @@ export const Chat = {
    * Fetches a chat by its id
    */
   async get(id: string) {
-    const ref = await db
-      .ref<TChat>(`chats/${id}`)
-      .get({ exclude: ["messages"] } as const);
+    const ref = await db.ref<TChat>(`chats/${id}`).get({ exclude: ["messages"] } as const);
 
     const values = ref.val();
     return values;
@@ -30,23 +24,17 @@ export const Chat = {
     const chats = await this.all();
     const allPersonaIds = chats.map((chat) => chat.personaIDs).flat();
 
-    const personas = allPersonaIds?.length
-      ? await Persona.getByIDs(allPersonaIds)
-      : [];
+    const personas = allPersonaIds?.length ? await Persona.getByIDs(allPersonaIds) : [];
 
     const chatsWithPersonas = chats.map((chat) => {
-      const persona = personas.find(
-        (persona) => persona.id === chat.personaIDs[0],
-      );
+      const persona = personas.find((persona) => persona.id === chat.personaIDs[0]);
       return { ...chat, persona };
     });
 
     return chatsWithPersonas;
   },
 
-  async getWithPersonas(
-    id: string,
-  ): Promise<Omit<TChatWithPersonas, "messages"> | null> {
+  async getWithPersonas(id: string): Promise<Omit<TChatWithPersonas, "messages"> | null> {
     const chat = await this.get(id);
     if (!chat) return null;
 
@@ -55,15 +43,7 @@ export const Chat = {
     return { ...chat, personas };
   },
 
-  async getMessages({
-    chatId,
-    limit = 1000,
-    offset = 0,
-  }: {
-    chatId: string;
-    limit?: number;
-    offset?: number;
-  }) {
+  async getMessages({ chatId, limit = 1000, offset = 0 }: { chatId: string; limit?: number; offset?: number }) {
     return (
       (
         await db
@@ -74,9 +54,7 @@ export const Chat = {
           .take(limit)
           .get<TMessageWithID>()
       ).getValues() || []
-    ).toSorted(
-      (a, b) => (a.createdAt?.getTime() ?? 0) - (b.createdAt?.getTime() ?? 0),
-    );
+    ).toSorted((a, b) => (a.createdAt?.getTime() ?? 0) - (b.createdAt?.getTime() ?? 0));
   },
 
   /**
@@ -120,11 +98,7 @@ export const Chat = {
    * Fetches all chats from the database
    */
   async all({ limit = 1000, offset = 0, messageLimit = 10 } = {}) {
-    const ref = db
-      .query("chats")
-      .skip(offset)
-      .take(limit)
-      .sort("createdAt", false);
+    const ref = db.query("chats").skip(offset).take(limit).sort("createdAt", false);
     const chats = (await ref.get<TChat>({ exclude: ["messages"] })).getValues();
 
     for (const chat of chats) {
@@ -145,15 +119,7 @@ export const Chat = {
     return (await ref.get())?.val<TMessageWithID[]>();
   },
 
-  async sendMessage({
-    chatId,
-    content,
-    personaID,
-  }: {
-    chatId: string;
-    content: string;
-    personaID: string | null;
-  }) {
+  async sendMessage({ chatId, content, personaID }: { chatId: string; content: string; personaID: string | null }) {
     const messageId = createId();
 
     const message = MessageSchemaWithID.parse({
@@ -165,26 +131,45 @@ export const Chat = {
       role: personaID ? "assistant" : "user",
     } satisfies z.infer<typeof MessageSchemaWithID>);
 
-    const ref = await db
-      .ref(`chats/${chatId}/messages/${messageId}`)
-      .set(message);
+    const ref = await db.ref(`chats/${chatId}/messages/${messageId}`).set(message);
 
     return (await ref.get<TMessageWithID>()).val();
   },
 
-  async editMessage({
-    chatId,
-    messageId,
-    content,
-  }: {
-    chatId: string;
-    messageId: string;
-    content: string;
-  }) {
+  async editMessage({ chatId, messageId, content }: { chatId: string; messageId: string; content: string }) {
     const ref = await db.ref(`chats/${chatId}/messages/${messageId}`).update({
       content,
     });
 
     return (await ref.get<TMessageWithID>()).val();
+  },
+
+  async addReaction({
+    chatId,
+    messageId,
+    reaction,
+    from,
+  }: {
+    chatId: string;
+    messageId: string;
+    reaction: string;
+    from: "me" | "them";
+  }) {
+    let reactions = (
+      await db.ref(`chats/${chatId}/messages/${messageId}/reactions`).get<{ type: string; from: "me" | "them" }[]>()
+    ).val();
+    if (reactions) {
+      // If the reaction already exists, remove it
+      reactions = reactions.filter((r) => {
+        if (r.from === from) {
+          return false;
+        }
+        return true;
+      });
+    }
+    reactions = reactions ?? [];
+    reactions.push({ type: reaction, from });
+    await db.ref(`chats/${chatId}/messages/${messageId}/reactions`).set(reactions);
+    return reactions;
   },
 };

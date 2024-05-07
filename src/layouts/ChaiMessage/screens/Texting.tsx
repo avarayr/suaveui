@@ -6,7 +6,7 @@ import { ArrowUp, ChevronLeft, Plus, VideoIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { twMerge } from "tailwind-merge";
 import { SpinnerIcon } from "~/components/primitives/SpinnerIcon";
-import { type TextingProps } from "../../types";
+import { Reaction, type TextingProps } from "../../types";
 import { Avatar } from "../components/Avatar";
 import { ChatBubble } from "../components/ChatBubble";
 import { ChaiColors } from "../types";
@@ -18,6 +18,8 @@ export const Texting = ({
   loading: chatLoading,
   onMessageDelete,
   onMessageSteer,
+  onMessageRegenerate,
+  onMessageReact,
 }: TextingProps) => {
   const sendMessageMutation = useMutation({
     mutationFn: onMessageSend,
@@ -136,6 +138,9 @@ export const Texting = ({
             tail={shouldShowTail(i, messages)}
             onDelete={() => onMessageDelete(message.id)}
             onSteer={() => onMessageSteer(message.id)}
+            onRegenerate={() => onMessageRegenerate(message.id)}
+            onReact={(reaction) => onMessageReact(message.id, reaction)}
+            reactions={message.reactions as Reaction[] | null}
           />
         ))}
       </section>

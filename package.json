@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "bun --bun vite --host",
     "build": "bun --bun vite build",
+    "start": "NODE_ENV=production bun src/hono.ts",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "renovate": "bunx npm-check-updates -i",
     "preview": "NODE_ENV=production bun src/hono.ts"

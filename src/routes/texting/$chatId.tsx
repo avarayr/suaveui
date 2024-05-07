@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Texting } from "~/layouts/Texting";
+import { Reaction } from "~/layouts/types";
 import { api } from "~/trpc/react";
 
 export const Route = createFileRoute("/texting/$chatId")({
@@ -106,6 +107,52 @@ function TextingPage() {
     },
   });
 
+  const regenerateMessageMutation = api.chat.regenerateMessage.useMutation({
+    onSuccess: () => {
+      void utils.chat.getMessages.invalidate({ chatId: String(chatId) });
+    },
+  });
+
+  const reactMessageMutation = api.chat.reactMessage.useMutation({
+    onSuccess: () => {
+      void utils.chat.getMessages.invalidate({ chatId: String(chatId) });
+    },
+
+    onMutate: async (message) => {
+      // Cancel outgoing fetches (so they don't overwrite our optimistic update)
+      await utils.chat.getMessages.cancel({ chatId: String(chatId) });
+
+      // Get the data from the queryCache
+      const prevData = utils.chat.getMessages.getData({
+        chatId: chatId as string,
+      });
+
+      console.log(message);
+      // Optimistically update the data with our new post
+      utils.chat.getMessages.setData(
+        {
+          chatId: chatId as string,
+        },
+        (old) => ({
+          chat: old!.chat,
+          messages:
+            old?.messages?.map((m) =>
+              m.id === message.messageId
+                ? { ...m, reactions: [...(m.reactions ?? []), { type: message.reaction, from: "user" } as const] }
+                : m,
+            ) ?? [],
+        }),
+      );
+
+      // Return the previous data so we can revert if something goes wrong
+      return { prevData };
+    },
+
+    onError: (error, variables, context) => {
+      utils.chat.getMessages.setData({ chatId: chatId as string }, context?.prevData);
+    },
+  });
+
   if (typeof chatId !== "string") {
     return null;
   }
@@ -122,6 +169,14 @@ function TextingPage() {
     await steerMessageMutation.mutateAsync({ chatId, messageId });
   };
 
+  const handleMessageReact = async (messageId: string, reaction: Reaction["type"]) => {
+    await reactMessageMutation.mutateAsync({ chatId, messageId, reaction });
+  };
+
+  const handleMessageRegenerate = async (messageId: string) => {
+    await regenerateMessageMutation.mutateAsync({ chatId, messageId });
+  };
+
   return (
     <Texting
       layout="ChaiMessage"
@@ -130,6 +185,8 @@ function TextingPage() {
       onMessageSend={handleMessageSend}
       onMessageDelete={handleMessageDelete}
       onMessageSteer={handleMessageSteer}
+      onMessageReact={handleMessageReact}
+      onMessageRegenerate={handleMessageRegenerate}
     />
   );
 }
