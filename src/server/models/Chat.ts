@@ -158,17 +158,22 @@ export const Chat = {
     let reactions = (
       await db.ref(`chats/${chatId}/messages/${messageId}/reactions`).get<{ type: string; from: "me" | "them" }[]>()
     ).val();
+
+    let isRemoving = false;
     if (reactions) {
       // If the reaction already exists, remove it
       reactions = reactions.filter((r) => {
         if (r.from === from) {
+          isRemoving = r.type === reaction;
           return false;
         }
         return true;
       });
     }
     reactions = reactions ?? [];
-    reactions.push({ type: reaction, from });
+    if (!isRemoving) {
+      reactions.push({ type: reaction, from });
+    }
     await db.ref(`chats/${chatId}/messages/${messageId}/reactions`).set(reactions);
     return reactions;
   },

@@ -301,6 +301,9 @@ export const ChatBubble = React.memo(
               return (
                 <motion.div
                   key={reaction.type}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.3, ease: "easeInOut" }}
                   className={twMerge(
                     `absolute -top-5 z-[10] flex h-8 w-8 items-center justify-center  rounded-full text-white
                   *:size-4
