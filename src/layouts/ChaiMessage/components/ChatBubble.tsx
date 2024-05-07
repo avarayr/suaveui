@@ -75,22 +75,22 @@ export const ChatBubble = React.memo(
       setIsFocused(true);
       setIsReactionsOpen(true);
 
-      requestIdleCallback(() => {
-        if (dropdownMenuRef.current?.children?.[0]) {
-          const rect = (dropdownMenuRef.current?.children?.[0] as HTMLDivElement)?.getBoundingClientRect();
-          // if off screen, offset
-          const top = rect?.top ?? 0;
-          const height = (dropdownMenuRef.current?.children?.[0] as HTMLDivElement)?.offsetHeight ?? 0;
-          const windowHeight = window.innerHeight;
+      const child = dropdownMenuRef.current?.children?.[0] as HTMLDivElement | undefined;
+      if (child) {
+        const rect = child?.getBoundingClientRect();
+        // if off screen, offset
+        const top = rect?.top ?? 0;
+        const height = child?.offsetHeight ?? 0;
+        const windowHeight = window.innerHeight;
 
-          if (top + height > windowHeight) {
-            const offset = top - windowHeight + height + 20;
-            setShouldOffset(offset);
-          } else {
-            setShouldOffset(undefined);
-          }
+        const marginTop = 60;
+        if (top + height + marginTop > windowHeight) {
+          const offset = top - windowHeight + height + marginTop;
+          setShouldOffset(offset);
+        } else {
+          setShouldOffset(undefined);
         }
-      });
+      }
     }, []);
 
     const onTapBackDismiss = useCallback(() => {
@@ -354,7 +354,9 @@ export const ChatBubble = React.memo(
 
           <div className="chat-bubble-text relative">
             {text}
-            <AnimatePresence mode="wait">{isRefreshing && <SpoilerParticles />}</AnimatePresence>
+            <AnimatePresence initial={false} mode="wait">
+              {isRefreshing && <SpoilerParticles />}
+            </AnimatePresence>
           </div>
 
           {typing && (
@@ -368,7 +370,7 @@ export const ChatBubble = React.memo(
 
           {/* Context menu (copy, etc.) */}
           <div ref={dropdownMenuRef}>
-            <AnimatePresence>
+            <AnimatePresence initial={false}>
               {isFocused && (
                 <motion.div
                   initial={{ opacity: 0, scale: 0 }}

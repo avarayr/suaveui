@@ -26,7 +26,7 @@ export const Texting = ({
   });
 
   const chatMessagesRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const [message, setMessage] = useState("");
 
   const messages = useMemo(() => {
@@ -53,6 +53,11 @@ export const Texting = ({
 
       void sendMessageMutation.mutateAsync(message);
       setMessage("");
+
+      setTimeout(() => {
+        resizeTextarea();
+        chatMessagesRef.current?.scrollTo({ top: chatMessagesRef.current?.scrollHeight });
+      });
     },
     [message, sendMessageMutation],
   );
@@ -66,6 +71,19 @@ export const Texting = ({
       return true;
     }
     return false;
+  }, []);
+
+  const resizeTextarea = useCallback(() => {
+    if (!inputRef.current) return;
+
+    const maxRows = 14;
+
+    // resize the textarea if content overflows
+    inputRef.current.style.height = "auto";
+    inputRef.current.style.height = `${Math.min(
+      inputRef.current.scrollHeight,
+      maxRows * parseFloat(getComputedStyle(inputRef.current).lineHeight),
+    )}px`;
   }, []);
 
   return (
@@ -105,7 +123,7 @@ export const Texting = ({
       {/* Conversation */}
       <section
         className={twMerge(
-          "flex h-1 flex-grow flex-col-reverse gap-1 overflow-x-clip overflow-y-scroll px-5 pb-[65px] pt-24",
+          "flex h-1 flex-grow flex-col-reverse gap-2 overflow-x-clip overflow-y-scroll px-5 pb-2 pt-24",
         )}
         ref={chatMessagesRef}
       >
@@ -146,24 +164,27 @@ export const Texting = ({
       </section>
 
       {/* Chat input */}
-      <section className="absolute bottom-0 left-0 z-10 flex h-14 w-full items-center gap-2 bg-black/80 px-3 backdrop-blur-xl">
+      <section className="z-10 flex min-h-14 w-full items-center gap-2 bg-black/80 px-3 backdrop-blur-xl">
         {/* Plus Icon */}
         <button className="duration-[350ms] flex size-9 flex-shrink-0 items-center justify-center rounded-full bg-[#101011] text-white/80 transition-colors">
           <Plus className="size-4" />
         </button>
 
         {/* Input */}
-        <input
+        <textarea
           ref={inputRef}
-          type="text"
           autoComplete="off"
-          className="h-9 w-full flex-grow rounded-full border border-[#1F2021] bg-transparent px-3 py-2 pr-10 text-white placeholder-[#434346] caret-blue-600 outline-none selection:bg-[#346DD9]/30"
+          wrap="hard"
+          className="h-auto min-h-9 w-full flex-grow rounded-3xl border border-[#1F2021] bg-transparent px-3 py-[0.4rem] pr-10 text-white placeholder-[#434346] caret-blue-600 outline-none [field-sizing:content] selection:bg-[#346DD9]/30"
           placeholder="Message..."
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={(e) => {
-            e.key === "Enter" && void sendMessage(e);
+            // if mobile - don't send on enter
+            if (window.innerWidth < 768) return;
+            e.key === "Enter" && !e.shiftKey && void sendMessage(e);
           }}
+          onInput={resizeTextarea}
         />
 
         {/* Send Icon (absolute, right-0)*/}
