@@ -6,10 +6,10 @@ import { ChatList } from "~/layouts/ChatList";
 import { api } from "~/trpc/react";
 
 export const Route = createFileRoute("/")({
-  component: () => <Page />,
+  component: () => <IndexPage />,
 });
 
-function Page() {
+function IndexPage() {
   const [isNewChatDrawerOpen, setIsNewChatDrawerOpen] = useState(false);
   const chats = api.chat.all.useQuery();
 

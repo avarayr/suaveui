@@ -11,6 +11,7 @@ import { Avatar } from "../components/Avatar";
 import { ChatBubble } from "../components/ChatBubble";
 import { ChaiColors } from "../types";
 import { Link } from "@tanstack/react-router";
+import debonuce from "lodash/debounce";
 
 export const Texting = ({
   data,
@@ -73,18 +74,21 @@ export const Texting = ({
     return false;
   }, []);
 
-  const resizeTextarea = useCallback(() => {
-    if (!inputRef.current) return;
+  const resizeTextarea = useCallback(
+    debonuce(() => {
+      if (!inputRef.current) return;
 
-    const maxRows = 14;
+      const maxRows = 14;
 
-    // resize the textarea if content overflows
-    inputRef.current.style.height = "auto";
-    inputRef.current.style.height = `${Math.min(
-      inputRef.current.scrollHeight,
-      maxRows * parseFloat(getComputedStyle(inputRef.current).lineHeight),
-    )}px`;
-  }, []);
+      // resize the textarea if content overflows
+      inputRef.current.style.height = "auto";
+      inputRef.current.style.height = `${Math.min(
+        inputRef.current.scrollHeight,
+        maxRows * parseFloat(getComputedStyle(inputRef.current).lineHeight),
+      )}px`;
+    }, 100),
+    [],
+  );
 
   return (
     <motion.main

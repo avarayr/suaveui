@@ -27,6 +27,7 @@ export function Avatar({ className, src, displayName }: AvatarProps) {
         ? displayName
             ?.split(" ")
             ?.map((part) => part[0])
+            .slice(0, 2)
             .join("")
         : ""}
     </div>

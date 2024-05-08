@@ -126,26 +126,6 @@ export const ChatBubble = React.memo(
       setTimeout(onTapBackDismiss, 700);
     }, []);
 
-    useEffect(() => {
-      if (inView) {
-        void animator.start({
-          y: 0,
-          opacity: 1,
-          transition: { duration: 0.3, ease: "easeInOut" },
-        });
-      } else {
-        void animator.start({
-          y: 15,
-          opacity: 0.6,
-          transition: { duration: 0.3, ease: "easeInOut" },
-        });
-      }
-    }, [animator, inView]);
-
-    useEffect(() => {
-      void animator.start({ y: 0, opacity: 1 });
-    }, [animator]);
-
     const tapbackActions = useMemo<TapbackAction[]>(() => {
       const beforeAction = (callback?: () => any) => {
         return (e: React.MouseEvent<HTMLDivElement>) => {
@@ -155,7 +135,7 @@ export const ChatBubble = React.memo(
           onTapBackDismiss();
           setTimeout(() => {
             void callback?.();
-          }, 100);
+          }, 350);
         };
       };
 
@@ -222,7 +202,6 @@ export const ChatBubble = React.memo(
           }}
           layout
           layoutId={layoutId}
-          initial={{ y: 15, opacity: 0.6 }}
           animate={animator}
           className={twMerge(
             `will-change-transform [--h:3px] [--w:3px]`,
