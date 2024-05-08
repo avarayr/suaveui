@@ -51,8 +51,6 @@ export const ChatBubble = React.memo(
     const [shouldOffset, setShouldOffset] = useState<number | undefined>(undefined);
 
     const dropdownMenuRef = useRef<HTMLDivElement>(null);
-    const [ref, inView] = useInView(undefined);
-    const animator = useAnimationControls();
 
     const steerMutation = useMutation({
       mutationFn: onSteer,
@@ -191,7 +189,8 @@ export const ChatBubble = React.memo(
         </AnimatePresence>
 
         <motion.div
-          ref={ref}
+          initial={{ opacity: 0.6, y: 17 }}
+          animate={{ opacity: 1, y: 0 }}
           whileTap={{
             scale: 1.02,
             filter: "drop-shadow(0px 0px 10px rgba(0, 0, 0, 0.5))",
@@ -202,7 +201,6 @@ export const ChatBubble = React.memo(
           }}
           layout
           layoutId={layoutId}
-          animate={animator}
           className={twMerge(
             `will-change-transform [--h:3px] [--w:3px]`,
             `[--them-bg:linear-gradient(to_bottom,#343435,#343435)]`,
