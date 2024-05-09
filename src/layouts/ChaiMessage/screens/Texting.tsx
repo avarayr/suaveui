@@ -11,7 +11,9 @@ import { Avatar } from "../components/Avatar";
 import { ChatBubble } from "../components/ChatBubble";
 import { ChaiColors } from "../types";
 import { Link } from "@tanstack/react-router";
-import debonuce from "lodash/debounce";
+import debounce from "lodash/debounce";
+import { IsRouteTransitioning } from "~/internal/AnimatedOutlet";
+import { useAtomValue } from "jotai";
 
 export const Texting = ({
   data,
@@ -22,6 +24,11 @@ export const Texting = ({
   onMessageRegenerate,
   onMessageReact,
 }: TextingProps) => {
+  /**
+   * Prevent motion-framer "layout" jitter on route transition
+   */
+  const isRouteTransitioning = useAtomValue(IsRouteTransitioning);
+
   const sendMessageMutation = useMutation({
     mutationFn: onMessageSend,
   });
@@ -41,8 +48,27 @@ export const Texting = ({
   useEffect(() => {
     document.querySelector("meta[name='theme-color']")?.setAttribute("content", ChaiColors.TEXTING_ACTIVITYBAR);
 
-    return () => document.querySelector("meta[name='theme-color']")?.setAttribute("content", ChaiColors.BACKGROUND);
+    return () => {
+      document.querySelector("meta[name='theme-color']")?.setAttribute("content", ChaiColors.BACKGROUND);
+    };
   }, []);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const resizeTextarea = useCallback(
+    debounce(() => {
+      if (!inputRef.current) return;
+
+      const maxRows = 14;
+
+      // resize the textarea if content overflows
+      inputRef.current.style.height = "auto";
+      inputRef.current.style.height = `${Math.min(
+        inputRef.current.scrollHeight,
+        maxRows * parseFloat(getComputedStyle(inputRef.current).lineHeight),
+      )}px`;
+    }, 100),
+    [],
+  );
 
   const sendMessage = useCallback(
     (e: { preventDefault: () => void }) => {
@@ -60,7 +86,7 @@ export const Texting = ({
         chatMessagesRef.current?.scrollTo({ top: chatMessagesRef.current?.scrollHeight });
       });
     },
-    [message, sendMessageMutation],
+    [message, resizeTextarea, sendMessageMutation],
   );
 
   const shouldShowTail = useCallback((i: number, _messages: typeof messages) => {
@@ -73,22 +99,6 @@ export const Texting = ({
     }
     return false;
   }, []);
-
-  const resizeTextarea = useCallback(
-    debonuce(() => {
-      if (!inputRef.current) return;
-
-      const maxRows = 14;
-
-      // resize the textarea if content overflows
-      inputRef.current.style.height = "auto";
-      inputRef.current.style.height = `${Math.min(
-        inputRef.current.scrollHeight,
-        maxRows * parseFloat(getComputedStyle(inputRef.current).lineHeight),
-      )}px`;
-    }, 100),
-    [],
-  );
 
   return (
     <motion.main
@@ -125,6 +135,7 @@ export const Texting = ({
       </section>
 
       {/* Conversation */}
+
       <section
         className={twMerge(
           "flex h-1 flex-grow flex-col-reverse gap-2 overflow-x-clip overflow-y-scroll px-5 pb-2 pt-24",
@@ -132,7 +143,7 @@ export const Texting = ({
         ref={chatMessagesRef}
       >
         {/* Loading */}
-        {chatLoading && (
+        {(isRouteTransitioning || chatLoading) && (
           <div className="absolute inset-0 flex items-center justify-center">
             <SpinnerIcon className="size-6" variant="ios" />
           </div>
@@ -151,20 +162,21 @@ export const Texting = ({
           )} */}
         </AnimatePresence>
 
-        {messages.map((message, i) => (
-          <ChatBubble
-            layoutId={message.id}
-            from={message.role === "user" ? "me" : "them"}
-            text={message.content}
-            key={message.id}
-            tail={shouldShowTail(i, messages)}
-            onDelete={() => onMessageDelete(message.id)}
-            onSteer={() => onMessageSteer(message.id)}
-            onRegenerate={() => onMessageRegenerate(message.id)}
-            onReact={(reaction) => onMessageReact(message.id, reaction)}
-            reactions={message.reactions as Reaction[] | null}
-          />
-        ))}
+        {!isRouteTransitioning &&
+          messages.map((message, i) => (
+            <ChatBubble
+              layoutId={message.id}
+              from={message.role === "user" ? "me" : "them"}
+              text={message.content}
+              key={message.id}
+              tail={shouldShowTail(i, messages)}
+              onDelete={() => onMessageDelete(message.id)}
+              onSteer={() => onMessageSteer(message.id)}
+              onRegenerate={() => onMessageRegenerate(message.id)}
+              onReact={(reaction) => onMessageReact(message.id, reaction)}
+              reactions={message.reactions as Reaction[] | null}
+            />
+          ))}
       </section>
 
       {/* Chat input */}

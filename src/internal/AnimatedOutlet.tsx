@@ -3,6 +3,9 @@ import { motion, MotionProps, useIsPresent } from "framer-motion";
 import { forwardRef, useContext, useRef } from "react";
 import { AnimatedOutletProps, RouteTransitionVariants } from "./AnimatedOutlet.types";
 import cloneDeep from "lodash/cloneDeep";
+import { atom, useAtom, useSetAtom } from "jotai";
+
+export const IsRouteTransitioning = atom(false);
 
 export const TransitionProps = {
   variants: RouteTransitionVariants,
@@ -21,6 +24,8 @@ export const TransitionProps = {
 } as const satisfies MotionProps;
 
 const AnimatedOutlet = forwardRef<HTMLDivElement, AnimatedOutletProps>(({ direction, ...props }, ref) => {
+  const setIsRouteTransitioning = useSetAtom(IsRouteTransitioning);
+
   const isPresent = useIsPresent();
 
   const matches = useMatches();
@@ -45,7 +50,15 @@ const AnimatedOutlet = forwardRef<HTMLDivElement, AnimatedOutletProps>(({ direct
   }
 
   return (
-    <motion.div ref={ref} className="outlet" custom={direction} {...TransitionProps} {...props}>
+    <motion.div
+      onAnimationStart={() => setIsRouteTransitioning(true)}
+      onAnimationComplete={() => setIsRouteTransitioning(false)}
+      ref={ref}
+      className="outlet"
+      custom={direction}
+      {...TransitionProps}
+      {...props}
+    >
       <RouterContext.Provider value={renderedContext}>
         <Outlet />
       </RouterContext.Provider>

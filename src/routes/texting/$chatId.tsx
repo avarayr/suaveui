@@ -13,7 +13,7 @@ function TextingPage() {
   const utils = api.useUtils();
 
   const messagesQuery = api.chat.getMessages.useQuery(
-    { chatId: chatId as string },
+    { chatId },
     {
       enabled: typeof chatId === "string",
       trpc: { ssr: false },
@@ -78,13 +78,13 @@ function TextingPage() {
 
       // Get the data from the queryCache
       const prevData = utils.chat.getMessages.getData({
-        chatId: chatId as string,
+        chatId,
       });
 
       // Optimistically update the data with our new post
       utils.chat.getMessages.setData(
         {
-          chatId: chatId as string,
+          chatId,
         },
         (old) => ({
           chat: old!.chat,
@@ -97,7 +97,7 @@ function TextingPage() {
     },
 
     onError: (error, variables, context) => {
-      utils.chat.getMessages.setData({ chatId: chatId as string }, context?.prevData);
+      utils.chat.getMessages.setData({ chatId: chatId }, context?.prevData);
     },
   });
 
@@ -124,14 +124,14 @@ function TextingPage() {
 
       // Get the data from the queryCache
       const prevData = utils.chat.getMessages.getData({
-        chatId: chatId as string,
+        chatId,
       });
 
       console.log(message);
       // Optimistically update the data with our new post
       utils.chat.getMessages.setData(
         {
-          chatId: chatId as string,
+          chatId,
         },
         (old) => ({
           chat: old!.chat,
@@ -149,7 +149,7 @@ function TextingPage() {
     },
 
     onError: (error, variables, context) => {
-      utils.chat.getMessages.setData({ chatId: chatId as string }, context?.prevData);
+      utils.chat.getMessages.setData({ chatId }, context?.prevData);
     },
   });
 

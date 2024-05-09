@@ -66,6 +66,11 @@ export const SpoilerParticles = (
 
     // Animation loop
     const animate = () => {
+      if (!ctx) return;
+      if (!canvas) return;
+      if (!sparklesRef.current) return;
+      if (!particles.current) return;
+
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       particles.current.forEach((particle, index) => {
@@ -133,7 +138,10 @@ export const SpoilerParticles = (
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="absolute inset-0 z-10 mx-[-2px] flex h-full w-[calc(100%+4px)] items-center justify-center overflow-hidden rounded-[10px] backdrop-blur-3xl repeat-infinite"
+          className={`absolute inset-0 z-10 mx-[-2px] flex h-full w-[calc(100%+4px)] animate-shimmer items-center justify-center overflow-hidden rounded-[10px] bg-gradient-to-r from-transparent
+          via-[#146FFD]/10
+          to-transparent bg-[length:200%_100%] backdrop-blur-3xl repeat-infinite
+          `}
         />
       </AnimatePresence>
     </motion.div>

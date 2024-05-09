@@ -12,7 +12,7 @@ module.exports = {
     "plugin:react/recommended",
     "plugin:react/jsx-runtime",
   ],
-  ignorePatterns: ["dist", "dev-dist", ".eslintrc.cjs", "tailwind.config.cjs", "postcss.config.cjs"],
+  ignorePatterns: ["dist", "dev-dist", ".eslintrc.cjs", "vite.config.ts", "tailwind.config.ts", "postcss.config.cjs"],
   parserOptions: {
     ecmaVersion: "latest",
     sourceType: "module",
@@ -28,7 +28,6 @@ module.exports = {
   parser: "@typescript-eslint/parser",
   plugins: ["react-refresh"],
   rules: {
-    camelcase: ['error', { properties: 'never', ignoreDestructuring: false }],
     // "@typescript-eslint/naming-convention": "error",
     // only enforce for object properties
     // The `@typescript-eslint/naming-convention` rule allows `leadingUnderscore` and `trailingUnderscore` settings. However, the existing `no-underscore-dangle` rule already takes care of this.

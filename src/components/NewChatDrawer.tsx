@@ -2,13 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AnimatePresence } from "framer-motion";
-import {
-  ArrowLeft,
-  CircleSlash,
-  MessageCircle,
-  Plus,
-  UserPlusIcon,
-} from "lucide-react";
+import { ArrowLeft, CircleSlash, MessageCircle, Plus, UserPlusIcon } from "lucide-react";
 import { useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -20,13 +14,7 @@ import { AnimatedStep } from "./primitives/AnimatedStep";
 import { BottomSheet } from "./primitives/BottomSheet";
 import { Button } from "./primitives/Button";
 import { Input } from "./primitives/Input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./primitives/Select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./primitives/Select";
 
 type Props = {
   isOpen: boolean;
@@ -39,12 +27,8 @@ const Views = {
 } as const;
 
 export function NewChatDrawer(props: Props) {
-  const [view, setView] = useState<(typeof Views)[keyof typeof Views]>(
-    Views.NewChat,
-  );
-  const [selectedPersonaId, setSelectedPersonaId] = useState<
-    string | undefined
-  >();
+  const [view, setView] = useState<(typeof Views)[keyof typeof Views]>(Views.NewChat);
+  const [selectedPersonaId, setSelectedPersonaId] = useState<string | undefined>();
 
   const onNewPersona = () => {
     setView(Views.NewPersona);
@@ -78,9 +62,7 @@ export function NewChatDrawer(props: Props) {
           />
         )}
 
-        {view === Views.NewPersona && (
-          <NewPersonaDrawerContent onDismiss={onNewPersonaDismiss} />
-        )}
+        {view === Views.NewPersona && <NewPersonaDrawerContent onDismiss={onNewPersonaDismiss} />}
       </AnimatePresence>
     </BottomSheet>
   );
@@ -105,9 +87,7 @@ function NewChatDrawerContent({
 
   const personas = api.persona.all.useQuery();
 
-  const [personaId, setPersonaId] = useState<
-    string | Omit<string, "_create"> | undefined
-  >(selectedPersonaId);
+  const [personaId, setPersonaId] = useState<string | Omit<string, "_create"> | undefined>(selectedPersonaId);
 
   const onPersonaChange = (value: string) => {
     if (value === "_create") {
@@ -123,11 +103,9 @@ function NewChatDrawerContent({
       return;
     }
 
-    const result = await newChatMutation.mutateAsync({
+    await newChatMutation.mutateAsync({
       personaIDs: [personaId as string],
     });
-
-    console.log(result);
   };
 
   return (
@@ -154,11 +132,7 @@ function NewChatDrawerContent({
                 </SelectItem>
               ))}
               {personas.data?.length === 0 && (
-                <SelectItem
-                  disabled
-                  value="_"
-                  icon={<CircleSlash className="size-5" />}
-                >
+                <SelectItem disabled value="_" icon={<CircleSlash className="size-5" />}>
                   No personas found
                 </SelectItem>
               )}
@@ -171,18 +145,13 @@ function NewChatDrawerContent({
         </section>
 
         <section className="mt-2 flex flex-row gap-3 *:w-full sm:flex-row">
-          <Button
-            size="lg"
-            variant="outline"
-            className="bg-transparent"
-            onClick={onDismiss}
-          >
+          <Button size="lg" variant="outline" className="bg-transparent" onClick={onDismiss}>
             Cancel
           </Button>
           <Button
             size="lg"
             variant="default"
-            onClick={handleCreateClick}
+            onClick={() => void handleCreateClick()}
             loading={newChatMutation.isPending}
           >
             Create
@@ -193,11 +162,7 @@ function NewChatDrawerContent({
   );
 }
 
-function NewPersonaDrawerContent({
-  onDismiss,
-}: {
-  onDismiss: (createdPersonaId?: string) => void;
-}) {
+function NewPersonaDrawerContent({ onDismiss }: { onDismiss: (createdPersonaId?: string) => void }) {
   const createPersonaMutation = api.persona.create.useMutation();
 
   const formProps = useForm<z.infer<typeof PersonaSchema>>({
@@ -218,21 +183,23 @@ function NewPersonaDrawerContent({
 
   const descriptors = Object.keys(
     PersonaSchema.shape.descriptors.shape,
-  ) as Array<keyof typeof PersonaSchema.shape.descriptors.shape>;
+  ) as (keyof typeof PersonaSchema.shape.descriptors.shape)[];
 
   return (
     <AnimatedStep>
       <FormProvider {...formProps}>
         <form
-          onSubmit={formProps.handleSubmit(onSubmit, (errors) => {
-            toast.error(
-              Object.entries(errors)
-                .map(([key, error]) => {
-                  return `${camelCaseToSpaced(key)}: ${error.message!}`;
-                })
-                .join("<br />"),
-            );
-          })}
+          onSubmit={
+            formProps.handleSubmit(onSubmit, (errors) => {
+              toast.error(
+                Object.entries(errors)
+                  .map(([key, error]) => {
+                    return `${camelCaseToSpaced(key)}: ${error.message!}`;
+                  })
+                  .join("<br />"),
+              );
+            }) as () => void
+          }
         >
           <div className="mb-3 flex items-center text-2xl font-bold">
             <UserPlusIcon className="mr-2 size-5" />
@@ -246,8 +213,7 @@ function NewPersonaDrawerContent({
                 label="Name"
                 generative={{
                   prompt: "Generate a random name",
-                  system:
-                    "You are a random name generator, do not output anything other what you're asked to generate",
+                  system: "You are a random name generator, do not output anything other what you're asked to generate",
                   max_tokens: 3,
                   temperature: 1.4,
                 }}
@@ -275,21 +241,10 @@ function NewPersonaDrawerContent({
 
             {/* CTA */}
             <section className="mt-2 flex flex-row gap-3 *:w-full sm:flex-row">
-              <Button
-                size="lg"
-                variant="outline"
-                className="bg-transparent"
-                onClick={() => onDismiss()}
-                type="button"
-              >
+              <Button size="lg" variant="outline" className="bg-transparent" onClick={() => onDismiss()} type="button">
                 <ArrowLeft className="size-5" />
               </Button>
-              <Button
-                size="lg"
-                variant="default"
-                type="submit"
-                loading={createPersonaMutation.isPending}
-              >
+              <Button size="lg" variant="default" type="submit" loading={createPersonaMutation.isPending}>
                 Create
               </Button>
             </section>

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/rules-of-hooks */
 import { createRootRouteWithContext, useMatch, useMatches } from "@tanstack/react-router";
 import { AnimatePresence } from "framer-motion";
 import AnimatedOutlet from "~/internal/AnimatedOutlet";

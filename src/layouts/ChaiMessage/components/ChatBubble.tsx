@@ -1,10 +1,9 @@
 import { useMutation } from "@tanstack/react-query";
 import { useLongPress } from "@uidotdev/usehooks";
-import { AnimatePresence, motion, useAnimationControls } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { Files, RotateCcw, ShipWheel, Trash } from "lucide-react";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import { twMerge } from "tailwind-merge";
-import { useInView } from "~/hooks/useInView";
 import type { Reaction as TReaction } from "~/layouts/types";
 import { Reaction } from "./reactions/Reaction";
 import { SpoilerParticles } from "./SpoilerParticles";
@@ -43,7 +42,7 @@ export const ChatBubble = React.memo(
     onSteer: () => Promise<void>;
     onRegenerate: () => Promise<void>;
     onReact: (reaction: TReaction["type"]) => Promise<void>;
-    onDelete?: () => void;
+    onDelete?: () => Promise<void>;
   }) => {
     const [isFocused, setIsFocused] = useState(false);
     const [isReactionsOpen, setIsReactionsOpen] = useState(false);
@@ -64,14 +63,8 @@ export const ChatBubble = React.memo(
       mutationFn: onReact,
     });
 
-    const onTapBack = useCallback(() => {
-      /**
-       * Remove user text selection if any
-       */
-      window.getSelection()?.removeAllRanges();
-
-      setIsFocused(true);
-      setIsReactionsOpen(true);
+    const recalculateOffset = useCallback(() => {
+      if (!dropdownMenuRef.current) return;
 
       const child = dropdownMenuRef.current?.children?.[0] as HTMLDivElement | undefined;
       if (child) {
@@ -91,6 +84,25 @@ export const ChatBubble = React.memo(
       }
     }, []);
 
+    const onTapBack = useCallback(() => {
+      /**
+       * Remove user text selection if any
+       */
+      window.getSelection()?.removeAllRanges();
+
+      // haptic feedback
+      try {
+        window.navigator.vibrate([1]);
+      } catch (e) {
+        /* ignore */
+      }
+
+      setIsFocused(true);
+      setIsReactionsOpen(true);
+
+      setTimeout(recalculateOffset, 100);
+    }, [recalculateOffset]);
+
     const onTapBackDismiss = useCallback(() => {
       setShouldOffset(undefined);
       setIsBackdropAnimating(true);
@@ -106,7 +118,7 @@ export const ChatBubble = React.memo(
         { id: "haha", icon: Reaction.Haha },
         { id: "exclamation", icon: Reaction.Exclamation },
         { id: "question", icon: Reaction.Question },
-      ] as const satisfies Array<Reaction>;
+      ] as const satisfies Reaction[];
     }, []);
 
     const onCopy = useCallback(async () => {
@@ -119,10 +131,13 @@ export const ChatBubble = React.memo(
       onTapBackDismiss();
     }, [onTapBackDismiss, text]);
 
-    const reactToMessage = useCallback(async (reaction: TReaction["type"]) => {
-      reactMutation.mutate(reaction);
-      setTimeout(onTapBackDismiss, 700);
-    }, []);
+    const reactToMessage = useCallback(
+      (reaction: TReaction["type"]) => {
+        reactMutation.mutate(reaction);
+        setTimeout(onTapBackDismiss, 700);
+      },
+      [onTapBackDismiss, reactMutation],
+    );
 
     const tapbackActions = useMemo<TapbackAction[]>(() => {
       const beforeAction = (callback?: () => any) => {
@@ -160,7 +175,7 @@ export const ChatBubble = React.memo(
           className: "text-red-500",
         },
       ];
-    }, [onCopy, onDelete, onTapBackDismiss, steerMutation.mutate]);
+    }, [onCopy, onDelete, onTapBackDismiss, regenerateMutation.mutate, steerMutation.mutate]);
 
     const longPressProps = useLongPress(onTapBack);
 
@@ -189,17 +204,24 @@ export const ChatBubble = React.memo(
         </AnimatePresence>
 
         <motion.div
-          initial={{ opacity: 0.6, y: 17 }}
-          animate={{ opacity: 1, y: 0 }}
+          variants={{
+            hidden: { opacity: 0, y: 17 },
+            visible: { opacity: 1, y: 0 },
+          }}
+          initial={"hidden"}
+          animate={"visible"}
+          whileInView={"visible"}
           whileTap={{
             scale: 1.02,
             filter: "drop-shadow(0px 0px 10px rgba(0, 0, 0, 0.5))",
           }}
           onContextMenu={(e) => {
             e.preventDefault();
+            // ignore on mobile
+            if (window.innerWidth < 768) return;
             onTapBack?.();
           }}
-          layout
+          layout={"position"}
           layoutId={layoutId}
           className={twMerge(
             `will-change-transform [--h:3px] [--w:3px]`,
@@ -233,7 +255,7 @@ export const ChatBubble = React.memo(
             {isReactionsOpen && (
               <motion.div
                 initial={{ opacity: 0, width: 0 }}
-                animate={{ opacity: 1, width: "auto" }}
+                animate={{ opacity: 1, width: 278 }}
                 exit={{ opacity: 0, transition: { duration: 0.1 } }}
                 transition={{
                   type: "spring",
@@ -263,17 +285,27 @@ export const ChatBubble = React.memo(
                     <motion.div
                       key={reaction.id}
                       className={twMerge(
-                        "relative flex cursor-pointer items-center justify-center gap-1 text-[#757577] *:size-6",
-                        // active reaction has a white background
-                        reactions?.find((r) => r.type === reaction.id)?.from === "me" &&
-                          "text-white before:absolute before:-left-2 before:-top-2 before:size-10 before:rounded-full before:bg-[#137BFF] before:opacity-100",
+                        "relative flex cursor-pointer items-center justify-center gap-1 text-[#757577]",
+                        reactions?.find((r) => r.type === reaction.id && r.from === "me") && "text-white",
                         // if active reaction is a heart, text is red
                         reactions?.find((r) => r.type === reaction.id && r.type === "heart" && r.from === "me") &&
                           "text-[#F9538B]",
                       )}
                       onClick={() => reactToMessage(reaction.id)}
                     >
-                      <reaction.icon className="z-[10]" transition={{ delay: i * 0.05 + 0.2 }} />
+                      {/* white background if active reaction */}
+                      {reactions?.find((r) => r.type === reaction.id)?.from === "me" && (
+                        <motion.div
+                          key={reaction.id + "-white-bg"}
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ duration: 0.3, ease: [0, 0, 0, 1.05] }}
+                          className={twMerge(
+                            "absolute -left-2 -top-2 size-10 rounded-full bg-[#137BFF] opacity-100 [transform-origin:bottom]",
+                          )}
+                        />
+                      )}
+                      <reaction.icon className="z-[10] size-6" transition={{ delay: i * 0.05 + 0.2 }} />
                     </motion.div>
                   ))}
                 </div>

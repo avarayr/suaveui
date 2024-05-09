@@ -4,14 +4,16 @@ import "dotenv/config";
 import { Hono } from "hono";
 import { appRouter } from "./server/api/root";
 import { db } from "./server/db";
-
 const { NODE_ENV = "production", PORT = 3001 } = process.env;
 const isDev = NODE_ENV === "development";
 
 const app = new Hono();
 
-function injectViteClient(html: string) {
-  return html.replace(
+/**
+ * @see https://vitejs.dev/guide/backend-integration.html#backend-integration
+ */
+function injectViteClient(_html: string) {
+  return _html.replace(
     "<head>",
     `
   <script type="module">
@@ -35,7 +37,12 @@ async function getHtml() {
 
 function setupRoutes(app: Hono) {
   const assetsRoot = isDev ? "./" : "dist/";
-  app.use("/assets/*", serveStatic({ root: assetsRoot }));
+
+  const paths = ["/assets/*", "/sw.js", "/manifest.webmanifest", "/workbox-*.js"] as const;
+
+  for (const path of paths) {
+    app.use(path, serveStatic({ root: assetsRoot }));
+  }
 
   app.use("/api/trpc/*", (c) =>
     fetchRequestHandler({
@@ -50,7 +57,7 @@ function setupRoutes(app: Hono) {
 }
 
 async function gracefulShutdown(signal: string) {
-  console.log(`Received ${signal}. Openrizz is shutting down gracefully...`);
+  console.log(`Received ${signal}. Shutting down gracefully...`);
   try {
     await db.close();
     console.log("Database connection closed.");
@@ -64,7 +71,7 @@ async function gracefulShutdown(signal: string) {
 function setupSignalHandlers() {
   const signals: NodeJS.Signals[] = ["SIGINT", "SIGTERM", "SIGQUIT", "SIGHUP", "SIGABRT"];
   signals.forEach((signal) => {
-    process.on(signal, () => gracefulShutdown(signal));
+    process.on(signal, () => void gracefulShutdown(signal));
   });
 
   process.on("uncaughtException", (error) => {

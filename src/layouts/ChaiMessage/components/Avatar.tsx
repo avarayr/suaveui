@@ -8,7 +8,6 @@ type AvatarProps = {
 
 export function Avatar({ className, src, displayName }: AvatarProps) {
   if (!src && !displayName) {
-    console.error("Avatar: src or displayName is required");
     return null;
   }
 
