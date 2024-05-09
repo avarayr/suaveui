@@ -140,12 +140,17 @@ export const ChatBubble = React.memo(
     );
 
     const tapbackActions = useMemo<TapbackAction[]>(() => {
-      const beforeAction = (callback?: () => any) => {
+      const beforeAction = (callback?: () => any, immediate = false) => {
         return (e: React.MouseEvent<HTMLDivElement>) => {
           e.preventDefault();
           e.stopPropagation();
 
           onTapBackDismiss();
+
+          if (immediate) {
+            return void callback?.();
+          }
+
           setTimeout(() => {
             void callback?.();
           }, 350);
@@ -156,7 +161,7 @@ export const ChatBubble = React.memo(
         {
           label: "Copy",
           icon: <Files className="size-5" />,
-          onPress: beforeAction(onCopy),
+          onPress: beforeAction(onCopy, true),
         },
         {
           label: "Steer",
