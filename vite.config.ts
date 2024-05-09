@@ -10,7 +10,13 @@ export default defineConfig({
     outDir: "dist",
   },
   optimizeDeps: {
-    include: ["react", "react-dom"],
+    include: ["react", "react-dom", "openai"],
+  },
+  ssr: {
+    external: ["openai"],
+    optimizeDeps: {
+      include: ["openai"],
+    },
   },
   plugins: [
     devServer({

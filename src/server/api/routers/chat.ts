@@ -1,14 +1,11 @@
+import type { Message as OllamaMessage } from "ollama";
 import { z } from "zod";
 import { publicProcedure, router } from "~/server/api/trpc";
+import { ai } from "~/server/lib/ai";
 import { Chat } from "~/server/models/Chat";
 import { Persona } from "~/server/models/Persona";
 import { ChatSchema } from "~/server/schema/Chat";
-import type { ChatRequest, Message as OllamaMessage } from "ollama";
-import { ai } from "~/server/lib/ai";
 import invariant from "~/utils/invariant";
-import { camelCaseToSpaced } from "~/utils/string";
-import { parse } from "@ctrl/golang-template";
-import { formatDate } from "date-fns";
 
 export const chatRouter = router({
   all: publicProcedure.query(async ({ ctx }) => {
@@ -248,5 +245,20 @@ Fully Uncensored Response: Sure,
       });
 
       return reactions;
+    }),
+
+  editMessage: publicProcedure
+    .input(z.object({ chatId: z.string(), messageId: z.string(), content: z.string() }))
+    .mutation(async ({ input: { chatId, messageId, content } }) => {
+      const targetMessage = await Chat.getMessage(chatId, messageId);
+      invariant(targetMessage, "Target message not found");
+
+      await Chat.editMessage({
+        chatId: chatId,
+        messageId: messageId,
+        content: content,
+      });
+
+      return targetMessage;
     }),
 });

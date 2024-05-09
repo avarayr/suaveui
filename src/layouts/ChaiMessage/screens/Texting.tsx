@@ -14,15 +14,20 @@ import { Link } from "@tanstack/react-router";
 import debounce from "lodash/debounce";
 import { IsRouteTransitioning } from "~/internal/AnimatedOutlet";
 import { useAtomValue } from "jotai";
+import { ExpandingTextarea } from "../components/ExpandingTextarea";
 
 export const Texting = ({
   data,
   onMessageSend,
   loading: chatLoading,
+  editingMessageId,
   onMessageDelete,
   onMessageSteer,
   onMessageRegenerate,
   onMessageReact,
+  onMessageEditStart,
+  onMessageEditDismiss,
+  onMessageEditSubmit,
 }: TextingProps) => {
   /**
    * Prevent motion-framer "layout" jitter on route transition
@@ -53,23 +58,6 @@ export const Texting = ({
     };
   }, []);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const resizeTextarea = useCallback(
-    debounce(() => {
-      if (!inputRef.current) return;
-
-      const maxRows = 14;
-
-      // resize the textarea if content overflows
-      inputRef.current.style.height = "auto";
-      inputRef.current.style.height = `${Math.min(
-        inputRef.current.scrollHeight,
-        maxRows * parseFloat(getComputedStyle(inputRef.current).lineHeight),
-      )}px`;
-    }, 100),
-    [],
-  );
-
   const sendMessage = useCallback(
     (e: { preventDefault: () => void }) => {
       // Set focus to the input
@@ -82,11 +70,10 @@ export const Texting = ({
       setMessage("");
 
       setTimeout(() => {
-        resizeTextarea();
         chatMessagesRef.current?.scrollTo({ top: chatMessagesRef.current?.scrollHeight });
       });
     },
-    [message, resizeTextarea, sendMessageMutation],
+    [message, sendMessageMutation],
   );
 
   const shouldShowTail = useCallback((i: number, _messages: typeof messages) => {
@@ -161,7 +148,6 @@ export const Texting = ({
             />
           )} */}
         </AnimatePresence>
-
         {!isRouteTransitioning &&
           messages.map((message, i) => (
             <ChatBubble
@@ -174,7 +160,11 @@ export const Texting = ({
               onSteer={() => onMessageSteer(message.id)}
               onRegenerate={() => onMessageRegenerate(message.id)}
               onReact={(reaction) => onMessageReact(message.id, reaction)}
+              onEditStart={() => onMessageEditStart(message.id)}
               reactions={message.reactions as Reaction[] | null}
+              isEditing={message.id === editingMessageId}
+              onEditDismiss={() => onMessageEditDismiss(message.id)}
+              onEditSubmit={(newContent) => onMessageEditSubmit(message.id, newContent)}
             />
           ))}
       </section>
@@ -187,7 +177,7 @@ export const Texting = ({
         </button>
 
         {/* Input */}
-        <textarea
+        <ExpandingTextarea
           ref={inputRef}
           autoComplete="off"
           rows={1}
@@ -201,7 +191,6 @@ export const Texting = ({
             if (window.innerWidth < 768) return;
             e.key === "Enter" && !e.shiftKey && void sendMessage(e);
           }}
-          onInput={resizeTextarea}
         />
 
         {/* Send Icon (absolute, right-0)*/}

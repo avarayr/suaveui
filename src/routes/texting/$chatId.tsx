@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { Texting } from "~/layouts/Texting";
 import { Reaction } from "~/layouts/types";
 import { api } from "~/trpc/react";
@@ -9,8 +10,8 @@ export const Route = createFileRoute("/texting/$chatId")({
 
 function TextingPage() {
   const { chatId } = Route.useParams();
-
   const utils = api.useUtils();
+  const [editingMessageId, setEditingMessageId] = useState<string | undefined>(undefined);
 
   const messagesQuery = api.chat.getMessages.useQuery(
     { chatId },
@@ -153,6 +154,41 @@ function TextingPage() {
     },
   });
 
+  const editMessageMutation = api.chat.editMessage.useMutation({
+    onSuccess: () => {
+      void utils.chat.getMessages.invalidate({ chatId: String(chatId) });
+    },
+
+    onMutate: async (message) => {
+      // Cancel outgoing fetches (so they don't overwrite our optimistic update)
+      await utils.chat.getMessages.cancel({ chatId: String(chatId) });
+
+      // Get the data from the queryCache
+      const prevData = utils.chat.getMessages.getData({
+        chatId,
+      });
+
+      // Optimistically update the data with our new post
+      utils.chat.getMessages.setData(
+        {
+          chatId,
+        },
+        (old) => ({
+          chat: old!.chat,
+          messages:
+            old?.messages?.map((m) => (m.id === message.messageId ? { ...m, content: message.content } : m)) ?? [],
+        }),
+      );
+
+      // Return the previous data so we can revert if something goes wrong
+      return { prevData };
+    },
+
+    onError: (error, variables, context) => {
+      utils.chat.getMessages.setData({ chatId }, context?.prevData);
+    },
+  });
+
   if (typeof chatId !== "string") {
     return null;
   }
@@ -177,6 +213,19 @@ function TextingPage() {
     await regenerateMessageMutation.mutateAsync({ chatId, messageId });
   };
 
+  const handleMessageEditStart = (messageId: string) => {
+    setEditingMessageId(messageId);
+  };
+
+  const handleMessageEditDismiss = (messageId: string) => {
+    setEditingMessageId(undefined);
+  };
+
+  const handleMessageEditSubmit = async (messageId: string, newContent: string) => {
+    await editMessageMutation.mutateAsync({ chatId: String(chatId), messageId, content: newContent });
+    setEditingMessageId(undefined);
+  };
+
   return (
     <Texting
       layout="ChaiMessage"
@@ -187,6 +236,10 @@ function TextingPage() {
       onMessageSteer={handleMessageSteer}
       onMessageReact={handleMessageReact}
       onMessageRegenerate={handleMessageRegenerate}
+      onMessageEditStart={handleMessageEditStart}
+      onMessageEditDismiss={handleMessageEditDismiss}
+      onMessageEditSubmit={handleMessageEditSubmit}
+      editingMessageId={editingMessageId}
     />
   );
 }

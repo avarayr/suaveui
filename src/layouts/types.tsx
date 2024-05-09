@@ -9,11 +9,15 @@ export interface ChatListProps {
 export interface TextingProps {
   data: RouterOutput["chat"]["getMessages"] | undefined;
   loading?: boolean;
+  editingMessageId?: string;
   onMessageSend: (message: string) => Promise<void>;
   onMessageDelete: (messageId: string) => Promise<void>;
   onMessageSteer: (messageId: string) => Promise<void>;
   onMessageRegenerate: (messageId: string) => Promise<void>;
   onMessageReact: (messageId: string, reaction: Reaction["type"]) => Promise<void>;
+  onMessageEditStart: (messageId: string) => void;
+  onMessageEditDismiss: (messageId: string) => void;
+  onMessageEditSubmit: (messageId: string, newContent: string) => void | Promise<void>;
 }
 
 export interface Chat {

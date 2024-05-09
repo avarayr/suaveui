@@ -25,7 +25,7 @@ export const aiRouter = router({
       });
 
       return {
-        text: response.response,
+        text: response,
       } as const;
     }),
 });
