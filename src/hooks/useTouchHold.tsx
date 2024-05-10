@@ -91,6 +91,5 @@ export function useTouchHold(callback: () => void, duration = 300, threshold = 5
     onMouseDown: handleTouchStart as unknown as React.MouseEventHandler,
     onMouseUp: handleTouchEnd as unknown as React.MouseEventHandler,
     onMouseLeave: handleTouchEnd as unknown as React.MouseEventHandler,
-    isTouchHolding: touchHold.current,
   };
 }

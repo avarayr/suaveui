@@ -203,7 +203,7 @@ export const ChatBubble = React.memo(
       ];
     }, [onCopy, onDelete, onEditStart, onTapBackDismiss, regenerateMutation.mutate, steerMutation.mutate, text]);
 
-    const { isTouchHolding, ...longPressProps } = useTouchHold(onTapBack);
+    const longPressProps = useTouchHold(onTapBack);
 
     const isRefreshing = useMemo(() => {
       return regenerateMutation.isPending || steerMutation.isPending;
