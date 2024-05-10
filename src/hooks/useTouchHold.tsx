@@ -1,73 +1,80 @@
+import { useCallback, useEffect, useRef } from "react";
+
 /**
- * Cross compatible touch and hold hook (iOS, Android, Windows, supports touch and mouse)
- * If finger/mouse is held down for a certain duration, the callback is called only if the finger/mouse is still held down on that element
+ * This hook is used to detect when the user is holding down a touch or mouse button.
+ * It calculates the distance between the initial position and the current position of the touch or mouse event.
+ * If the distance is lower than the threshold, the callback function is called.
+ * This is to ensure that the user is actually holding down the spot, rather than using it as a pivot point to (slowly) scroll the screen.
  */
-
-import { useEffect, useRef } from "react";
-
-export function useTouchHold(callback: () => void, duration = 300) {
-  /**
-   * This function will return several functions that will be used to handle the touch events,
-   * namely touchstart, touchend, touchcancel, mousedown, mouseup, and mouseleave.
-   */
-
+export function useTouchHold(callback: () => void, duration = 300, threshold = 5) {
   const touchHold = useRef(false);
   const timer = useRef<number | null>(null);
+  const initialPosition = useRef<{ x?: number; y?: number } | null>(null);
 
-  function handleTouchStart() {
-    touchHold.current = true;
-    timer.current = window.setTimeout(() => {
-      callback();
-    }, duration);
-  }
+  const handleTouchStart = useCallback(
+    (e: TouchEvent | MouseEvent) => {
+      touchHold.current = true;
+      initialPosition.current = {
+        x: "touches" in e ? e?.touches?.[0]?.clientX : e.clientX,
+        y: "touches" in e ? e?.touches?.[0]?.clientY : e.clientY,
+      };
 
-  function handleTouchEnd(e: TouchEvent | MouseEvent) {
+      timer.current = window.setTimeout(() => {
+        if (touchHold.current && initialPosition.current) {
+          const currentPosition = {
+            x: "touches" in e ? e?.touches?.[0]?.clientX : e.clientX,
+            y: "touches" in e ? e?.touches?.[0]?.clientY : e.clientY,
+          };
+
+          if (!currentPosition.x || !currentPosition.y || !initialPosition.current.x || !initialPosition.current.y)
+            return;
+
+          const distance = Math.sqrt(
+            Math.pow(currentPosition.x - initialPosition.current.x, 2) +
+              Math.pow(currentPosition.y - initialPosition.current.y, 2),
+          );
+          if (distance <= threshold) {
+            callback();
+          }
+        }
+      }, duration);
+    },
+    [callback, duration, threshold],
+  );
+
+  const handleTouchEnd = useCallback(() => {
     clearTimeout(timer.current!);
     touchHold.current = false;
-  }
+    initialPosition.current = null;
+  }, []);
 
-  function handleTouchMove(e: TouchEvent | MouseEvent) {
-    // check if the touch is still on the element
-    if (!touchHold.current) {
-      return;
-    }
+  const handleTouchMove = useCallback(
+    (e: TouchEvent | MouseEvent) => {
+      if (!touchHold.current || !initialPosition.current) {
+        return;
+      }
 
-    const target = e.target as HTMLElement | null;
-    const rect = target?.getBoundingClientRect();
+      const currentPosition = {
+        x: "touches" in e ? e?.touches?.[0]?.clientX : e.clientX,
+        y: "touches" in e ? e?.touches?.[0]?.clientY : e.clientY,
+      };
 
-    if (!rect) {
-      return;
-    }
+      if (!currentPosition.x || !currentPosition.y || !initialPosition.current.x || !initialPosition.current.y) return;
 
-    // check if the touch is within the element
-    if (
-      e instanceof TouchEvent &&
-      e.touches?.[0]?.clientX &&
-      e.touches?.[0]?.clientY &&
-      (e.touches?.[0]?.clientX < rect.left ||
-        e.touches?.[0]?.clientX > rect.right ||
-        e.touches?.[0]?.clientY < rect.top ||
-        e.touches?.[0]?.clientY > rect.bottom)
-    ) {
-      clearTimeout(timer.current!);
-      touchHold.current = false;
-      return;
-    }
-
-    if (
-      e instanceof MouseEvent &&
-      (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom)
-    ) {
-      clearTimeout(timer.current!);
-      touchHold.current = false;
-
-      return;
-    }
-  }
+      const distance = Math.sqrt(
+        Math.pow(currentPosition.x - initialPosition.current.x, 2) +
+          Math.pow(currentPosition.y - initialPosition.current.y, 2),
+      );
+      if (distance > threshold) {
+        clearTimeout(timer.current!);
+        touchHold.current = false;
+        initialPosition.current = null;
+      }
+    },
+    [threshold],
+  );
 
   useEffect(() => {
-    // Add a mousemove/tochmove event listener to the entire document to detect if the user moves their finger/mouse off the element,
-    // if they do, the touchhold is cancelled
     document.addEventListener("touchmove", handleTouchMove, { capture: true });
     document.addEventListener("mousemove", handleTouchMove, { capture: true });
 
@@ -76,13 +83,14 @@ export function useTouchHold(callback: () => void, duration = 300) {
       document.removeEventListener("touchmove", handleTouchMove, { capture: true });
       document.removeEventListener("mousemove", handleTouchMove, { capture: true });
     };
-  }, []);
+  }, [handleTouchMove]);
 
   return {
-    onTouchStart: handleTouchStart as React.TouchEventHandler,
+    onTouchStart: handleTouchStart as unknown as React.TouchEventHandler,
     onTouchEnd: handleTouchEnd as unknown as React.TouchEventHandler,
-    onMouseDown: handleTouchStart as React.MouseEventHandler,
+    onMouseDown: handleTouchStart as unknown as React.MouseEventHandler,
     onMouseUp: handleTouchEnd as unknown as React.MouseEventHandler,
     onMouseLeave: handleTouchEnd as unknown as React.MouseEventHandler,
+    isTouchHolding: touchHold.current,
   };
 }

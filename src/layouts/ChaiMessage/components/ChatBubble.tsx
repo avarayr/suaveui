@@ -95,7 +95,7 @@ export const ChatBubble = React.memo(
     }, []);
 
     const onTapBack = useCallback(() => {
-      if (isEditing) {
+      if (isEditing || isFocused) {
         return;
       }
       /**
@@ -107,7 +107,7 @@ export const ChatBubble = React.memo(
       setIsReactionsOpen(true);
 
       setTimeout(recalculateOffset, 100);
-    }, [isEditing, recalculateOffset]);
+    }, [isEditing, isFocused, recalculateOffset]);
 
     const onTapBackDismiss = useCallback(() => {
       setShouldOffset(undefined);
@@ -203,7 +203,7 @@ export const ChatBubble = React.memo(
       ];
     }, [onCopy, onDelete, onEditStart, onTapBackDismiss, regenerateMutation.mutate, steerMutation.mutate, text]);
 
-    const longPressProps = useTouchHold(onTapBack);
+    const { isTouchHolding, ...longPressProps } = useTouchHold(onTapBack);
 
     const isRefreshing = useMemo(() => {
       return regenerateMutation.isPending || steerMutation.isPending;
