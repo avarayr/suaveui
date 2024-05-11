@@ -30,6 +30,8 @@ export default defineConfig({
         /^\/favicon\.ico$/,
         /^\/(public|assets|static|dev-dist)\/.+/,
         /^\/manifest\.webmanifest$/,
+        /^\/manifest\.json$/,
+        /^\/dev-sw.js/,
         /^\/node_modules\/.*/,
       ],
       injectClientScript: false,
@@ -37,11 +39,15 @@ export default defineConfig({
     react(),
     tsconfigPaths(),
     VitePWA({
+      srcDir: "src/service-worker",
+      filename: "sw.ts",
       injectRegister: "auto",
+      strategies: "injectManifest",
       registerType: "autoUpdate",
       useCredentials: true,
       devOptions: {
         enabled: true,
+        type: "module",
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html}"],

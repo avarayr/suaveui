@@ -4,6 +4,8 @@ export interface ChatListProps {
   chats: RouterOutput["chat"]["all"];
   onNewChatClick: () => void;
   loading?: boolean;
+  areNotificationsEnabled?: boolean;
+  onNotificationToggle?: (enabled: boolean) => void;
 }
 
 export interface TextingProps {

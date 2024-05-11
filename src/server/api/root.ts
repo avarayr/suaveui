@@ -1,5 +1,6 @@
 import { aiRouter } from "./routers/ai";
 import { chatRouter } from "./routers/chat";
+import { notificationRouter } from "./routers/notification";
 import { personaRouter } from "./routers/persona";
 import { createCallerFactory, router } from "~/server/api/trpc";
 
@@ -12,6 +13,7 @@ export const appRouter = router({
   chat: chatRouter,
   persona: personaRouter,
   ai: aiRouter,
+  notification: notificationRouter,
   // ... other routers
 });
 

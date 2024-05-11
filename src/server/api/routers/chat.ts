@@ -4,6 +4,7 @@ import { publicProcedure, router } from "~/server/api/trpc";
 import { ai } from "~/server/lib/ai";
 import { Chat } from "~/server/models/Chat";
 import { Persona } from "~/server/models/Persona";
+import { WebPush } from "~/server/models/WebPushSubscription";
 import { ChatSchema } from "~/server/schema/Chat";
 import invariant from "~/utils/invariant";
 
@@ -86,6 +87,11 @@ export const chatRouter = router({
         chatId: chatId,
         content: responseText,
         personaID: persona.id,
+      });
+
+      await WebPush.sendNotification({
+        title: persona.name,
+        message: responseText,
       });
 
       return message;

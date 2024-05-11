@@ -128,7 +128,6 @@ function TextingPage() {
         chatId,
       });
 
-      console.log(message);
       // Optimistically update the data with our new post
       utils.chat.getMessages.setData(
         {

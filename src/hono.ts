@@ -4,6 +4,8 @@ import "dotenv/config";
 import { Hono } from "hono";
 import { appRouter } from "./server/api/root";
 import { db } from "./server/db";
+import fs from "fs/promises";
+
 const { NODE_ENV = "production", PORT = 3001 } = process.env;
 const isDev = NODE_ENV === "development";
 
@@ -31,14 +33,22 @@ function injectViteClient(_html: string) {
 
 async function getHtml() {
   const htmlFilePath = isDev ? "index.html" : "dist/index.html";
-  const htmlFile = await Bun.file(htmlFilePath).text();
+  const htmlFile = await fs.readFile(htmlFilePath, "utf-8");
   return isDev ? injectViteClient(htmlFile) : htmlFile;
 }
 
 function setupRoutes(app: Hono) {
   const assetsRoot = isDev ? "./" : "dist/";
 
-  const paths = ["/assets/*", "/sw.js", "/manifest.webmanifest", "/workbox-*.js"] as const;
+  const paths = [
+    "/assets/*",
+    "/sw.js",
+    "/manifest.webmanifest",
+    "/manifest.json",
+    "/dev-sw.js",
+    "/sw.js",
+    "/workbox-*.js",
+  ] as const;
 
   for (const path of paths) {
     app.use(path, serveStatic({ root: assetsRoot }));
@@ -69,10 +79,17 @@ async function gracefulShutdown(signal: string) {
 }
 
 function setupSignalHandlers() {
+  // Check if we've already added the listeners
+  if ((globalThis as { _signal_handlers_added__?: boolean })?._signal_handlers_added__) {
+    return;
+  }
+
   const signals: NodeJS.Signals[] = ["SIGINT", "SIGTERM", "SIGQUIT", "SIGHUP", "SIGABRT"];
   signals.forEach((signal) => {
     process.on(signal, () => void gracefulShutdown(signal));
   });
+
+  (globalThis as unknown as { _signal_handlers_added__: boolean })._signal_handlers_added__ = true;
 
   process.on("uncaughtException", (error) => {
     console.error("Uncaught exception:", error);
