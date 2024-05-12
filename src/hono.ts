@@ -42,7 +42,6 @@ function setupRoutes(app: Hono) {
 
   const paths = [
     "/assets/*",
-    "/sw.js",
     "/manifest.webmanifest",
     "/manifest.json",
     "/dev-sw.js",

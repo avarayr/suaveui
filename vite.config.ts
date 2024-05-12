@@ -50,7 +50,8 @@ export default defineConfig({
         type: "module",
       },
       workbox: {
-        globPatterns: ["**/*.{js,css,html}"],
+        globPatterns: ["**/*.{ts,tsx,js,css,html,ico,png,svg}"],
+        sourcemap: true,
       },
       includeAssets: ["favicon.ico", "apple-touch-icon.png"],
       manifest: {
