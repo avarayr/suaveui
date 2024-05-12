@@ -11,6 +11,8 @@ import { type ChatListProps } from "../../types";
 import { Avatar } from "../components/Avatar";
 import { Padded } from "../components/Padded";
 import { ChaiColors } from "../types";
+import { formatDate } from "~/utils/date";
+import { TChat } from "~/server/schema/Chat";
 
 export const ChatList = React.memo(
   ({ chats, onNewChatClick, loading, areNotificationsEnabled, onNotificationToggle }: ChatListProps) => {
@@ -45,6 +47,12 @@ export const ChatList = React.memo(
         document.querySelector("meta[name='theme-color']")?.setAttribute("content", ChaiColors.BACKGROUND);
       }
     }, [isSearchInputFocused]);
+
+    const getLastMessageDate = (chat: TChat) => {
+      const lastMessage = chat.messages.slice(-1)?.[0];
+      if (!lastMessage?.createdAt) return "";
+      return formatDate(lastMessage.createdAt);
+    };
 
     return (
       <motion.main className="flex h-dvh w-dvw flex-col overflow-x-hidden bg-black text-white antialiased">
@@ -165,12 +173,7 @@ export const ChatList = React.memo(
 
                             {/* Time */}
                             <div className="flex items-center gap-[0.3rem]">
-                              <time className="text-[0.95rem] text-[#8F8F95]/90">
-                                {/* TODO */}
-                                {/* {formatDate(
-                                  new Date(chat.lastMessage?.createdAt ?? 0),
-                                )} */}
-                              </time>
+                              <time className="text-[0.95rem] text-[#8F8F95]/90">{getLastMessageDate(chat)}</time>
                               {loadingChatId === chat.id ? (
                                 <SpinnerIcon variant="ios" className="size-[1.2rem]" />
                               ) : (

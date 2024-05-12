@@ -2,7 +2,7 @@ import { z } from "zod";
 import { publicProcedure, router } from "../trpc";
 import { db } from "~/server/db";
 import { createId } from "@paralleldrive/cuid2";
-import { WebPushSubscription } from "~/server/models/WebPushSubscription";
+import { WebPushSubscription } from "~/server/models/WebPush";
 
 export const notificationRouter = router({
   /**

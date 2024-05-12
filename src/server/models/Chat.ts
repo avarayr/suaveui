@@ -108,6 +108,18 @@ export const Chat = {
       });
     }
 
+    // Sort chats by last message
+    chats.sort((a, b) => {
+      let aMessagesTime = (a.messages.slice(-1)?.[0]?.createdAt ?? new Date(0)).getTime();
+      let bMessagesTime = (b.messages.slice(-1)?.[0]?.createdAt ?? new Date(0)).getTime();
+
+      // If a message doesn't exist, use the chat's createdAt
+      if (!aMessagesTime) aMessagesTime = a.createdAt.getTime();
+      if (!bMessagesTime) bMessagesTime = b.createdAt.getTime();
+
+      return bMessagesTime - aMessagesTime;
+    });
+
     return chats;
   },
 

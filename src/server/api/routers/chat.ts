@@ -4,7 +4,7 @@ import { publicProcedure, router } from "~/server/api/trpc";
 import { ai } from "~/server/lib/ai";
 import { Chat } from "~/server/models/Chat";
 import { Persona } from "~/server/models/Persona";
-import { WebPush } from "~/server/models/WebPushSubscription";
+import { WebPush } from "~/server/models/WebPush";
 import { ChatSchema } from "~/server/schema/Chat";
 import invariant from "~/utils/invariant";
 
