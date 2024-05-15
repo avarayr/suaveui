@@ -261,7 +261,16 @@ export const ChatBubble = React.memo(
               className,
             )}
           >
-            <div
+            <motion.div
+              variants={{
+                hidden: { opacity: 0, y: 100 },
+                visible: { opacity: 1, y: 0 },
+              }}
+              transition={{ type: "spring", stiffness: 200, mass: 0.3, damping: 20 }}
+              initial={"hidden"}
+              animate={"visible"}
+              layoutId={layoutId}
+              layout="position"
               onContextMenu={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -296,7 +305,7 @@ export const ChatBubble = React.memo(
                 reactions?.length && "mb-1 mt-5",
                 // editing input
                 isEditing &&
-                  "w-full max-w-full border-2 border-[var(--edit-border)] bg-[image:var(--edit-bg)] before:hidden after:hidden",
+                  "w-full max-w-full border-2 border-[var(--edit-border)] bg-[image:var(--edit-bg)] transition-[border] before:hidden after:hidden",
               )}
               style={{ "--offset": shouldOffset ? `${shouldOffset}px` : undefined } as React.CSSProperties}
               {...longPressProps}
@@ -412,7 +421,7 @@ export const ChatBubble = React.memo(
                 })}
               </AnimatePresence>
 
-              <div className="chat-bubble-text relative">
+              <motion.div className="chat-bubble-text relative">
                 {isEditing ? (
                   <ExpandingTextarea
                     className="h-full w-full bg-transparent caret-blue-600 outline-none selection:bg-[#346DD9]/30"
@@ -433,7 +442,7 @@ export const ChatBubble = React.memo(
                 <AnimatePresence initial={false} mode="wait">
                   {isRefreshing && <SpoilerParticles />}
                 </AnimatePresence>
-              </div>
+              </motion.div>
 
               {typing && (
                 // three dots animation
@@ -480,7 +489,7 @@ export const ChatBubble = React.memo(
                   )}
                 </AnimatePresence>
               </div>
-            </div>
+            </motion.div>
           </section>
 
           <AnimatePresence mode="popLayout">
