@@ -1,10 +1,9 @@
 import { createId } from "@paralleldrive/cuid2";
-import { db } from "~/server/db";
-import type { TChatWithPersonas, TChat } from "../schema/Chat";
-import { MessageSchema, MessageSchemaWithID, type TMessageWithID, type TMessage } from "../schema/Message";
-import { Persona } from "./Persona";
 import { type z } from "zod";
-import { Reaction } from "~/layouts/types";
+import { db } from "~/server/db";
+import type { TChat, TChatWithPersonas } from "../schema/Chat";
+import { MessageSchemaWithID, type TMessageWithID } from "../schema/Message";
+import { Persona } from "./Persona";
 
 /**
  * CRUD operations for the chats collection

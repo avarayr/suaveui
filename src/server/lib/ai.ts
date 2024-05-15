@@ -43,13 +43,13 @@ export const ai = {
       seed: options?.seed,
     } as const);
 
-    const content = response.choices?.[0]?.message?.content;
+    const content = response.choices?.[0];
 
-    return {
-      message: {
-        content: content ?? "",
-      },
-    };
+    if (!content) {
+      return null;
+    }
+
+    return content;
   },
 
   generate: async ({ model, prompt, system, options }: CompletionProps) => {
@@ -69,6 +69,6 @@ export const ai = {
       options,
     });
 
-    return response.message.content;
+    return response?.message.content;
   },
 };

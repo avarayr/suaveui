@@ -54,10 +54,7 @@ module.exports = {
         format: ['camelCase'],
       }
     ],
-    "react-refresh/only-export-components": [
-      "warn",
-      { allowConstantExport: true },
-    ],
+    "react-refresh/only-export-components": "off",
     // warn about unused vars
     "@typescript-eslint/no-unused-vars": [
       "off",

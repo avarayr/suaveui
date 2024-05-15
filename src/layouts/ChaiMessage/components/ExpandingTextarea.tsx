@@ -9,7 +9,6 @@ export const ExpandingTextarea = forwardRef<HTMLTextAreaElement, ExpandingTextar
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const resolvedRef = (ref as React.RefObject<HTMLTextAreaElement>) || textareaRef;
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     const resizeTextarea = useCallback(() => {
       if (!resolvedRef.current) return;
 

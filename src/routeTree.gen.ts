@@ -31,10 +31,16 @@ const TextingChatIdRoute = TextingChatIdImport.update({
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
     '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
       preLoaderRoute: typeof IndexImport
       parentRoute: typeof rootRoute
     }
     '/texting/$chatId': {
+      id: '/texting/$chatId'
+      path: '/texting/$chatId'
+      fullPath: '/texting/$chatId'
       preLoaderRoute: typeof TextingChatIdImport
       parentRoute: typeof rootRoute
     }
@@ -43,6 +49,9 @@ declare module '@tanstack/react-router' {
 
 // Create and export the route tree
 
-export const routeTree = rootRoute.addChildren([IndexRoute, TextingChatIdRoute])
+export const routeTree = rootRoute.addChildren({
+  IndexRoute,
+  TextingChatIdRoute,
+})
 
 /* prettier-ignore-end */

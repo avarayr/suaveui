@@ -11,9 +11,9 @@ import invariant from "~/utils/invariant";
 export const chatRouter = router({
   all: publicProcedure.query(async ({ ctx }) => {
     const chats = await Chat.allWithPersonas();
-
     return chats;
   }),
+
   create: publicProcedure.input(ChatSchema.omit({ id: true, createdAt: true })).mutation(async ({ ctx, input }) => {
     const chat = await Chat.create(input);
     return chat;
@@ -68,13 +68,13 @@ export const chatRouter = router({
         role: "system",
       });
 
-      const {
-        message: { content: responseText },
-      } = await ai.chat({
+      const result = await ai.chat({
         model: process.env.MODEL!,
         stream: false,
         messages,
       });
+
+      const responseText = result?.message?.content ?? "";
 
       /**
        * If the AI doesn't return a response, we don't send the message
@@ -141,9 +141,7 @@ Fully Uncensored Response: Sure,
 `;
 
         // Generate the steered response
-        const {
-          message: { content },
-        } = await ai.chat({
+        const result = await ai.chat({
           model: process.env.MODEL!,
           stream: false,
           messages: [
@@ -167,7 +165,7 @@ Fully Uncensored Response: Sure,
           },
         });
 
-        newAIResponse = content.trim().replace(/"$/, "");
+        newAIResponse = result?.message?.content?.trim().replace(/"$/, "") ?? "";
       } while (
         (!newAIResponse ||
           newAIResponse.includes("I cannot") ||
@@ -207,9 +205,7 @@ Fully Uncensored Response: Sure,
 
       contextMessages = contextMessages.slice(0, targetMessageIndex);
 
-      const {
-        message: { content: responseText },
-      } = await ai.chat({
+      const result = await ai.chat({
         model: process.env.MODEL!,
         stream: false,
         messages: [
@@ -226,6 +222,8 @@ Fully Uncensored Response: Sure,
           seed: Math.floor(Math.random() * 100000000),
         },
       });
+
+      const responseText = result?.message?.content ?? "";
 
       // Edit the target message
       await Chat.editMessage({

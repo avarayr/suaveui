@@ -37,6 +37,7 @@ export const ChatBubble = React.memo(
     onEditStart,
     onEditDismiss,
     onEditSubmit,
+    className,
   }: {
     from: "me" | "them";
     text: string;
@@ -45,13 +46,14 @@ export const ChatBubble = React.memo(
     typing?: boolean;
     reactions?: TReaction[] | null;
     isEditing?: boolean;
-    onSteer: () => Promise<void>;
-    onRegenerate: () => Promise<void>;
-    onReact: (reaction: TReaction["type"]) => Promise<void>;
+    onSteer?: () => Promise<void>;
+    onRegenerate?: () => Promise<void>;
+    onReact?: (reaction: TReaction["type"]) => Promise<void>;
     onDelete?: () => Promise<void>;
     onEditStart?: () => void;
     onEditDismiss?: () => void;
     onEditSubmit?: (newContent: string) => void | Promise<void>;
+    className?: string;
   }) => {
     const [isFocused, setIsFocused] = useState(false);
     const [isReactionsOpen, setIsReactionsOpen] = useState(false);
@@ -256,16 +258,10 @@ export const ChatBubble = React.memo(
               from === "me" && "justify-end",
               // Their messages are on the left
               from === "them" && "justify-start",
+              className,
             )}
           >
-            <motion.div
-              variants={{
-                hidden: { opacity: 0, y: 17 },
-                visible: { opacity: 1, y: 0 },
-              }}
-              initial={"hidden"}
-              animate={"visible"}
-              whileInView={"visible"}
+            <div
               onContextMenu={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -273,10 +269,8 @@ export const ChatBubble = React.memo(
                 if (window.innerWidth < 768) return;
                 onTapBack?.();
               }}
-              layout={"position"}
-              layoutId={layoutId}
               className={twMerge(
-                `will-change-transform [--h:3px] [--w:3px]`,
+                `[--h:3px] [--w:3px]`,
                 `[--them-bg:linear-gradient(to_bottom,#343435,#343435)]`,
                 `[--me-bg:linear-gradient(to_bottom,#137BFF,#117BFF)]`,
                 `[--edit-bg:black]`,
@@ -295,9 +289,9 @@ export const ChatBubble = React.memo(
       before:right-[-5px] before:rounded-bl-[18px_14px] before:bg-[image:var(--me-bg)] after:right-[-24px] after:rounded-bl-[10px]`,
                 !tail && `before:opacity-0 after:opacity-0`,
                 // shadow if focused
-                (isFocused || isBackdropAnimating) && "z-[100] shadow-xl",
+                (isFocused || isBackdropAnimating) && "z-[100] shadow-xl transition-transform duration-300",
                 // offset
-                shouldOffset && `!-translate-y-[var(--offset)] transition-transform duration-300`,
+                shouldOffset && `!-translate-y-[var(--offset)]`,
                 // has reactions -> margin top
                 reactions?.length && "mb-1 mt-5",
                 // editing input
@@ -486,7 +480,7 @@ export const ChatBubble = React.memo(
                   )}
                 </AnimatePresence>
               </div>
-            </motion.div>
+            </div>
           </section>
 
           <AnimatePresence mode="popLayout">
