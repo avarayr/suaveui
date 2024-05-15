@@ -1,18 +1,17 @@
-import { useMutation } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { useAtomValue } from "jotai";
 import { ChevronLeft, VideoIcon } from "lucide-react";
-import React, { useCallback, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { twMerge } from "tailwind-merge";
 import { SpinnerIcon } from "~/components/primitives/SpinnerIcon";
 import { IsRouteTransitioning } from "~/internal/AnimatedOutlet";
+import type { Reaction as TReaction } from "~/layouts/types";
 import { type TextingProps } from "../../types";
 import { Avatar } from "../components/Avatar";
 import { ChatBubble } from "../components/ChatBubble";
 import { ChatInput } from "../components/ChatInput";
 import { ChaiColors } from "../types";
-import type { Reaction as TReaction } from "~/layouts/types";
 
 export const Texting = ({
   data,
@@ -42,10 +41,7 @@ export const Texting = ({
       if (messages[i - 1] && messages[i - 1]?.role !== messages[i]?.role) {
         return true;
       }
-      if (i === 0) {
-        return true;
-      }
-      return false;
+      return i === 0;
     },
     [messages],
   );
@@ -97,23 +93,22 @@ export const Texting = ({
       >
         {!isRouteTransitioning &&
           messages.map((message, i) => (
-            <React.Fragment key={message.id}>
-              <ChatBubble
-                layoutId={message.id}
-                from={message.role === "user" ? "me" : "them"}
-                text={message.content}
-                tail={shouldShowTail(i)}
-                onDelete={() => onMessageDelete(message.id)}
-                onSteer={() => onMessageSteer(message.id)}
-                onRegenerate={() => onMessageRegenerate(message.id)}
-                onReact={(reaction) => onMessageReact(message.id, reaction)}
-                onEditStart={() => onMessageEditStart(message.id)}
-                reactions={message.reactions as TReaction[] | null}
-                isEditing={message.id === editingMessageId}
-                onEditDismiss={() => onMessageEditDismiss(message.id)}
-                onEditSubmit={(newContent) => onMessageEditSubmit(message.id, newContent)}
-              />
-            </React.Fragment>
+            <ChatBubble
+              key={message.id}
+              layoutId={message.id}
+              from={message.role === "user" ? "me" : "them"}
+              text={message.content}
+              tail={shouldShowTail(i)}
+              onDelete={() => onMessageDelete(message.id)}
+              onSteer={() => onMessageSteer(message.id)}
+              onRegenerate={() => onMessageRegenerate(message.id)}
+              onReact={(reaction) => onMessageReact(message.id, reaction)}
+              onEditStart={() => onMessageEditStart(message.id)}
+              reactions={message.reactions as TReaction[] | null}
+              isEditing={message.id === editingMessageId}
+              onEditDismiss={() => onMessageEditDismiss(message.id)}
+              onEditSubmit={(newContent) => onMessageEditSubmit(message.id, newContent)}
+            />
           ))}
       </section>
 

@@ -8,6 +8,7 @@ import type { Reaction as TReaction } from "~/layouts/types";
 import { ExpandingTextarea } from "./ExpandingTextarea";
 import { Reaction } from "./reactions/Reaction";
 import { SpoilerParticles } from "./SpoilerParticles";
+
 export type TapbackAction = {
   label: string;
   icon: React.ReactNode;
@@ -520,6 +521,16 @@ export const ChatBubble = React.memo(
           </AnimatePresence>
         </div>
       </>
+    );
+  },
+  (prev, next) => {
+    return (
+      prev.layoutId === next.layoutId &&
+      prev.from === next.from &&
+      prev.text === next.text &&
+      prev.tail === next.tail &&
+      prev.reactions === next.reactions &&
+      prev.isEditing === next.isEditing
     );
   },
 );
