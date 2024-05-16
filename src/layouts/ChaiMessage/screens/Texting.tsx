@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { useAtomValue } from "jotai";
 import { ChevronLeft, VideoIcon } from "lucide-react";
 import { useCallback, useMemo } from "react";
@@ -91,25 +91,27 @@ export const Texting = ({
           "flex h-1 flex-grow flex-col-reverse gap-2 overflow-x-clip overflow-y-scroll px-5 pb-2 pt-24",
         )}
       >
-        {!isRouteTransitioning &&
-          messages.map((message, i) => (
-            <ChatBubble
-              key={message.id}
-              layoutId={message.id}
-              from={message.role === "user" ? "me" : "them"}
-              text={message.content}
-              tail={shouldShowTail(i)}
-              onDelete={() => onMessageDelete(message.id)}
-              onSteer={() => onMessageSteer(message.id)}
-              onRegenerate={() => onMessageRegenerate(message.id)}
-              onReact={(reaction) => onMessageReact(message.id, reaction)}
-              onEditStart={() => onMessageEditStart(message.id)}
-              reactions={message.reactions as TReaction[] | null}
-              isEditing={message.id === editingMessageId}
-              onEditDismiss={() => onMessageEditDismiss(message.id)}
-              onEditSubmit={(newContent) => onMessageEditSubmit(message.id, newContent)}
-            />
-          ))}
+        <AnimatePresence initial={false}>
+          {!isRouteTransitioning &&
+            messages.map((message, i) => (
+              <ChatBubble
+                key={message.id}
+                layoutId={message.id}
+                from={message.role === "user" ? "me" : "them"}
+                text={message.content}
+                tail={shouldShowTail(i)}
+                onDelete={() => onMessageDelete(message.id)}
+                onSteer={() => onMessageSteer(message.id)}
+                onRegenerate={() => onMessageRegenerate(message.id)}
+                onReact={(reaction) => onMessageReact(message.id, reaction)}
+                onEditStart={() => onMessageEditStart(message.id)}
+                reactions={message.reactions as TReaction[] | null}
+                isEditing={message.id === editingMessageId}
+                onEditDismiss={() => onMessageEditDismiss(message.id)}
+                onEditSubmit={(newContent) => onMessageEditSubmit(message.id, newContent)}
+              />
+            ))}
+        </AnimatePresence>
       </section>
 
       {/* Chat input */}

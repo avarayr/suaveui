@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
+import React from "react";
 
-const Heart = (props: React.ComponentProps<typeof motion.svg>) => {
+const Heart = React.memo((props: React.ComponentProps<typeof motion.svg>) => {
   return (
     <motion.svg
       width="60"
@@ -23,9 +24,9 @@ const Heart = (props: React.ComponentProps<typeof motion.svg>) => {
       />
     </motion.svg>
   );
-};
+});
 
-const ThumbsUp = (props: React.ComponentProps<typeof motion.svg>) => {
+const ThumbsUp = React.memo((props: React.ComponentProps<typeof motion.svg>) => {
   return (
     <motion.svg
       width="63"
@@ -52,9 +53,9 @@ const ThumbsUp = (props: React.ComponentProps<typeof motion.svg>) => {
       />
     </motion.svg>
   );
-};
+});
 
-const ThumbsDown = (props: React.ComponentProps<typeof motion.svg>) => {
+const ThumbsDown = React.memo((props: React.ComponentProps<typeof motion.svg>) => {
   return (
     <motion.svg
       width="62"
@@ -81,9 +82,9 @@ const ThumbsDown = (props: React.ComponentProps<typeof motion.svg>) => {
       />
     </motion.svg>
   );
-};
+});
 
-const Haha = (props: React.ComponentProps<typeof motion.svg>) => {
+const Haha = React.memo((props: React.ComponentProps<typeof motion.svg>) => {
   return (
     <motion.svg width="70" height="70" viewBox="0 0 70 70" fill="none" {...props}>
       <motion.path
@@ -115,9 +116,9 @@ const Haha = (props: React.ComponentProps<typeof motion.svg>) => {
       />
     </motion.svg>
   );
-};
+});
 
-const Exclamation = (props: React.ComponentProps<typeof motion.svg>) => {
+const Exclamation = React.memo((props: React.ComponentProps<typeof motion.svg>) => {
   return (
     <motion.svg width="47" height="68" viewBox="0 0 47 68" fill="none" {...props}>
       <motion.path
@@ -147,9 +148,9 @@ const Exclamation = (props: React.ComponentProps<typeof motion.svg>) => {
       />
     </motion.svg>
   );
-};
+});
 
-const Question = (props: React.ComponentProps<typeof motion.svg>) => {
+const Question = React.memo((props: React.ComponentProps<typeof motion.svg>) => {
   return (
     <motion.svg width="38" height="68" viewBox="0 0 38 68" fill="none" {...props}>
       <motion.path
@@ -178,7 +179,7 @@ const Question = (props: React.ComponentProps<typeof motion.svg>) => {
       />
     </motion.svg>
   );
-};
+});
 
 export const Reaction = {
   ThumbsUp,

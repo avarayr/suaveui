@@ -8,6 +8,7 @@ import type { Reaction as TReaction } from "~/layouts/types";
 import { ExpandingTextarea } from "./ExpandingTextarea";
 import { Reaction } from "./reactions/Reaction";
 import { SpoilerParticles } from "./SpoilerParticles";
+import { ReactNode } from "@tanstack/react-router";
 
 export type TapbackAction = {
   label: string;
@@ -19,7 +20,7 @@ export type TapbackAction = {
 
 export type Reaction = {
   id: TReaction["type"];
-  icon: (props: React.ComponentProps<typeof motion.svg>) => JSX.Element;
+  icon: ReactNode;
 };
 
 export const ChatBubble = React.memo(
@@ -212,6 +213,14 @@ export const ChatBubble = React.memo(
       return regenerateMutation.isPending || steerMutation.isPending;
     }, [regenerateMutation.isPending, steerMutation.isPending]);
 
+    const getReactionIcon = useCallback(
+      (reactionType: TReaction["type"]): ReactNode => {
+        const Icon = reactionsSymbols?.find((r) => r.id === reactionType)?.icon;
+        return Icon ? <Icon /> : null;
+      },
+      [reactionsSymbols],
+    );
+
     return (
       <>
         {/* Focus backdrop */}
@@ -366,7 +375,7 @@ export const ChatBubble = React.memo(
                               )}
                             />
                           )}
-                          <reaction.icon className="z-[10] size-6" transition={{ delay: i * 0.05 + 0.2 }} />
+                          <reaction.icon className="z-[10] size-6" transition={{ delay: i * 0.05 + 0.25 }} />
                         </motion.div>
                       ))}
                     </div>
@@ -416,7 +425,7 @@ export const ChatBubble = React.memo(
                         reaction.type === "heart" && "text-[#F9538B]",
                       )}
                     >
-                      {reactionsSymbols?.find((r) => r.id === reaction.type)?.icon?.({})}
+                      {getReactionIcon(reaction.type)}
                     </motion.div>
                   );
                 })}

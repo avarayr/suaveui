@@ -1,3 +1,4 @@
+import React from "react";
 import { twMerge } from "tailwind-merge";
 
 type AvatarProps = {
@@ -6,7 +7,7 @@ type AvatarProps = {
   displayName?: string;
 };
 
-export function Avatar({ className, src, displayName }: AvatarProps) {
+export const Avatar = React.memo(({ className, src, displayName }: AvatarProps) => {
   if (!src && !displayName) {
     return null;
   }
@@ -31,4 +32,4 @@ export function Avatar({ className, src, displayName }: AvatarProps) {
         : ""}
     </div>
   );
-}
+});

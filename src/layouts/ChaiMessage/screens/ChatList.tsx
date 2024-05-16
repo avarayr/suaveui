@@ -2,7 +2,7 @@
 
 import { Link } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
-import { BellOff, BellPlus, BellRing, ChevronRight, Search, Settings } from "lucide-react";
+import { BellOff, BellRing, ChevronRight, Search, Settings } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { twMerge } from "tailwind-merge";
 import { SpinnerIcon } from "~/components/primitives/SpinnerIcon";
@@ -11,8 +11,7 @@ import { type ChatListProps } from "../../types";
 import { Avatar } from "../components/Avatar";
 import { Padded } from "../components/Padded";
 import { ChaiColors } from "../types";
-import { formatDate } from "~/utils/date";
-import { TChat } from "~/server/schema/Chat";
+import { ChatListItem } from "../components/ChatListItem";
 
 export const ChatList = React.memo(
   ({ chats, onNewChatClick, loading, areNotificationsEnabled, onNotificationToggle }: ChatListProps) => {
@@ -47,12 +46,6 @@ export const ChatList = React.memo(
         document.querySelector("meta[name='theme-color']")?.setAttribute("content", ChaiColors.BACKGROUND);
       }
     }, [isSearchInputFocused]);
-
-    const getLastMessageDate = (chat: TChat) => {
-      const lastMessage = chat.messages.slice(-1)?.[0];
-      if (!lastMessage?.createdAt) return "";
-      return formatDate(lastMessage.createdAt);
-    };
 
     return (
       <motion.main className="flex h-dvh w-dvw flex-col overflow-x-hidden bg-black text-white antialiased">
@@ -141,56 +134,7 @@ export const ChatList = React.memo(
           <div className="mt-2 flex flex-col">
             <AnimatePresence initial={true}>
               {filteredChat.map((chat) => (
-                <Link to={`/texting/$chatId`} params={{ chatId: chat.id }} key={chat.id} className="group">
-                  <motion.div
-                    key={chat.id}
-                    className="flex select-none items-center justify-between text-[1.05rem] *:select-none active:bg-[#3d3d44] active:text-white"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0, y: -25 }}
-                    transition={{ duration: 0.35, ease: "easeInOut" }}
-                    onClick={() => setLoadingChatId(chat.id)}
-                  >
-                    <Padded className="w-full py-0">
-                      <div className="flex w-full items-center gap-[1rem]">
-                        {/* Avatar */}
-                        <div className="flex flex-shrink-0 items-center gap-2">
-                          {/* Unread indicator */}
-                          <div
-                            className={twMerge(
-                              "size-[0.45rem] rounded-full text-white",
-                              //TODO
-                              // chat.isUnread && "bg-[#3679F1]",
-                            )}
-                          />
-                          <Avatar src={chat.persona?.avatar} displayName={chat.persona?.name} />
-                        </div>
-
-                        <div className="flex w-full flex-col gap-[0.25rem] border-t border-[#8F8F95]/[13%] py-[0.5rem] group-last:border-b group-active:border-transparent">
-                          <div className="flex justify-between">
-                            {/* Name */}
-                            <p className="font-bold">{chat.persona?.name}</p>
-
-                            {/* Time */}
-                            <div className="flex items-center gap-[0.3rem]">
-                              <time className="text-[0.95rem] text-[#8F8F95]/90">{getLastMessageDate(chat)}</time>
-                              {loadingChatId === chat.id ? (
-                                <SpinnerIcon variant="ios" className="size-[1.2rem]" />
-                              ) : (
-                                <ChevronRight className="size-[1.2rem] text-[#8F8F95]/50" />
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Message preview */}
-                          <p className="h-[1.6rem] w-full max-w-[min(70dvw,350px)] truncate text-white/50">
-                            {chat.messages.slice(-1)[0]?.content}
-                          </p>
-                        </div>
-                      </div>
-                    </Padded>
-                  </motion.div>
-                </Link>
+                <ChatListItem key={chat.id} chat={chat} />
               ))}
             </AnimatePresence>
           </div>
