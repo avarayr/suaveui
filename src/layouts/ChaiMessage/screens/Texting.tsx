@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import { useAtomValue } from "jotai";
 import { ChevronLeft, VideoIcon } from "lucide-react";
-import { useCallback, useMemo } from "react";
+import { Fragment, useCallback, useMemo } from "react";
 import { twMerge } from "tailwind-merge";
 import { SpinnerIcon } from "~/components/primitives/SpinnerIcon";
 import { IsRouteTransitioning } from "~/internal/AnimatedOutlet";
@@ -12,6 +12,7 @@ import { Avatar } from "../components/Avatar";
 import { ChatBubble } from "../components/ChatBubble";
 import { ChatInput } from "../components/ChatInput";
 import { ChaiColors } from "../types";
+import { formatDateWithTime } from "~/utils/date";
 
 export const Texting = ({
   data,
@@ -45,6 +46,8 @@ export const Texting = ({
     },
     [messages],
   );
+
+  const timestampInterval = 1000 * 60 * 30; // 30 minutes
 
   return (
     <motion.main
@@ -93,24 +96,56 @@ export const Texting = ({
       >
         <AnimatePresence initial={false}>
           {!isRouteTransitioning &&
-            messages.map((message, i) => (
-              <ChatBubble
-                key={message.id}
-                layoutId={message.id}
-                from={message.role === "user" ? "me" : "them"}
-                text={message.content}
-                tail={shouldShowTail(i)}
-                onDelete={() => onMessageDelete(message.id)}
-                onSteer={() => onMessageSteer(message.id)}
-                onRegenerate={() => onMessageRegenerate(message.id)}
-                onReact={(reaction) => onMessageReact(message.id, reaction)}
-                onEditStart={() => onMessageEditStart(message.id)}
-                reactions={message.reactions as TReaction[] | null}
-                isEditing={message.id === editingMessageId}
-                onEditDismiss={() => onMessageEditDismiss(message.id)}
-                onEditSubmit={(newContent) => onMessageEditSubmit(message.id, newContent)}
-              />
-            ))}
+            messages.map((message, i) => {
+              const element = (
+                <ChatBubble
+                  key={message.id}
+                  layoutId={message.id}
+                  from={message.role === "user" ? "me" : "them"}
+                  text={message.content}
+                  tail={shouldShowTail(i)}
+                  onDelete={() => onMessageDelete(message.id)}
+                  onSteer={() => onMessageSteer(message.id)}
+                  onRegenerate={() => onMessageRegenerate(message.id)}
+                  onReact={(reaction) => onMessageReact(message.id, reaction)}
+                  onEditStart={() => onMessageEditStart(message.id)}
+                  reactions={message.reactions as TReaction[] | null}
+                  isEditing={message.id === editingMessageId}
+                  onEditDismiss={() => onMessageEditDismiss(message.id)}
+                  onEditSubmit={(newContent) => onMessageEditSubmit(message.id, newContent)}
+                />
+              );
+              let timestampElement = null;
+
+              const nextMessage = messages[i + 1];
+              const currentTimestamp = message.createdAt ? message.createdAt.getTime() : 0;
+              const nextTimestamp = nextMessage?.createdAt ? nextMessage.createdAt.getTime() : 0;
+              const hasDayChanged = message.createdAt?.getDate() !== nextMessage?.createdAt?.getDate();
+              const shouldDisplayTime = currentTimestamp - nextTimestamp >= timestampInterval || hasDayChanged;
+
+              if (shouldDisplayTime) {
+                timestampElement = (
+                  <motion.div
+                    className="timestamp mt-1 w-full text-center text-xs text-[#7D7C80]"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.1 }}
+                    layout
+                    layoutId={`timestamp-${message.id}`}
+                  >
+                    {formatDateWithTime(message.createdAt!)}
+                  </motion.div>
+                );
+              }
+
+              return (
+                <Fragment key={i}>
+                  {element}
+                  {/* Everything comes after the chat bubble because the chat is in flex-col-reverse */}
+                  {timestampElement}
+                </Fragment>
+              );
+            })}
         </AnimatePresence>
       </section>
 
