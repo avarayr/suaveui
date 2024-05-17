@@ -13,17 +13,34 @@ type IntersectionObserverInit = {
    * The percentage of the target's visibility the observer's
    */
   threshold?: number | number[];
+
+  timeout?: number;
 };
 
 export function useInView<T = HTMLDivElement>(ref?: React.RefObject<T>, options: IntersectionObserverInit = {}) {
   const newRef = useRef<T>(null);
   const [inView, setInView] = useState(false);
+  const timeoutRef = useRef<Timer | null>(null);
   ref ??= newRef;
 
   useEffect(() => {
     const observer = new IntersectionObserver(([entry]) => {
       if (entry) {
-        setInView(entry.isIntersecting);
+        if (entry.isIntersecting) {
+          if (options.timeout) {
+            timeoutRef.current = setTimeout(() => {
+              setInView(true);
+            }, options.timeout);
+          } else {
+            setInView(true);
+          }
+        } else {
+          if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
+          }
+          setInView(false);
+        }
       }
     }, options);
 
@@ -32,6 +49,9 @@ export function useInView<T = HTMLDivElement>(ref?: React.RefObject<T>, options:
     }
 
     return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
       observer.disconnect();
     };
   }, [options, ref]);

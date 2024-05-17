@@ -8,6 +8,7 @@ import type { Chat, TextingProps } from "./types";
 import { Texting as ChaiMessageTexting } from "./ChaiMessage/screens/Texting";
 import { Texting as UnsolicitedTexting } from "./Unsolicited/screens/Texting";
 import { Texting as ZuckMadeTexting } from "./ZuckMade/screens/Texting";
+import React from "react";
 
 type Props<TLayout extends Layouts> = {
   layout: TLayout;
@@ -24,9 +25,7 @@ type PropsOfLayout<TLayout extends Layouts> = TLayout extends "ChaiMessage"
       ? React.ComponentProps<typeof ZuckMadeTexting>
       : never;
 
-export const Texting = <TLayout extends Layouts>(
-  props: Props<TLayout> & PropsOfLayout<TLayout>,
-) => {
+export const Texting = <TLayout extends Layouts>(props: Props<TLayout> & PropsOfLayout<TLayout>) => {
   const { layout, ...rest } = props;
 
   switch (layout) {

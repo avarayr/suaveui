@@ -28,31 +28,33 @@ export const ChatInput = React.memo(({ onMessageSend }: ChatInputProps) => {
       </button>
 
       {/* Input */}
-      <ExpandingTextarea
-        autoComplete="off"
-        rows={1}
-        wrap="hard"
-        className="h-auto min-h-9 w-full flex-grow rounded-3xl border border-[#1F2021] bg-transparent px-3 py-[0.35rem] pr-10 text-white placeholder-[#434346] caret-blue-600 outline-none selection:bg-[#346DD9]/30"
-        placeholder="Message..."
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-        onKeyDown={(e) => {
-          if (window.innerWidth < 768) return;
-          e.key === "Enter" && !e.shiftKey && void sendMessage(e);
-        }}
-      />
+      <div className="relative w-full">
+        <ExpandingTextarea
+          autoComplete="off"
+          rows={1}
+          wrap="hard"
+          className="h-auto min-h-9 w-full flex-grow rounded-3xl border border-[#1F2021] bg-transparent px-3 py-[0.35rem] pr-10 text-white placeholder-[#434346] caret-blue-600 outline-none selection:bg-[#346DD9]/30"
+          placeholder="Message..."
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          onKeyDown={(e) => {
+            if (window.innerWidth < 768) return;
+            e.key === "Enter" && !e.shiftKey && void sendMessage(e);
+          }}
+        />
 
-      {/* Send Icon (absolute, right-0) */}
-      <button
-        onTouchEnd={sendMessage}
-        className={twMerge(
-          "duration-50 absolute right-4 flex size-7 flex-shrink-0 items-center justify-center rounded-full bg-[#0C79FF] text-white/80 opacity-100 transition-all",
-          message.length === 0 && "opacity-0",
-        )}
-        onClick={sendMessage}
-      >
-        <ArrowUp className="size-4" />
-      </button>
+        {/* Send Icon (absolute, right-0) */}
+        <button
+          onTouchEnd={sendMessage}
+          className={twMerge(
+            "duration-50 absolute bottom-[0.65rem] right-1 flex size-7 flex-shrink-0 items-center justify-center rounded-full bg-[#0C79FF] text-white/80 opacity-100 transition-all",
+            message.length === 0 && "opacity-0",
+          )}
+          onClick={sendMessage}
+        >
+          <ArrowUp className="size-4" />
+        </button>
+      </div>
     </section>
   );
 });

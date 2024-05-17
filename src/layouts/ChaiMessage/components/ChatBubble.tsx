@@ -398,7 +398,7 @@ export const ChatBubble = React.memo(
                         damping: 25,
                       }}
                       className={twMerge(
-                        `absolute -top-5 z-[10] flex h-8 w-8 items-center justify-center  rounded-full text-white
+                        `absolute -top-5 z-[9] flex h-8 w-8 items-center justify-center  rounded-full text-white
                     [transform-origin:bottom_right]
                   *:size-4
                   `,
@@ -417,8 +417,8 @@ export const ChatBubble = React.memo(
                   `,
                         reaction.from === "me" && `bg-[#137BFF] before:bg-[#137BFF] after:bg-[#137BFF]`,
                         reaction.from === "them" && `bg-[#222225] before:bg-[#222225] after:bg-[#222225]`,
-                        from === "me" && reaction.from === "me" && "z-[10] ring-[1px] ring-black/30",
-                        from === "them" && reaction.from === "them" && "z-[10] ring-[1px] ring-black/30",
+                        from === "me" && reaction.from === "me" && "ring-[1px] ring-black/30",
+                        from === "them" && reaction.from === "them" && "ring-[1px] ring-black/30",
                         // if focused, opacity is 30%
                         isFocused && "!opacity-0 transition-opacity",
                         // if reaction is a heart, text is red
@@ -454,12 +454,12 @@ export const ChatBubble = React.memo(
                 </AnimatePresence>
               </motion.div>
 
-              {typing && (
+              {(typing || text.length === 0) && (
                 // three dots animation
                 <div className="flex items-center gap-1 py-1">
-                  <div className="size-2 animate-pulse rounded-full bg-[#656569] text-white [animation-delay:0s]"></div>
-                  <div className="size-2 animate-pulse rounded-full bg-[#545457] text-white [animation-delay:0.2s]"></div>
-                  <div className="size-2 animate-pulse rounded-full bg-[#656569] text-white [animation-delay:0.4s]"></div>
+                  <div className="size-2 animate-pulse rounded-full bg-[#656569] text-white [animation-delay:0.333s] [animation-duration:1s]"></div>
+                  <div className="size-2 animate-pulse rounded-full bg-[#545457] text-white [animation-delay:0.666s] [animation-duration:1s]"></div>
+                  <div className="size-2 animate-pulse rounded-full bg-[#656569] text-white [animation-delay:0.999s] [animation-duration:1s]"></div>
                 </div>
               )}
 
@@ -530,16 +530,6 @@ export const ChatBubble = React.memo(
           </AnimatePresence>
         </div>
       </>
-    );
-  },
-  (prev, next) => {
-    return (
-      prev.layoutId === next.layoutId &&
-      prev.from === next.from &&
-      prev.text === next.text &&
-      prev.tail === next.tail &&
-      prev.reactions === next.reactions &&
-      prev.isEditing === next.isEditing
     );
   },
 );

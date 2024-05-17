@@ -12,7 +12,8 @@ export interface TextingProps {
   data: RouterOutput["chat"]["getMessages"] | undefined;
   loading?: boolean;
   editingMessageId?: string;
-  onMessageSend: (message: string) => Promise<void>;
+  moreMessagesAvailable?: boolean;
+  onMessageSend: (message: string) => Promise<any>;
   onMessageDelete: (messageId: string) => Promise<void>;
   onMessageSteer: (messageId: string) => Promise<void>;
   onMessageRegenerate: (messageId: string) => Promise<void>;
@@ -20,6 +21,7 @@ export interface TextingProps {
   onMessageEditStart: (messageId: string) => void;
   onMessageEditDismiss: (messageId: string) => void;
   onMessageEditSubmit: (messageId: string, newContent: string) => void | Promise<void>;
+  onLoadMore?: () => Promise<void>;
 }
 
 export interface Chat {

@@ -64,6 +64,10 @@ export const Chat = {
     return ref.val<TMessageWithID>();
   },
 
+  getTotalMessageCount(chatId: string) {
+    return db.ref(`chats/${chatId}/messages`).count();
+  },
+
   /**
    * Creates a new chat with the given id
    */
@@ -130,9 +134,18 @@ export const Chat = {
     return (await ref.get())?.val<TMessageWithID[]>();
   },
 
-  async sendMessage({ chatId, content, personaID }: { chatId: string; content: string; personaID: string | null }) {
-    const messageId = createId();
-
+  async sendMessage({
+    chatId,
+    content,
+    personaID,
+    messageId,
+  }: {
+    chatId: string;
+    content: string;
+    personaID: string | null;
+    messageId?: string;
+  }) {
+    messageId ??= createId();
     const message = MessageSchemaWithID.parse({
       id: messageId,
       content,

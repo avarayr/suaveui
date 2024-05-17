@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { debounce } from "lodash";
 import { forwardRef, useCallback, useLayoutEffect, useRef } from "react";
+import { twMerge } from "tailwind-merge";
 type ExpandingTextareaProps = React.ComponentPropsWithoutRef<typeof motion.textarea> & {
   maxRows?: number;
 };
@@ -31,6 +32,10 @@ export const ExpandingTextarea = forwardRef<HTMLTextAreaElement, ExpandingTextar
     return (
       <motion.textarea
         {...props}
+        className={twMerge(
+          "[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+          props.className,
+        )}
         ref={resolvedRef}
         autoComplete="off"
         onInput={(e) => {

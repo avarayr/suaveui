@@ -22,8 +22,8 @@ function IndexPage() {
   return (
     <>
       <ChatList
-        loading={chats.isPending}
         layout="ChaiMessage"
+        loading={chats.isPending}
         chats={chats.data ?? []}
         onNewChatClick={() => setIsNewChatDrawerOpen(true)}
         areNotificationsEnabled={notificationsEnabled}

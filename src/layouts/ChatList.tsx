@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 /**
  * This React component is a multiplexer for different chat layouts.
  * It takes a layout name and the rest of the props are inferred from the layout.
@@ -18,9 +19,7 @@ type PropsOfLayout<TLayout extends Layouts> = TLayout extends "ChaiMessage"
       ? React.ComponentProps<typeof ZuckMadeChatList>
       : never;
 
-export const ChatList = <TLayout extends Layouts>(
-  props: { layout: TLayout } & PropsOfLayout<TLayout>,
-) => {
+export const ChatList = <TLayout extends Layouts>(props: { layout: TLayout } & PropsOfLayout<TLayout>) => {
   const { layout, ...rest } = props;
 
   switch (layout) {

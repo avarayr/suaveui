@@ -1,10 +1,11 @@
 import { atom, useAtom } from "jotai";
 import { useState, useEffect, useCallback } from "react";
+import { toast } from "sonner";
 import { useLocalStorage } from "usehooks-ts";
 import { api } from "~/trpc/react";
 import { ClientConsts } from "~/utils/client-consts";
 import { base64ToUint8Array } from "~/utils/string";
-
+import { BanIcon, BellDot, CircleX, CogIcon, ShieldAlertIcon } from "lucide-react";
 const subscriptionAtom = atom<PushSubscription | null>(null);
 const registrationAtom = atom<ServiceWorkerRegistration | null>(null);
 
@@ -53,7 +54,6 @@ export const useNotifications = () => {
 
       setDBSubscriptionID(null);
       setNotificationsEnabled(false);
-      console.error("Web push not subscribed");
       return;
     }
     await subscription.unsubscribe();
@@ -74,25 +74,49 @@ export const useNotifications = () => {
   ]);
 
   const toggleNotifications = useCallback(
-    async (enabled: boolean) => {
-      if (enabled) {
-        const permission = await window?.Notification?.requestPermission();
-        const granted = permission === "granted";
+    (enabled: boolean) => {
+      const promise = async () => {
+        if (enabled) {
+          const permission = await window?.Notification?.requestPermission();
+          const granted = permission === "granted";
 
-        if (granted) {
-          await subscribeSW();
-          setNotificationsEnabled(true);
+          if (permission === "denied") {
+            /**
+             * Check if we're in secure context
+             */
+            if (window.location.protocol !== "https:") {
+              throw new Error(
+                `Notifications permission has been denied.<br><br> It seems like you're not using a HTTPS connection, which is required for notifications to work.`,
+              );
+            }
+
+            throw new Error("Notifications are not allowed on this device.");
+          }
+
+          if (granted) {
+            await subscribeSW();
+            setNotificationsEnabled(true);
+          } else {
+            await unsubscribeSW();
+            setNotificationsEnabled(false);
+            return;
+          }
+          return;
         } else {
           await unsubscribeSW();
           setNotificationsEnabled(false);
-          return;
         }
-        return;
-      } else {
-        await unsubscribeSW();
-        setNotificationsEnabled(false);
-      }
+      };
+
+      toast.promise(promise, {
+        loading: enabled
+          ? "Please allow notification permission in your browser settings."
+          : "Disabling notifications...",
+        success: `${enabled ? "Enabled" : "Disabled"} notifications.`,
+        error: (err: Error) => `${err.message}`,
+      });
     },
+
     [setNotificationsEnabled, subscribeSW, unsubscribeSW],
   );
 
@@ -124,6 +148,6 @@ export const useNotifications = () => {
 
   return {
     toggleNotifications,
-    notificationsEnabled: notificationsEnabled && registration,
+    notificationsEnabled: Boolean(notificationsEnabled && registration),
   };
 };

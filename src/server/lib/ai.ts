@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { OpenAIStream } from "ai";
 
 export interface AIChatMessage {
   role: "system" | "user" | "assistant" | Omit<string, "system" | "user" | "assistant">;
@@ -50,6 +51,27 @@ export const ai = {
     }
 
     return content;
+  },
+
+  chatStream: async function* ({ messages, model, options }: ChatProps): AsyncGenerator<string> {
+    const stream = await openai.chat.completions.create({
+      model,
+      stream: true,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      messages: messages.filter((m) => m.content?.length) as any,
+      max_tokens: options?.num_predict,
+      temperature: options?.temperature,
+      seed: options?.seed,
+    } as const);
+
+    for await (const chunk of stream) {
+      const tok = chunk.choices[0];
+      if (tok?.finish_reason === "stop") {
+        return;
+      }
+
+      yield tok?.delta.content ?? "";
+    }
   },
 
   generate: async ({ model, prompt, system, options }: CompletionProps) => {

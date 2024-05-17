@@ -20,7 +20,19 @@ export const chatRouter = router({
   }),
 
   getMessages: publicProcedure
-    .input(z.object({ chatId: z.string(), limit: z.number().optional() }))
+    .input(
+      z.object({
+        chatId: z.string(),
+        /**
+         * Limit the number of messages to return (counts from the most recent message)
+         */
+        limit: z.number().optional(),
+        /**
+         * Offset the messages to return (skips the most recent messages)
+         */
+        offset: z.number().optional().default(0),
+      }),
+    )
     .query(async ({ ctx, input }) => {
       const chat = await Chat.getWithPersonas(input.chatId);
 
@@ -29,17 +41,21 @@ export const chatRouter = router({
       const messages = await Chat.getMessages({
         chatId: input.chatId,
         limit: input.limit,
+        offset: input.offset,
       });
+
+      const totalMessageCount = await Chat.getTotalMessageCount(chat.id);
 
       return {
         chat,
         messages,
+        totalMessageCount,
       };
     }),
 
   sendMessage: publicProcedure
-    .input(z.object({ chatId: z.string(), content: z.string() }))
-    .mutation(async ({ input: { chatId, content } }) => {
+    .input(z.object({ chatId: z.string(), content: z.string(), messageId: z.string().optional() }))
+    .mutation(async ({ input: { chatId, content, messageId } }) => {
       const chat = await Chat.getWithPersonas(chatId);
       if (!chat) return null;
 
@@ -47,9 +63,10 @@ export const chatRouter = router({
 
       invariant(persona, "Persona does not exist for this chat, this shouldn't happen!");
 
-      const message = await Chat.sendMessage({
-        chatId: chatId,
-        content: content,
+      await Chat.sendMessage({
+        messageId,
+        chatId,
+        content,
         personaID: null,
       });
 
@@ -68,33 +85,25 @@ export const chatRouter = router({
         role: "system",
       });
 
-      const result = await ai.chat({
+      ai.chatStream({
         model: process.env.MODEL!,
         stream: false,
         messages,
       });
 
-      const responseText = result?.message?.content ?? "";
-
-      /**
-       * If the AI doesn't return a response, we don't send the message
-       */
-      if (!responseText) {
-        return message;
-      }
-
-      await Chat.sendMessage({
+      // Send a blank message to the chat to indicate that the AI is typing
+      const blankMessage = await Chat.sendMessage({
         chatId: chatId,
-        content: responseText,
+        content: "",
         personaID: persona.id,
       });
 
-      await WebPush.sendNotification({
-        title: persona.name,
-        message: responseText,
-      });
+      invariant(blankMessage, "Blank message not found");
 
-      return message;
+      return {
+        chatId: chatId,
+        followMessageId: blankMessage.id,
+      };
     }),
 
   deleteMessage: publicProcedure

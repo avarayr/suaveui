@@ -1,11 +1,8 @@
 import { getRouterContext, Outlet, useMatches } from "@tanstack/react-router";
 import { motion, MotionProps, useIsPresent } from "framer-motion";
-import { atom, useSetAtom } from "jotai";
 import cloneDeep from "lodash/cloneDeep";
 import { forwardRef, useContext, useRef } from "react";
 import { AnimatedOutletProps, RouteTransitionVariants } from "./AnimatedOutlet.types";
-
-export const IsRouteTransitioning = atom(false);
 
 export const TransitionProps = {
   variants: RouteTransitionVariants,
@@ -24,8 +21,6 @@ export const TransitionProps = {
 } as const satisfies MotionProps;
 
 const AnimatedOutlet = forwardRef<HTMLDivElement, AnimatedOutletProps>(({ direction, ...props }, ref) => {
-  const setIsRouteTransitioning = useSetAtom(IsRouteTransitioning);
-
   const isPresent = useIsPresent();
 
   const matches = useMatches();
@@ -48,17 +43,10 @@ const AnimatedOutlet = forwardRef<HTMLDivElement, AnimatedOutletProps>(({ direct
       ...prevMatches.current.slice(matches.length),
     ];
   }
+  console.log(renderedContext);
 
   return (
-    <motion.div
-      onAnimationStart={() => setIsRouteTransitioning(true)}
-      onAnimationComplete={() => setIsRouteTransitioning(false)}
-      ref={ref}
-      className="outlet"
-      custom={direction}
-      {...TransitionProps}
-      {...props}
-    >
+    <motion.div ref={ref} className="outlet" custom={direction} {...TransitionProps} {...props}>
       <RouterContext.Provider value={renderedContext}>
         <Outlet />
       </RouterContext.Provider>

@@ -98,28 +98,28 @@ const config = {
         "text-reveal": "text-reveal 1s forwards",
       },
     },
-    keyframes(utils) {
-      return {
-        spin: {
-          "0%": { transform: "rotate(0deg)" },
-          "100%": { transform: "rotate(360deg)" },
-        },
-        "ios-spin": {
-          "0%": { transform: "rotate(0deg)" },
-          "100%": { transform: "rotate(360deg)" },
-        },
-        shimmer: {
-          "0%": { backgroundPosition: "0% 0%" },
-          "100%": { backgroundPosition: "-200% 0" },
-        },
-        "text-reveal": {
-          "0%": { "background-position": "0% 0%" },
-          "100%": { "background-position": "200% 0%" },
-        },
-      };
+    keyframes: {
+      pulse: {
+        "50%": { opacity: "0.5" },
+      },
+      spin: {
+        "0%": { transform: "rotate(0deg)" },
+        "100%": { transform: "rotate(360deg)" },
+      },
+      "ios-spin": {
+        "0%": { transform: "rotate(0deg)" },
+        "100%": { transform: "rotate(360deg)" },
+      },
+      shimmer: {
+        "0%": { backgroundPosition: "0% 0%" },
+        "100%": { backgroundPosition: "-200% 0" },
+      },
+      "text-reveal": {
+        "0%": { "background-position": "0% 0%" },
+        "100%": { "background-position": "200% 0%" },
+      },
     },
   },
-
   plugins: [
     tailwindAnimate,
     plugin(function ({ addVariant }) {

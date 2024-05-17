@@ -1,22 +1,18 @@
 "use client";
 
-import { Link } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
-import { BellOff, BellRing, ChevronRight, Search, Settings } from "lucide-react";
+import { BellOff, BellRing, Search, Settings } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { twMerge } from "tailwind-merge";
 import { SpinnerIcon } from "~/components/primitives/SpinnerIcon";
 import { Input } from "../../../components/primitives/Input";
 import { type ChatListProps } from "../../types";
-import { Avatar } from "../components/Avatar";
+import { ChatListItem } from "../components/ChatListItem";
 import { Padded } from "../components/Padded";
 import { ChaiColors } from "../types";
-import { ChatListItem } from "../components/ChatListItem";
 
 export const ChatList = React.memo(
-  ({ chats, onNewChatClick, loading, areNotificationsEnabled, onNotificationToggle }: ChatListProps) => {
-    const [loadingChatId, setLoadingChatId] = useState<string | undefined>(undefined);
-
+  ({ chats, loading, areNotificationsEnabled, onNotificationToggle }: ChatListProps) => {
     const [searchValue, setSearchValue] = useState("");
     const [isSearchInputFocused, setIsSearchInputFocused] = useState(false);
     function handleSearchInputFocus() {
@@ -125,15 +121,15 @@ export const ChatList = React.memo(
         <AnimatePresence>
           {/* Loading */}
           {loading && (
-            <div className="absolute inset-0 flex items-center justify-center">
+            <div className="absolute inset-0 flex items-center justify-center" key="chats-loading">
               <SpinnerIcon className="size-6" variant="ios" />
             </div>
           )}
 
           {/* Chat */}
-          <div className="mt-2 flex flex-col">
+          <div className="mt-2 flex flex-col" key="chats-list">
             <AnimatePresence initial={true}>
-              {filteredChat.map((chat) => (
+              {filteredChat.map((chat, i) => (
                 <ChatListItem key={chat.id} chat={chat} />
               ))}
             </AnimatePresence>
