@@ -23,7 +23,7 @@ export const ChatInput = React.memo(({ onMessageSend }: ChatInputProps) => {
   return (
     <section className="z-10 flex min-h-14 w-full items-center gap-2 bg-black/80 px-3 backdrop-blur-xl">
       {/* Plus Icon */}
-      <button className="duration-[350ms] flex size-9 flex-shrink-0 items-center justify-center rounded-full bg-[#101011] text-white/80 transition-colors">
+      <button className="duration-[350ms] -mt-[0.33rem] flex size-8 flex-shrink-0 items-center justify-center rounded-full bg-[#101011] text-white/80 transition-colors">
         <Plus className="size-4" />
       </button>
 

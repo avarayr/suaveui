@@ -70,7 +70,7 @@ export const Texting = React.memo(
 
     return (
       <motion.main
-        className="flex h-dvh w-dvw flex-col justify-between overflow-x-hidden bg-black text-white antialiased"
+        className="flex h-dvh w-dvw flex-col justify-between overflow-x-hidden bg-black text-white antialiased contain-strict"
         exit={{ y: 15, opacity: 0 }}
       >
         {/* Activity Bar */}
