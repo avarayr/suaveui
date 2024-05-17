@@ -43,7 +43,6 @@ const AnimatedOutlet = forwardRef<HTMLDivElement, AnimatedOutletProps>(({ direct
       ...prevMatches.current.slice(matches.length),
     ];
   }
-  console.log(renderedContext);
 
   return (
     <motion.div ref={ref} className="outlet" custom={direction} {...TransitionProps} {...props}>

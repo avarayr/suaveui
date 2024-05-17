@@ -11,6 +11,9 @@ export const Route = createFileRoute("/texting/$chatId")({
   component: () => <TextingPage />,
 });
 
+// map of message id to abort controller
+const abortControllers = new Map<string, AbortController>();
+
 function TextingPage() {
   const { chatId } = Route.useParams();
   const utils = api.useUtils();
@@ -25,7 +28,17 @@ function TextingPage() {
   });
 
   const editMessageLocally = useCallback(
-    (messageId: string, content: string, mode: "replace" | "append") => {
+    ({
+      messageId,
+      content,
+      mode,
+      isLoading,
+    }: {
+      messageId: string;
+      content: string;
+      mode: "replace" | "append";
+      isLoading?: boolean;
+    }) => {
       // Cancel outgoing fetches (so they don't overwrite our optimistic update)
       // await utils.chat.getMessages.cancel(queryOpts);
 
@@ -41,9 +54,15 @@ function TextingPage() {
       utils.chat.getMessages.setData(queryOpts, (old) => {
         const result = {
           ...old!,
-          messages: [...old!.messages.filter((m) => m.id !== messageId), { ...message, content: newContent }],
+          messages: [
+            ...old!.messages.filter((m) => m.id !== messageId),
+            {
+              ...message,
+              loading: isLoading !== undefined ? isLoading : message.loading,
+              content: newContent,
+            },
+          ] satisfies (typeof message)[],
         };
-        console.log(result);
         return result;
       });
     },
@@ -73,6 +92,7 @@ function TextingPage() {
             createdAt: new Date(),
             personaID: null,
             reactions: [],
+            loading: false,
             role: "user",
           },
         ],
@@ -88,33 +108,55 @@ function TextingPage() {
       utils.chat.getMessages.setData(queryOpts, context?.prevData);
     },
     onSettled: async (data, error) => {
-      void utils.chat.getMessages.invalidate(queryOpts);
-
-      if (!data) return;
+      if (!data) {
+        void utils.chat.getMessages.invalidate(queryOpts);
+        return;
+      }
 
       const { chatId: followChatId, followMessageId } = data;
+      try {
+        void utils.chat.getMessages.invalidate(queryOpts);
 
-      const fetchResult = await fetch(`/api/direct/generate-message/${followChatId}/${followMessageId}`, {
-        method: "GET",
-      });
+        // set the abort controller
+        abortControllers.set(followMessageId, new AbortController());
 
-      // this will be a stream
-      if (!fetchResult.ok) {
-        return;
-      }
+        const fetchResult = await fetch(`/api/direct/generate-message/${followChatId}/${followMessageId}`, {
+          method: "GET",
+          headers: {
+            Connection: "keep-alive",
+          },
+          signal: abortControllers.get(followMessageId)?.signal,
+        });
 
-      const reader = fetchResult.body?.getReader();
+        // this will be a stream
+        if (!fetchResult.ok) {
+          return;
+        }
 
-      if (!reader) {
-        return;
-      }
+        const reader = fetchResult.body?.getReader();
 
-      const textDecoder = new TextDecoder();
-      let { done, value } = await reader.read();
-      while (!done) {
-        const chunk = textDecoder.decode(value);
-        editMessageLocally(followMessageId, chunk, "append");
-        ({ done, value } = await reader.read());
+        if (!reader) {
+          return;
+        }
+
+        const textDecoder = new TextDecoder();
+        let { done, value } = await reader.read();
+        while (!done) {
+          const chunk = textDecoder.decode(value);
+          editMessageLocally({ messageId: followMessageId, content: chunk, mode: "append", isLoading: true });
+          ({ done, value } = await reader.read());
+        }
+      } catch (e) {
+        if (e instanceof DOMException && e.name === "AbortError") {
+          // ignore abort errors
+          return;
+        }
+        console.error(e);
+      } finally {
+        // set isLoading to false
+        editMessageLocally({ messageId: followMessageId, content: "", mode: "append", isLoading: false });
+        // clean up the abort controller
+        abortControllers.delete(followMessageId);
       }
     },
   });
@@ -202,7 +244,7 @@ function TextingPage() {
       // Get the data from the queryCache
       await utils.chat.getMessages.cancel(queryOpts);
       const prevData = utils.chat.getMessages.getData(queryOpts);
-      editMessageLocally(message.messageId, message.content, "replace");
+      editMessageLocally({ messageId: message.messageId, content: message.content, mode: "replace" });
 
       // Return the previous data so we can revert if something goes wrong
       return { prevData };
@@ -265,6 +307,13 @@ function TextingPage() {
     setEditingMessageId(undefined);
   };
 
+  const handleMessageInterrupt = async (messageId: string) => {
+    return new Promise<void>((resolve) => {
+      abortControllers.get(messageId)?.abort("User aborted");
+      resolve();
+    });
+  };
+
   if (typeof chatId !== "string") {
     return null;
   }
@@ -282,6 +331,7 @@ function TextingPage() {
       onMessageEditStart={handleMessageEditStart}
       onMessageEditDismiss={handleMessageEditDismiss}
       onMessageEditSubmit={handleMessageEditSubmit}
+      onMessageInterrupt={handleMessageInterrupt}
       editingMessageId={editingMessageId}
       onLoadMore={handleLoadMore}
       moreMessagesAvailable={moreMessagesAvailable}

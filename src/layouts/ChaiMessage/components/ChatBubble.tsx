@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
-import { CheckIcon, Files, Pencil, RotateCcw, ShipWheel, Trash, XIcon } from "lucide-react";
+import { CheckIcon, CircleStop, Files, Pencil, RotateCcw, ShipWheel, StopCircleIcon, Trash, XIcon } from "lucide-react";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import { twMerge } from "tailwind-merge";
 import { useTouchHold } from "~/hooks/useTouchHold";
@@ -32,6 +32,8 @@ export const ChatBubble = React.memo(
     typing,
     reactions,
     isEditing,
+    canInterrupt,
+    onInterrupt,
     onDelete,
     onSteer,
     onReact,
@@ -48,6 +50,8 @@ export const ChatBubble = React.memo(
     typing?: boolean;
     reactions?: TReaction[] | null;
     isEditing?: boolean;
+    canInterrupt?: boolean;
+    onInterrupt?: () => Promise<any>;
     onSteer?: () => Promise<void>;
     onRegenerate?: () => Promise<void>;
     onReact?: (reaction: TReaction["type"]) => Promise<void>;
@@ -524,6 +528,26 @@ export const ChatBubble = React.memo(
                   }}
                 >
                   <CheckIcon className="size-5" />
+                </button>
+              </motion.section>
+            )}
+            {canInterrupt && (
+              <motion.section
+                className="flex self-end [transform-origin:right]"
+                initial={{ opacity: 0, scale: 0, x: 20 }}
+                animate={{ opacity: 1, scale: 1, x: 0 }}
+                exit={{ opacity: 0, scale: 0, x: 20 }}
+                transition={{ duration: 0.25 }}
+              >
+                <button
+                  className={twMerge(
+                    "ml-2 flex size-8 items-center justify-center rounded-full border-none bg-[#ae1a06] text-white",
+                  )}
+                  onClick={() => {
+                    void onInterrupt?.();
+                  }}
+                >
+                  <CircleStop className="size-5" />
                 </button>
               </motion.section>
             )}

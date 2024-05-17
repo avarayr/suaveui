@@ -30,6 +30,7 @@ export const Texting = React.memo(
     onMessageEditStart,
     onMessageEditDismiss,
     onMessageEditSubmit,
+    onMessageInterrupt,
     onLoadMore,
   }: TextingProps) => {
     const [loadMoreButtonRef, loadMoreButtonInView] = useInView(undefined, {
@@ -39,7 +40,6 @@ export const Texting = React.memo(
     const persona = data?.chat?.personas?.[0];
 
     const messages = useMemo(() => {
-      console.log(data?.messages);
       return [...(data?.messages ?? [])].sort(
         (a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime(),
       );
@@ -64,7 +64,6 @@ export const Texting = React.memo(
 
     useEffect(() => {
       if (loadMoreButtonInView) {
-        console.log("Loading more...");
         void loadMoreMutate();
       }
     }, [loadMoreButtonInView, loadMoreMutate]);
@@ -132,6 +131,8 @@ export const Texting = React.memo(
                   isEditing={message.id === editingMessageId}
                   onEditDismiss={() => onMessageEditDismiss(message.id)}
                   onEditSubmit={(newContent) => onMessageEditSubmit(message.id, newContent)}
+                  canInterrupt={message.loading}
+                  onInterrupt={() => onMessageInterrupt(message.id)}
                 />
               );
               let timestampElement = null;

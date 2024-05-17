@@ -4,9 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "bun --bun vite --host",
-    "build": "bun --bun vite build",
-    "start": "NODE_ENV=production bun src/hono.ts",
+    "dev": "vite --host",
+    "build": "vite build",
+    "start": "NODE_ENV=production bun --bun src/hono.ts",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "renovate": "bunx npm-check-updates -i -x eslint",
     "preview": "NODE_ENV=production bun src/hono.ts"

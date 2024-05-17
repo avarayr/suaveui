@@ -48,9 +48,12 @@ export const chatRouter = router({
 
       return {
         chat,
-        messages,
+        messages: messages.map((message) => ({
+          ...message,
+          loading: false,
+        })),
         totalMessageCount,
-      };
+      } as const;
     }),
 
   sendMessage: publicProcedure

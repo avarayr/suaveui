@@ -40,8 +40,6 @@ hono.get("/generate-message/:chatId/:messageId", (c) => {
       role: "system",
     });
 
-    console.log(messages);
-
     const result = ai.chatStream({
       model: process.env.MODEL!,
       stream: false,
@@ -51,6 +49,19 @@ hono.get("/generate-message/:chatId/:messageId", (c) => {
     const buffer: string[] = [];
 
     for await (const chunk of result) {
+      if (c.req.raw.signal.aborted) {
+        console.log("Aborted");
+        // edit the message to what's already been generated
+        await Chat.editMessage({
+          chatId: chatId,
+          messageId: messageId,
+          content: buffer.join(""),
+        });
+
+        await stream.close();
+        return;
+      }
+
       await stream.write(chunk);
       buffer.push(chunk);
     }
