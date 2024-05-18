@@ -74,14 +74,14 @@ export const ai = {
         while (!this.finished) {
           if (this.abortController.signal.aborted) return;
 
-          while (this.buffer[i + 1] === undefined) {
+          while (this.buffer[i] === undefined) {
             if (this.abortController.signal.aborted) return;
 
             await new Promise((resolve) => setTimeout(resolve, 100));
           }
           yield this.buffer[i++];
         }
-        while (this.buffer[i + 1] !== undefined) {
+        while (this.buffer[i] !== undefined) {
           yield this.buffer[i++];
         }
       },
@@ -103,12 +103,12 @@ export const ai = {
 
     for await (const chunk of stream) {
       const tok = chunk.choices[0];
+
       if (tok?.finish_reason === "stop" || streamBuffer.abortController.signal.aborted) {
         streamBuffer.finished = true;
         break;
       }
 
-      // yield tok?.delta.content ?? "";
       const text = tok?.delta.content;
       if (text) {
         streamBuffer.buffer.push(text);
