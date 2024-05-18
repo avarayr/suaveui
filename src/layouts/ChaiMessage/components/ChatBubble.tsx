@@ -1,6 +1,17 @@
 import { useMutation } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
-import { CheckIcon, CircleStop, Files, Pencil, RotateCcw, ShipWheel, StopCircleIcon, Trash, XIcon } from "lucide-react";
+import {
+  ArrowRight,
+  CheckIcon,
+  CircleStop,
+  Files,
+  Pencil,
+  RotateCcw,
+  ShipWheel,
+  StopCircleIcon,
+  Trash,
+  XIcon,
+} from "lucide-react";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import { twMerge } from "tailwind-merge";
 import { useTouchHold } from "~/hooks/useTouchHold";
@@ -15,7 +26,8 @@ export type TapbackAction = {
   icon: React.ReactNode;
   className?: string;
   onPress: (e: React.MouseEvent<HTMLDivElement>) => any;
-  visible?: boolean;
+  hidden?: boolean | ((opts: { from: "me" | "them" }) => boolean);
+  forRole?: "me" | "them";
 };
 
 export type Reaction = {
@@ -33,7 +45,7 @@ export const ChatBubble = React.memo(
     isGenerating,
     reactions,
     isEditing,
-
+    onContinue,
     onInterrupt,
     onDelete,
     onSteer,
@@ -56,6 +68,7 @@ export const ChatBubble = React.memo(
     onSteer?: () => Promise<void>;
     onRegenerate?: () => Promise<void>;
     onReact?: (reaction: TReaction["type"]) => Promise<void>;
+    onContinue?: () => Promise<void>;
     onDelete?: () => Promise<void>;
     onEditStart?: () => void;
     onEditDismiss?: () => void;
@@ -80,6 +93,10 @@ export const ChatBubble = React.memo(
 
     const reactMutation = useMutation({
       mutationFn: onReact,
+    });
+
+    const continueGeneratingMutation = useMutation({
+      mutationFn: onContinue,
     });
 
     const recalculateOffset = useCallback(() => {
@@ -197,11 +214,19 @@ export const ChatBubble = React.memo(
           label: "Steer",
           icon: <ShipWheel className="size-5" />,
           onPress: beforeAction(steerMutation.mutate),
+          forRole: "them",
         },
         {
           label: "Regenerate",
           icon: <RotateCcw className="size-5" />,
           onPress: beforeAction(regenerateMutation.mutate),
+          forRole: "them",
+        },
+        {
+          label: "Continue",
+          icon: <ArrowRight className="size-5" />,
+          onPress: beforeAction(continueGeneratingMutation.mutate),
+          forRole: "them",
         },
         {
           label: "Delete",
@@ -210,7 +235,16 @@ export const ChatBubble = React.memo(
           className: "text-red-500",
         },
       ];
-    }, [onCopy, onDelete, onEditStart, onTapBackDismiss, regenerateMutation.mutate, steerMutation.mutate, text]);
+    }, [
+      onCopy,
+      onDelete,
+      onEditStart,
+      onTapBackDismiss,
+      continueGeneratingMutation.mutate,
+      regenerateMutation.mutate,
+      steerMutation.mutate,
+      text,
+    ]);
 
     const longPressProps = useTouchHold(onTapBack);
 
@@ -450,8 +484,10 @@ export const ChatBubble = React.memo(
                       }
                     }}
                   />
+                ) : text?.trim() || isGenerating ? (
+                  <span>{text}</span>
                 ) : (
-                  <motion.span>{text}</motion.span>
+                  <span className="italic text-white/30">empty response</span>
                 )}
 
                 <AnimatePresence initial={false} mode="wait">
@@ -484,22 +520,25 @@ export const ChatBubble = React.memo(
                         from === "them" && "left-0 [transform-origin:top_left]",
                       )}
                     >
-                      {tapbackActions.map(
-                        (action) =>
-                          action.visible !== false && (
-                            <div
-                              key={action.label}
-                              className={twMerge(
-                                "flex w-full cursor-pointer items-center justify-between gap-2 px-4 py-3",
-                                action.className,
-                              )}
-                              onClick={(e) => void action.onPress?.(e)}
-                            >
-                              <span>{action.label}</span>
-                              {action.icon}
-                            </div>
-                          ),
-                      )}
+                      {tapbackActions.map((action) => {
+                        if (action.forRole && from !== action.forRole) return null;
+                        if (action.hidden === true) return null;
+                        if (typeof action.hidden === "function" && action.hidden({ from })) return null;
+
+                        return (
+                          <div
+                            key={action.label}
+                            className={twMerge(
+                              "flex w-full cursor-pointer items-center justify-between gap-2 px-4 py-3",
+                              action.className,
+                            )}
+                            onClick={(e) => void action.onPress?.(e)}
+                          >
+                            <span>{action.label}</span>
+                            {action.icon}
+                          </div>
+                        );
+                      })}
                     </motion.div>
                   )}
                 </AnimatePresence>

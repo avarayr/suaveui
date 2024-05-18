@@ -25,6 +25,7 @@ export const Texting = React.memo(
     moreMessagesAvailable,
     onMessageDelete,
     onMessageSteer,
+    onMessageContinue,
     onMessageRegenerate,
     onMessageReact,
     onMessageEditStart,
@@ -124,11 +125,12 @@ export const Texting = React.memo(
                   tail={shouldShowTail(i)}
                   onDelete={() => onMessageDelete(message.id)}
                   onSteer={() => onMessageSteer(message.id)}
+                  onContinue={() => onMessageContinue(message.id)}
                   onRegenerate={() => onMessageRegenerate(message.id)}
                   onReact={(reaction) => onMessageReact(message.id, reaction)}
                   onEditStart={() => onMessageEditStart(message.id)}
                   reactions={message.reactions as TReaction[] | null}
-                  isEditing={message.id === editingMessageId}
+                  isEditing={Boolean(editingMessageId && message.id === editingMessageId)}
                   onEditDismiss={() => onMessageEditDismiss(message.id)}
                   onEditSubmit={(newContent) => onMessageEditSubmit(message.id, newContent)}
                   isGenerating={message.isGenerating ?? false}
@@ -145,7 +147,7 @@ export const Texting = React.memo(
 
               if (shouldDisplayTime) {
                 timestampElement = (
-                  <motion.div layout className="timestamp mt-1 w-full text-center text-xs text-[#7D7C80]">
+                  <motion.div layout="position" className="timestamp mt-1 w-full text-center text-xs text-[#7D7C80]">
                     {formatDateWithTime(message.createdAt!)}
                   </motion.div>
                 );

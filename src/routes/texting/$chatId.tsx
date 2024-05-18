@@ -236,6 +236,12 @@ function TextingPage() {
     },
   });
 
+  const continueGeneratingMutation = api.chat.continueGenerating.useMutation({
+    onSuccess: () => {
+      void utils.chat.getMessages.invalidate(queryOpts);
+    },
+  });
+
   const reactMessageMutation = api.chat.reactMessage.useMutation({
     onSuccess: () => {
       void utils.chat.getMessages.invalidate(queryOpts);
@@ -347,6 +353,10 @@ function TextingPage() {
     await interruptGenerationMutation.mutateAsync({ chatId, messageId });
   };
 
+  const handleMessageContinue = async (messageId: string) => {
+    await continueGeneratingMutation.mutateAsync({ chatId, messageId });
+  };
+
   if (typeof chatId !== "string") {
     return null;
   }
@@ -359,6 +369,7 @@ function TextingPage() {
       onMessageSend={handleMessageSend}
       onMessageDelete={handleMessageDelete}
       onMessageSteer={handleMessageSteer}
+      onMessageContinue={handleMessageContinue}
       onMessageReact={handleMessageReact}
       onMessageRegenerate={handleMessageRegenerate}
       onMessageEditStart={handleMessageEditStart}

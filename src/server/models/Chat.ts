@@ -4,6 +4,8 @@ import { db } from "~/server/db";
 import type { TChat, TChatWithPersonas } from "../schema/Chat";
 import { MessageSchemaWithID, type TMessageWithID } from "../schema/Message";
 import { Persona } from "./Persona";
+import invariant from "~/utils/invariant";
+import { ai } from "../lib/ai";
 
 /**
  * CRUD operations for the chats collection
@@ -214,5 +216,97 @@ export const Chat = {
     }
     await db.ref(`chats/${chatId}/messages/${messageId}/reactions`).set(reactions);
     return reactions;
+  },
+
+  /**
+   * Generates a new message using the AI
+   *
+   * @param chatId
+   * @param messageId - The target message id (the message that will be edited)
+   * @param options
+   */
+  async generateMessageInBackground({
+    chatId,
+    messageId,
+    options,
+    prefix,
+    contextMessageLimit = 100,
+  }: {
+    chatId: string;
+    messageId: string;
+    prefix?: string;
+    contextMessageLimit?: number;
+    options?: Parameters<typeof ai.chatStream>[0]["options"];
+  }) {
+    const messages = await Chat.getWithPersonas(chatId);
+    if (!messages) return null;
+
+    const persona = messages.personas?.[0];
+    invariant(persona, "Persona does not exist for this chat, this shouldn't happen!");
+
+    let contextMessages = await Chat.getMessages({ chatId, limit: contextMessageLimit });
+
+    const targetMessageIndex = contextMessages.findIndex((m) => m.id === messageId);
+    const targetMessage = contextMessages[targetMessageIndex];
+    invariant(targetMessage, "Target message not found");
+
+    // Remove the target message from the context
+    contextMessages = contextMessages.slice(0, targetMessageIndex);
+
+    // Make a OpenAI-friendly context
+    const contextMessagesLLM = [
+      {
+        content: Persona.getPreamble(persona),
+        role: "system",
+      },
+      ...contextMessages
+        .filter((m) => m.content?.trim())
+        .map((message) => ({
+          content: message.content,
+          role: message.role,
+        })),
+    ];
+
+    // Edit the target message to indicate that it's being generated
+    await Chat.editMessage({
+      chatId: chatId,
+      messageId: messageId,
+      content: "",
+      isGenerating: true,
+    });
+
+    // If steerPrefix is provided, add it to the end to guide the LLM
+    if (prefix) {
+      contextMessagesLLM.push({
+        content: `${prefix}`,
+        role: "assistant",
+      });
+    }
+
+    // Generate the response in the background
+    return ai
+      .chatStream({
+        model: process.env.MODEL!,
+        messageId: messageId,
+        messages: contextMessagesLLM,
+        options,
+      })
+      .then(async (aiResponse) => {
+        // Once finished, edit the message to include the generated text
+        if (aiResponse?.trim() === "") {
+          // delete the message
+          await Chat.removeMessage(chatId, messageId);
+          return aiResponse;
+        }
+
+        void Chat.editMessage({
+          chatId: chatId,
+          messageId: messageId,
+          content: aiResponse,
+          isGenerating: false,
+        });
+
+        return aiResponse;
+      });
   },
 };

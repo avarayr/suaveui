@@ -16,6 +16,7 @@ export interface TextingProps {
   onMessageSend: (message: string) => Promise<any>;
   onMessageDelete: (messageId: string) => Promise<void>;
   onMessageSteer: (messageId: string) => Promise<void>;
+  onMessageContinue: (messageId: string) => Promise<void>;
   onMessageRegenerate: (messageId: string) => Promise<void>;
   onMessageReact: (messageId: string, reaction: Reaction["type"]) => Promise<void>;
   onMessageEditStart: (messageId: string) => void;
