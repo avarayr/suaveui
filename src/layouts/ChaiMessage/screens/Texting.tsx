@@ -131,7 +131,7 @@ export const Texting = React.memo(
                   isEditing={message.id === editingMessageId}
                   onEditDismiss={() => onMessageEditDismiss(message.id)}
                   onEditSubmit={(newContent) => onMessageEditSubmit(message.id, newContent)}
-                  canInterrupt={message.loading}
+                  isGenerating={message.isGenerating ?? false}
                   onInterrupt={() => onMessageInterrupt(message.id)}
                 />
               );

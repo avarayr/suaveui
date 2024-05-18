@@ -39,6 +39,7 @@ export const ai = {
     {
       buffer: string[];
       finished: boolean;
+      abortController: AbortController;
       iterator: () => { [Symbol.asyncIterator]: () => AsyncGenerator<string | undefined | null> };
     }
   >(),
@@ -67,10 +68,15 @@ export const ai = {
     ai.chatStreamBuffer.set(messageId, {
       buffer: [],
       finished: false,
+      abortController: new AbortController(),
       iterator: async function* () {
         let i = 0;
         while (!this.finished) {
+          if (this.abortController.signal.aborted) return;
+
           while (this.buffer[i + 1] === undefined) {
+            if (this.abortController.signal.aborted) return;
+
             await new Promise((resolve) => setTimeout(resolve, 100));
           }
           yield this.buffer[i++];
@@ -97,7 +103,7 @@ export const ai = {
 
     for await (const chunk of stream) {
       const tok = chunk.choices[0];
-      if (tok?.finish_reason === "stop") {
+      if (tok?.finish_reason === "stop" || streamBuffer.abortController.signal.aborted) {
         streamBuffer.finished = true;
         break;
       }
@@ -109,12 +115,31 @@ export const ai = {
       }
     }
 
-    return streamBuffer.buffer.join("");
+    const resultText = streamBuffer.buffer.join("");
+
+    // clean up
+    this.chatStreamBuffer.delete(messageId);
+
+    return resultText;
+  },
+
+  interruptChatStream: function ({ messageId }: { messageId: string }) {
+    const streamBuffer = this.chatStreamBuffer.get(messageId);
+
+    if (!streamBuffer) {
+      return false;
+    }
+
+    const result = streamBuffer?.abortController.abort();
+    return true;
   },
 
   followMessage: function ({ messageId }: { messageId: string }) {
     const streamBuffer = this.chatStreamBuffer.get(messageId);
-    invariant(streamBuffer, "Streambuffer not found!");
+    invariant(
+      streamBuffer,
+      "Streambuffer not found! this shouldn't happen, the message in the db should've been edited to be marked as done generating after it's been generated.",
+    );
 
     return streamBuffer.iterator();
   },

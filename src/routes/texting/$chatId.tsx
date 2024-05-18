@@ -12,8 +12,9 @@ export const Route = createFileRoute("/texting/$chatId")({
 });
 
 // map of message id to abort controller
+
 const abortControllers = new Map<string, AbortController>();
-const followingMessageIds: Record<string, boolean> = {};
+const followingMessageIds = new Map<string, boolean>();
 
 function TextingPage() {
   const { chatId } = Route.useParams();
@@ -26,6 +27,12 @@ function TextingPage() {
   const messagesQuery = api.chat.getMessages.useQuery(queryOpts, {
     enabled: typeof chatId === "string",
     trpc: { ssr: false },
+  });
+
+  const interruptGenerationMutation = api.chat.interruptGeneration.useMutation({
+    onSuccess: () => {
+      void utils.chat.getMessages.invalidate(queryOpts);
+    },
   });
 
   const editMessageLocally = useCallback(
@@ -73,12 +80,10 @@ function TextingPage() {
   const tryFollowMessageGeneration = useCallback(
     async ({ chatId, messageId }: { chatId: string; messageId: string }) => {
       try {
-        void utils.chat.getMessages.invalidate(queryOpts);
-
         // set the abort controller
         abortControllers.set(messageId, new AbortController());
 
-        const fetchResult = await fetch(`/api/direct/generate-message/${chatId}/${messageId}`, {
+        const fetchResult = await fetch(`/api/follow-message/${chatId}/${messageId}`, {
           method: "GET",
           headers: {
             Connection: "keep-alive",
@@ -117,26 +122,34 @@ function TextingPage() {
         abortControllers.delete(messageId);
       }
     },
-    [editMessageLocally, queryOpts, utils.chat.getMessages],
+    [editMessageLocally],
   );
 
   useEffect(() => {
     void (async () => {
       const lastMessages = messagesQuery.data?.messages.slice(-5);
       for (const message of lastMessages ?? []) {
-        if (followingMessageIds[message.id]) {
+        if (followingMessageIds.has(message.id)) {
           console.log("Already following this!", { followingMessageIds });
           continue;
         }
         if (message.isGenerating) {
           console.log("Trying to follow", { followingMessageIds });
-          followingMessageIds[message.id] = true;
+          followingMessageIds.set(message.id, true);
           await tryFollowMessageGeneration({ chatId, messageId: message.id });
-          delete followingMessageIds[message.id];
+          followingMessageIds.delete(message.id);
         }
       }
     })();
   }, [chatId, messagesQuery.data?.messages, tryFollowMessageGeneration]);
+
+  useEffect(() => {
+    return () => {
+      abortControllers.forEach((controller) => controller.abort());
+      followingMessageIds.clear();
+      abortControllers.clear();
+    };
+  }, []);
 
   const sendMessageMutation = api.chat.sendMessage.useMutation({
     /**
@@ -330,10 +343,8 @@ function TextingPage() {
   };
 
   const handleMessageInterrupt = async (messageId: string) => {
-    return new Promise<void>((resolve) => {
-      abortControllers.get(messageId)?.abort("User aborted");
-      resolve();
-    });
+    abortControllers.get(messageId)?.abort("User aborted");
+    await interruptGenerationMutation.mutateAsync({ chatId, messageId });
   };
 
   if (typeof chatId !== "string") {

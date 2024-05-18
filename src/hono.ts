@@ -5,7 +5,7 @@ import { Hono } from "hono";
 import { appRouter } from "./server/api/root";
 import { db } from "./server/db";
 import fs from "fs/promises";
-import generateMessage from "./server/api/direct/generateMessage";
+import followMessage from "./server/api/direct/follow-message";
 
 const { NODE_ENV = "production", PORT = 3001 } = process.env;
 const isDev = NODE_ENV === "development";
@@ -63,7 +63,7 @@ function setupRoutes(app: Hono) {
     }),
   );
 
-  app.route("/api/direct/", generateMessage);
+  app.route("/api/", followMessage);
 
   app.get("/*", async (c) => c.html(await getHtml()));
 }

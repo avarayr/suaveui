@@ -30,9 +30,10 @@ export const ChatBubble = React.memo(
     tail,
     layoutId,
     typing,
+    isGenerating,
     reactions,
     isEditing,
-    canInterrupt,
+
     onInterrupt,
     onDelete,
     onSteer,
@@ -48,9 +49,9 @@ export const ChatBubble = React.memo(
     tail?: boolean;
     layoutId: string;
     typing?: boolean;
+    isGenerating?: boolean;
     reactions?: TReaction[] | null;
     isEditing?: boolean;
-    canInterrupt?: boolean;
     onInterrupt?: () => Promise<any>;
     onSteer?: () => Promise<void>;
     onRegenerate?: () => Promise<void>;
@@ -458,7 +459,7 @@ export const ChatBubble = React.memo(
                 </AnimatePresence>
               </motion.div>
 
-              {(typing || text.length === 0) && (
+              {(typing || (isGenerating && text.length === 0)) && (
                 // three dots animation
                 <div className="flex items-center gap-1 py-1">
                   <div className="size-2 animate-pulse rounded-full bg-[#656569] text-white [animation-delay:0.333s] [animation-duration:1s]"></div>
@@ -531,7 +532,7 @@ export const ChatBubble = React.memo(
                 </button>
               </motion.section>
             )}
-            {canInterrupt && (
+            {isGenerating && (
               <motion.section
                 className="flex self-end [transform-origin:right]"
                 initial={{ opacity: 0, scale: 0, x: 20 }}

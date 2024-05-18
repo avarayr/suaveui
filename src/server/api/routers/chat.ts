@@ -122,6 +122,13 @@ export const chatRouter = router({
       };
     }),
 
+  interruptGeneration: publicProcedure
+    .input(z.object({ chatId: z.string(), messageId: z.string() }))
+    .mutation(({ input: { chatId, messageId } }) => {
+      const result = ai.interruptChatStream({ messageId });
+      return { success: result };
+    }),
+
   deleteMessage: publicProcedure
     .input(z.object({ chatId: z.string(), messageId: z.string() }))
     .mutation(async ({ input: { chatId, messageId } }) => {
