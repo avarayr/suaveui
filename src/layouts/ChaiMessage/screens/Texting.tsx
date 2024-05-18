@@ -145,9 +145,9 @@ export const Texting = React.memo(
 
               if (shouldDisplayTime) {
                 timestampElement = (
-                  <div className="timestamp mt-1 w-full text-center text-xs text-[#7D7C80]">
+                  <motion.div layout className="timestamp mt-1 w-full text-center text-xs text-[#7D7C80]">
                     {formatDateWithTime(message.createdAt!)}
-                  </div>
+                  </motion.div>
                 );
               }
 
