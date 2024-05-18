@@ -36,7 +36,7 @@ if (!rootElement.innerHTML) {
           theme={"dark"}
           richColors
           className="toaster group"
-          position="bottom-right"
+          position="bottom-center"
           toastOptions={{
             className: "!text-base",
           }}
