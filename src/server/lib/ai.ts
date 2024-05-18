@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { OpenAIStream } from "ai";
+import invariant from "~/utils/invariant";
 
 export interface AIChatMessage {
   role: "system" | "user" | "assistant" | Omit<string, "system" | "user" | "assistant">;
@@ -33,6 +34,15 @@ const openai = new OpenAI({
 });
 
 export const ai = {
+  chatStreamBuffer: new Map<
+    string,
+    {
+      buffer: string[];
+      finished: boolean;
+      iterator: () => { [Symbol.asyncIterator]: () => AsyncGenerator<string | undefined | null> };
+    }
+  >(),
+
   chat: async ({ messages, model, stream, options }: ChatProps) => {
     const response = await openai.chat.completions.create({
       model,
@@ -53,7 +63,24 @@ export const ai = {
     return content;
   },
 
-  chatStream: async function* ({ messages, model, options }: ChatProps): AsyncGenerator<string> {
+  chatStream: async function ({ messages, model, options, messageId }: ChatProps & { messageId: string }) {
+    ai.chatStreamBuffer.set(messageId, {
+      buffer: [],
+      finished: false,
+      iterator: async function* () {
+        let i = 0;
+        while (!this.finished) {
+          while (this.buffer[i + 1] === undefined) {
+            await new Promise((resolve) => setTimeout(resolve, 100));
+          }
+          yield this.buffer[i++];
+        }
+        while (this.buffer[i + 1] !== undefined) {
+          yield this.buffer[i++];
+        }
+      },
+    });
+
     const stream = await openai.chat.completions.create({
       model,
       stream: true,
@@ -64,14 +91,32 @@ export const ai = {
       seed: options?.seed,
     } as const);
 
+    const streamBuffer = this.chatStreamBuffer.get(messageId);
+
+    invariant(streamBuffer);
+
     for await (const chunk of stream) {
       const tok = chunk.choices[0];
       if (tok?.finish_reason === "stop") {
-        return;
+        streamBuffer.finished = true;
+        break;
       }
 
-      yield tok?.delta.content ?? "";
+      // yield tok?.delta.content ?? "";
+      const text = tok?.delta.content;
+      if (text) {
+        streamBuffer.buffer.push(text);
+      }
     }
+
+    return streamBuffer.buffer.join("");
+  },
+
+  followMessage: function ({ messageId }: { messageId: string }) {
+    const streamBuffer = this.chatStreamBuffer.get(messageId);
+    invariant(streamBuffer, "Streambuffer not found!");
+
+    return streamBuffer.iterator();
   },
 
   generate: async ({ model, prompt, system, options }: CompletionProps) => {

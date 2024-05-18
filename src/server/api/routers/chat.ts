@@ -50,7 +50,6 @@ export const chatRouter = router({
         chat,
         messages: messages.map((message) => ({
           ...message,
-          loading: false,
         })),
         totalMessageCount,
       } as const;
@@ -88,18 +87,32 @@ export const chatRouter = router({
         role: "system",
       });
 
-      ai.chatStream({
-        model: process.env.MODEL!,
-        stream: false,
-        messages,
-      });
-
       // Send a blank message to the chat to indicate that the AI is typing
       const blankMessage = await Chat.sendMessage({
         chatId: chatId,
         content: "",
         personaID: persona.id,
+        isGenerating: true,
       });
+
+      invariant(blankMessage, "Couldn't send the blank message!");
+
+      void ai
+        .chatStream({
+          model: process.env.MODEL!,
+          stream: false,
+          messages,
+          messageId: blankMessage.id,
+        })
+        .then((aiResponse) => {
+          console.log("Finished generating!", aiResponse);
+          void Chat.editMessage({
+            chatId,
+            messageId: blankMessage.id,
+            content: aiResponse ?? "",
+            isGenerating: false,
+          });
+        });
 
       invariant(blankMessage, "Blank message not found");
 

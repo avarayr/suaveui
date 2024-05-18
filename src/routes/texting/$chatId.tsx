@@ -1,7 +1,7 @@
 import cuid2 from "@paralleldrive/cuid2";
 import { createFileRoute } from "@tanstack/react-router";
 import debounce from "lodash/debounce";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDebounceCallback } from "usehooks-ts";
 import { Texting } from "~/layouts/Texting";
 import { Reaction } from "~/layouts/types";
@@ -13,6 +13,7 @@ export const Route = createFileRoute("/texting/$chatId")({
 
 // map of message id to abort controller
 const abortControllers = new Map<string, AbortController>();
+const followingMessageIds: Record<string, boolean> = {};
 
 function TextingPage() {
   const { chatId } = Route.useParams();
@@ -32,12 +33,12 @@ function TextingPage() {
       messageId,
       content,
       mode,
-      isLoading,
+      isGenerating,
     }: {
       messageId: string;
       content: string;
       mode: "replace" | "append";
-      isLoading?: boolean;
+      isGenerating?: boolean;
     }) => {
       // Cancel outgoing fetches (so they don't overwrite our optimistic update)
       // await utils.chat.getMessages.cancel(queryOpts);
@@ -58,7 +59,7 @@ function TextingPage() {
             ...old!.messages.filter((m) => m.id !== messageId),
             {
               ...message,
-              loading: isLoading !== undefined ? isLoading : message.loading,
+              isGenerating: isGenerating !== undefined ? isGenerating : message.isGenerating,
               content: newContent,
             },
           ] satisfies (typeof message)[],
@@ -68,6 +69,74 @@ function TextingPage() {
     },
     [queryOpts, utils.chat.getMessages],
   );
+
+  const tryFollowMessageGeneration = useCallback(
+    async ({ chatId, messageId }: { chatId: string; messageId: string }) => {
+      try {
+        void utils.chat.getMessages.invalidate(queryOpts);
+
+        // set the abort controller
+        abortControllers.set(messageId, new AbortController());
+
+        const fetchResult = await fetch(`/api/direct/generate-message/${chatId}/${messageId}`, {
+          method: "GET",
+          headers: {
+            Connection: "keep-alive",
+          },
+          signal: abortControllers.get(messageId)?.signal,
+        });
+
+        // this will be a stream
+        if (!fetchResult.ok) {
+          return;
+        }
+
+        const reader = fetchResult.body?.getReader();
+
+        if (!reader) {
+          return;
+        }
+
+        const textDecoder = new TextDecoder();
+        let { done, value } = await reader.read();
+        while (!done) {
+          const chunk = textDecoder.decode(value);
+          editMessageLocally({ messageId: messageId, content: chunk, mode: "append", isGenerating: true });
+          ({ done, value } = await reader.read());
+        }
+      } catch (e) {
+        if (e instanceof DOMException && e.name === "AbortError") {
+          // ignore abort errors
+          return;
+        }
+        console.error(e);
+      } finally {
+        // set isLoading to false
+        editMessageLocally({ messageId: messageId, content: "", mode: "append", isGenerating: false });
+        // clean up the abort controller
+        abortControllers.delete(messageId);
+      }
+    },
+    [editMessageLocally, queryOpts, utils.chat.getMessages],
+  );
+
+  useEffect(() => {
+    void (async () => {
+      const lastMessages = messagesQuery.data?.messages.slice(-5);
+      for (const message of lastMessages ?? []) {
+        if (followingMessageIds[message.id]) {
+          console.log("Already following this!", { followingMessageIds });
+          continue;
+        }
+        if (message.isGenerating) {
+          console.log("Trying to follow", { followingMessageIds });
+          followingMessageIds[message.id] = true;
+          await tryFollowMessageGeneration({ chatId, messageId: message.id });
+          delete followingMessageIds[message.id];
+        }
+      }
+    })();
+  }, [chatId, messagesQuery.data?.messages, tryFollowMessageGeneration]);
 
   const sendMessageMutation = api.chat.sendMessage.useMutation({
     /**
@@ -93,6 +162,7 @@ function TextingPage() {
             personaID: null,
             reactions: [],
             loading: false,
+            isGenerating: false,
             role: "user",
           },
         ],
@@ -107,57 +177,9 @@ function TextingPage() {
     onError: (error, variables, context) => {
       utils.chat.getMessages.setData(queryOpts, context?.prevData);
     },
-    onSettled: async (data, error) => {
-      if (!data) {
-        void utils.chat.getMessages.invalidate(queryOpts);
-        return;
-      }
 
-      const { chatId: followChatId, followMessageId } = data;
-      try {
-        void utils.chat.getMessages.invalidate(queryOpts);
-
-        // set the abort controller
-        abortControllers.set(followMessageId, new AbortController());
-
-        const fetchResult = await fetch(`/api/direct/generate-message/${followChatId}/${followMessageId}`, {
-          method: "GET",
-          headers: {
-            Connection: "keep-alive",
-          },
-          signal: abortControllers.get(followMessageId)?.signal,
-        });
-
-        // this will be a stream
-        if (!fetchResult.ok) {
-          return;
-        }
-
-        const reader = fetchResult.body?.getReader();
-
-        if (!reader) {
-          return;
-        }
-
-        const textDecoder = new TextDecoder();
-        let { done, value } = await reader.read();
-        while (!done) {
-          const chunk = textDecoder.decode(value);
-          editMessageLocally({ messageId: followMessageId, content: chunk, mode: "append", isLoading: true });
-          ({ done, value } = await reader.read());
-        }
-      } catch (e) {
-        if (e instanceof DOMException && e.name === "AbortError") {
-          // ignore abort errors
-          return;
-        }
-        console.error(e);
-      } finally {
-        // set isLoading to false
-        editMessageLocally({ messageId: followMessageId, content: "", mode: "append", isLoading: false });
-        // clean up the abort controller
-        abortControllers.delete(followMessageId);
-      }
+    onSuccess: (data, error) => {
+      void utils.chat.getMessages.invalidate(queryOpts);
     },
   });
 

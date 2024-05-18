@@ -10,6 +10,7 @@ export const MessageSchema = z.object({
   content: z.string(),
   personaID: z.string().nullable(),
   reactions: z.array(ReactionSchema).nullable(),
+  isGenerating: z.boolean().nullable(),
   createdAt: z.date().nullable(),
 });
 

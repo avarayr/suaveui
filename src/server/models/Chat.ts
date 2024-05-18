@@ -139,11 +139,13 @@ export const Chat = {
     content,
     personaID,
     messageId,
+    isGenerating,
   }: {
     chatId: string;
     content: string;
     personaID: string | null;
     messageId?: string;
+    isGenerating?: boolean;
   }) {
     messageId ??= createId();
     const message = MessageSchemaWithID.parse({
@@ -152,6 +154,7 @@ export const Chat = {
       createdAt: new Date(),
       personaID,
       reactions: [],
+      isGenerating: isGenerating ?? false,
       role: personaID ? "assistant" : "user",
     } satisfies z.infer<typeof MessageSchemaWithID>);
 
@@ -160,9 +163,20 @@ export const Chat = {
     return (await ref.get<TMessageWithID>()).val();
   },
 
-  async editMessage({ chatId, messageId, content }: { chatId: string; messageId: string; content: string }) {
+  async editMessage({
+    chatId,
+    messageId,
+    content,
+    isGenerating,
+  }: {
+    chatId: string;
+    messageId: string;
+    content: string;
+    isGenerating?: boolean;
+  }) {
     const ref = await db.ref(`chats/${chatId}/messages/${messageId}`).update({
       content,
+      isGenerating,
     });
 
     return (await ref.get<TMessageWithID>()).val();
