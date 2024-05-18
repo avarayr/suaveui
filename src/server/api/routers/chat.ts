@@ -65,6 +65,7 @@ export const chatRouter = router({
 
       invariant(persona, "Persona does not exist for this chat, this shouldn't happen!");
 
+      // Send the user message
       await Chat.sendMessage({
         messageId,
         chatId,
@@ -72,9 +73,7 @@ export const chatRouter = router({
         personaID: null,
       });
 
-      /**
-       * Generate a message
-       */
+      // Get all messages (context + user message)
       const messages = await Chat.getMessages({ chatId, limit: 500 }).then((messages) =>
         messages.map<OllamaMessage>((message) => ({
           content: message.content,
@@ -82,6 +81,7 @@ export const chatRouter = router({
         })),
       );
 
+      // Add a system prompt to the beginning
       messages.unshift({
         content: Persona.getPreamble(persona),
         role: "system",
@@ -97,6 +97,7 @@ export const chatRouter = router({
 
       invariant(blankMessage, "Couldn't send the blank message!");
 
+      // Stream in background
       void ai
         .chatStream({
           model: process.env.MODEL!,
@@ -105,7 +106,7 @@ export const chatRouter = router({
           messageId: blankMessage.id,
         })
         .then((aiResponse) => {
-          console.log("Finished generating!", aiResponse);
+          // Once finished, edit the message to include the generated text
           void Chat.editMessage({
             chatId,
             messageId: blankMessage.id,
@@ -116,6 +117,7 @@ export const chatRouter = router({
 
       invariant(blankMessage, "Blank message not found");
 
+      // Return the message id for the frontend to follow
       return {
         chatId: chatId,
         followMessageId: blankMessage.id,
