@@ -1,6 +1,6 @@
 import OpenAI from "openai";
-import { OpenAIStream } from "ai";
 import invariant from "~/utils/invariant";
+import { StreamBuffer } from "./streamBuffer";
 
 export interface AIChatMessage {
   role: "system" | "user" | "assistant" | Omit<string, "system" | "user" | "assistant">;
@@ -16,7 +16,6 @@ export interface AIOptions {
 export interface ChatProps {
   model: string;
   messages: AIChatMessage[];
-  stream: boolean;
   options?: AIOptions;
 }
 
@@ -34,22 +33,16 @@ const openai = new OpenAI({
 });
 
 export const ai = {
-  chatStreamBuffer: new Map<
-    string,
-    {
-      buffer: string[];
-      finished: boolean;
-      abortController: AbortController;
-      iterator: () => { [Symbol.asyncIterator]: () => AsyncGenerator<string | undefined | null> };
-    }
-  >(),
+  /**
+   * @internal
+   */
+  chatStreamBuffer: new Map<string, StreamBuffer>(),
 
-  chat: async ({ messages, model, stream, options }: ChatProps) => {
+  chat: async ({ messages, model, options }: ChatProps) => {
     const response = await openai.chat.completions.create({
       model,
-      stream: false, // TODO
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      messages: messages as any,
+      stream: false,
+      messages: messages.filter((m) => m.content?.trim()) as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
       max_tokens: options?.num_predict,
       temperature: options?.temperature,
       seed: options?.seed,
@@ -65,62 +58,42 @@ export const ai = {
   },
 
   chatStream: async function ({ messages, model, options, messageId }: ChatProps & { messageId: string }) {
-    ai.chatStreamBuffer.set(messageId, {
-      buffer: [],
-      finished: false,
-      abortController: new AbortController(),
-      iterator: async function* () {
-        let i = 0;
-        while (!this.finished) {
-          if (this.abortController.signal.aborted) return;
+    const streamBuffer = new StreamBuffer(messageId);
+    this.chatStreamBuffer.set(messageId, streamBuffer);
 
-          while (this.buffer[i] === undefined) {
-            if (this.abortController.signal.aborted) return;
+    try {
+      const stream = await openai.chat.completions.create({
+        model,
+        stream: true,
+        messages: messages.filter((m) => m.content?.trim()) as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
+        max_tokens: options?.num_predict,
+        temperature: options?.temperature,
+        seed: options?.seed,
+      } as const);
 
-            await new Promise((resolve) => setTimeout(resolve, 100));
-          }
-          yield this.buffer[i++];
+      for await (const chunk of stream) {
+        const token = chunk.choices[0];
+
+        if (token?.finish_reason === "stop" || streamBuffer.isAborted()) {
+          break;
         }
-        while (this.buffer[i] !== undefined) {
-          yield this.buffer[i++];
+
+        const text = token?.delta.content;
+        if (text) {
+          streamBuffer.append(text);
         }
-      },
-    });
-
-    const stream = await openai.chat.completions.create({
-      model,
-      stream: true,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      messages: messages.filter((m) => m.content?.length) as any,
-      max_tokens: options?.num_predict,
-      temperature: options?.temperature,
-      seed: options?.seed,
-    } as const);
-
-    const streamBuffer = this.chatStreamBuffer.get(messageId);
-
-    invariant(streamBuffer);
-
-    for await (const chunk of stream) {
-      const tok = chunk.choices[0];
-
-      if (tok?.finish_reason === "stop" || streamBuffer.abortController.signal.aborted) {
-        streamBuffer.finished = true;
-        break;
       }
 
-      const text = tok?.delta.content;
-      if (text) {
-        streamBuffer.buffer.push(text);
-      }
+      streamBuffer.finish();
+
+      const result = streamBuffer.getResult();
+      return result;
+    } catch (error) {
+      console.error("Error in chatStream:", error);
+      throw error;
+    } finally {
+      this.chatStreamBuffer.delete(messageId);
     }
-
-    const resultText = streamBuffer.buffer.join("");
-
-    // clean up
-    this.chatStreamBuffer.delete(messageId);
-
-    return resultText;
   },
 
   interruptChatStream: function ({ messageId }: { messageId: string }) {
@@ -130,12 +103,14 @@ export const ai = {
       return false;
     }
 
-    const result = streamBuffer?.abortController.abort();
-    return true;
+    streamBuffer.abort();
+
+    const result = streamBuffer.getResult();
+    return result;
   },
 
-  followMessage: function ({ messageId }: { messageId: string }) {
-    const streamBuffer = this.chatStreamBuffer.get(messageId);
+  followMessage: ({ messageId }: { messageId: string }): AsyncGenerator<string | undefined, void> => {
+    const streamBuffer = ai.chatStreamBuffer.get(messageId);
     invariant(
       streamBuffer,
       "Streambuffer not found! this shouldn't happen, the message in the db should've been edited to be marked as done generating after it's been generated.",
@@ -157,7 +132,6 @@ export const ai = {
           content: prompt,
         },
       ],
-      stream: false,
       options,
     });
 

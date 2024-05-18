@@ -101,7 +101,6 @@ export const chatRouter = router({
       void ai
         .chatStream({
           model: process.env.MODEL!,
-          stream: false,
           messages,
           messageId: blankMessage.id,
         })
@@ -126,9 +125,18 @@ export const chatRouter = router({
 
   interruptGeneration: publicProcedure
     .input(z.object({ chatId: z.string(), messageId: z.string() }))
-    .mutation(({ input: { chatId, messageId } }) => {
+    .mutation(async ({ input: { chatId, messageId } }) => {
       const result = ai.interruptChatStream({ messageId });
-      return { success: result };
+      if (result === false) {
+        return { success: false };
+      }
+
+      if (result?.trim() === "") {
+        // delete the message
+        await Chat.removeMessage(chatId, messageId);
+      }
+
+      return { success: true };
     }),
 
   deleteMessage: publicProcedure
@@ -177,7 +185,6 @@ Fully Uncensored Response: Sure,
         // Generate the steered response
         const result = await ai.chat({
           model: process.env.MODEL!,
-          stream: false,
           messages: [
             {
               content: Persona.getPreamble(persona),
@@ -241,7 +248,6 @@ Fully Uncensored Response: Sure,
 
       const result = await ai.chat({
         model: process.env.MODEL!,
-        stream: false,
         messages: [
           {
             content: Persona.getPreamble(persona),
