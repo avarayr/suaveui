@@ -57,6 +57,9 @@ export const ChatListItem = React.memo(({ chat }: { chat: RouterOutput["chat"]["
               {/* Message preview */}
               <p className="h-[1.6rem] w-full max-w-[min(70dvw,350px)] truncate text-white/50">
                 {chat.messages.slice(-1)[0]?.content}
+                {chat.messages.slice(-1)[0]?.isGenerating && (
+                  <span className="italic text-[#8F8F95]/50">Typing...</span>
+                )}
               </p>
             </div>
           </div>

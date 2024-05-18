@@ -130,7 +130,7 @@ export const chatRouter = router({
       void Chat.generateMessageInBackground({
         chatId,
         messageId,
-        prefix: "Sure,",
+        prefix: "Sure, ",
       });
     }),
 
