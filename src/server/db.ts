@@ -11,6 +11,9 @@ const globalThisDb = globalThis as unknown as GlobalThisDb;
 function constructDB() {
   const db = new AceBase("openrizz", {
     logLevel: "error",
+    storage: {
+      removeVoidProperties: true,
+    },
     // storage: new SQLiteStorageSettings({ path: "." }),
   });
   globalThisDb[dbSymbol] = db;
