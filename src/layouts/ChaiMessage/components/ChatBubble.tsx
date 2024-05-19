@@ -1,5 +1,4 @@
 import { useMutation } from "@tanstack/react-query";
-import { ReactNode } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
@@ -13,18 +12,18 @@ import {
   Trash,
   XIcon,
 } from "lucide-react";
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { ReactNode, useCallback, useMemo, useState } from "react";
 import { twMerge } from "tailwind-merge";
-import { useTouchHold } from "~/hooks/useTouchHold";
 import type { Reaction as TReaction } from "~/layouts/types";
 import { ExpandingTextarea } from "./ExpandingTextarea";
 import { SpoilerParticles } from "./SpoilerParticles";
 import { Reaction } from "./reactions/Reaction";
 import { Tapback, TapbackAction } from "./Tapback";
+import { ChatMarkdown } from "~/components/primitives/ChatMarkdown";
 
 export type Reaction = {
   id: TReaction["type"];
-  icon: ReactNode;
+  icon: any;
 };
 
 export const ChatBubble = React.memo(
@@ -149,7 +148,6 @@ export const ChatBubble = React.memo(
       (role: "me" | "them") => {
         const beforeAction = (callback: () => any, { interruptGeneration = false } = {}) => {
           return async () => {
-            onTapBackOpenChange(false);
             if (interruptGeneration && isGenerating) {
               await interruptGenerationMutation.mutateAsync();
             }
@@ -206,7 +204,6 @@ export const ChatBubble = React.memo(
         regenerateMutation.mutate,
         continueGeneratingMutation.mutate,
         deleteMutation.mutate,
-        onTapBackOpenChange,
         isGenerating,
         interruptGenerationMutation,
         text,
@@ -443,7 +440,7 @@ export const ChatBubble = React.memo(
                     }}
                   />
                 ) : text?.trim() || isGenerating ? (
-                  <span>{text}</span>
+                  <ChatMarkdown>{text}</ChatMarkdown>
                 ) : (
                   <span className="italic text-white/30">empty response</span>
                 )}

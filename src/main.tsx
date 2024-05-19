@@ -1,4 +1,5 @@
 import "./styles/globals.css";
+import "./styles/hljs.css";
 import "@la55u/react-spring-bottom-sheet-updated/dist/style.css";
 import { RouterProvider, createRouter } from "@tanstack/react-router";
 import { StrictMode } from "react";

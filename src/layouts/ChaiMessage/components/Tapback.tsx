@@ -104,20 +104,27 @@ export const Tapback = React.memo(
       onOpenChange?.(true);
     }, [onOpenChange]);
 
-    const handleActionClick = useCallback((e: React.MouseEvent<HTMLDivElement>, action: TapbackAction) => {
-      e.preventDefault();
-      e.stopPropagation();
+    const handleActionClick = useCallback(
+      (e: React.MouseEvent<HTMLDivElement>, action: TapbackAction) => {
+        e.preventDefault();
+        e.stopPropagation();
 
-      if (typeof action.onPress === "function") {
-        action.onPress(e);
-      } else {
-        if (action.onPress.immediate) {
-          action.onPress.callback(e);
+        onOpenChange?.(false);
+
+        if (typeof action.onPress === "function") {
+          setTimeout(() => {
+            (action.onPress as () => void)();
+          }, 300);
         } else {
-          setTimeout(action.onPress.callback, 300);
+          if (action.onPress.immediate) {
+            action.onPress.callback(e);
+          } else {
+            setTimeout(action.onPress.callback, 300);
+          }
         }
-      }
-    }, []);
+      },
+      [onOpenChange],
+    );
 
     const onContextMenu: React.MouseEventHandler<HTMLDivElement> = useCallback(
       (e) => {
