@@ -95,12 +95,10 @@ function setupSignalHandlers() {
 
   process.on("uncaughtException", (error) => {
     console.error("Uncaught exception:", error);
-    process.exit(1);
   });
 
   process.on("unhandledRejection", (reason) => {
     console.error("Unhandled rejection:", reason);
-    process.exit(1);
   });
 }
 
