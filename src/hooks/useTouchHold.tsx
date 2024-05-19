@@ -5,11 +5,22 @@ import { useCallback, useEffect, useRef } from "react";
  * It calculates the distance between the initial position and the current position of the touch or mouse event.
  * If the distance is lower than the threshold, the callback function is called.
  * This is to ensure that the user is actually holding down the spot, rather than using it as a pivot point to (slowly) scroll the screen.
+ *
+ * @param callback - The callback function to be called when the user is holding down the touch or mouse button.
+ * @param duration - The duration in **milliseconds** for which the callback function should be called.
  */
 export function useTouchHold(callback: () => void, duration = 300, threshold = 5) {
   const touchHold = useRef(false);
   const timer = useRef<number | null>(null);
   const initialPosition = useRef<{ x?: number; y?: number } | null>(null);
+
+  const vibrate = useCallback(() => {
+    try {
+      window?.navigator?.vibrate?.([1]);
+    } catch (e) {
+      /* ignore */
+    }
+  }, []);
 
   const handleTouchStart = useCallback(
     (e: TouchEvent | MouseEvent) => {
@@ -34,12 +45,13 @@ export function useTouchHold(callback: () => void, duration = 300, threshold = 5
               Math.pow(currentPosition.y - initialPosition.current.y, 2),
           );
           if (distance <= threshold) {
+            vibrate();
             callback();
           }
         }
       }, duration);
     },
-    [callback, duration, threshold],
+    [callback, duration, threshold, vibrate],
   );
 
   const handleTouchEnd = useCallback(() => {

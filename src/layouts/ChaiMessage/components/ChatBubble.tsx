@@ -20,15 +20,7 @@ import type { Reaction as TReaction } from "~/layouts/types";
 import { ExpandingTextarea } from "./ExpandingTextarea";
 import { SpoilerParticles } from "./SpoilerParticles";
 import { Reaction } from "./reactions/Reaction";
-
-export type TapbackAction = {
-  label: string;
-  icon: React.ReactNode;
-  className?: string;
-  onPress: (e: React.MouseEvent<HTMLDivElement>) => any;
-  hidden?: boolean | ((opts: { from: "me" | "them" }) => boolean);
-  forRole?: "me" | "them";
-};
+import { Tapback, TapbackAction } from "./Tapback";
 
 export type Reaction = {
   id: TReaction["type"];
@@ -76,12 +68,8 @@ export const ChatBubble = React.memo(
     className?: string;
   }) => {
     const [isFocused, setIsFocused] = useState(false);
-    const [isReactionsOpen, setIsReactionsOpen] = useState(false);
     const [isBackdropAnimating, setIsBackdropAnimating] = useState(false);
-    const [shouldOffset, setShouldOffset] = useState<number | undefined>(undefined);
     const [editingText, setEditingText] = useState<string | undefined>();
-
-    const dropdownMenuRef = useRef<HTMLDivElement>(null);
 
     const steerMutation = useMutation({
       mutationFn: onSteer,
@@ -107,47 +95,16 @@ export const ChatBubble = React.memo(
       mutationFn: onDelete,
     });
 
-    const recalculateOffset = useCallback(() => {
-      if (!dropdownMenuRef.current) return;
-
-      const child = dropdownMenuRef.current?.children?.[0] as HTMLDivElement | undefined;
-      if (child) {
-        const rect = child?.getBoundingClientRect();
-        // if off screen, offset
-        const top = rect?.top ?? 0;
-        const height = child?.offsetHeight ?? 0;
-        const windowHeight = window.innerHeight;
-
-        const marginTop = 80;
-        if (top + height + marginTop > windowHeight) {
-          const offset = top - windowHeight + height + marginTop;
-          setShouldOffset(offset);
-        } else {
-          setShouldOffset(undefined);
-        }
-      }
-    }, []);
-
     const onTapBack = useCallback(() => {
       if (isEditing || isFocused) {
         return;
       }
-      /**
-       * Remove user text selection if any
-       */
-      window.getSelection()?.removeAllRanges();
-
       setIsFocused(true);
-      setIsReactionsOpen(true);
-
-      setTimeout(recalculateOffset, 100);
-    }, [isEditing, isFocused, recalculateOffset]);
+    }, [isEditing, isFocused]);
 
     const onTapBackDismiss = useCallback(() => {
-      setShouldOffset(undefined);
       setIsBackdropAnimating(true);
       setIsFocused(false);
-      setIsReactionsOpen(false);
     }, []);
 
     const reactionsSymbols = useMemo(() => {
@@ -185,85 +142,76 @@ export const ChatBubble = React.memo(
       [onTapBackDismiss, reactMutation],
     );
 
-    const tapbackActions = useMemo<TapbackAction[]>(() => {
-      const beforeAction = (callback: () => any, { immediate = false, interruptGeneration = false } = {}) => {
-        return async (e: React.MouseEvent<HTMLDivElement>) => {
-          e.preventDefault();
-          e.stopPropagation();
-
-          onTapBackDismiss();
-
-          const executeCallback = async () => {
+    const tapbackActions = useCallback(
+      (role: "me" | "them") => {
+        const beforeAction = (callback: () => any, { interruptGeneration = false } = {}) => {
+          return async () => {
+            onTapBackDismiss();
             if (interruptGeneration && isGenerating) {
               await interruptGenerationMutation.mutateAsync();
             }
             callback?.();
           };
-
-          if (immediate) {
-            await executeCallback();
-          } else {
-            setTimeout(() => void executeCallback(), 350);
-          }
         };
-      };
 
-      return [
-        {
-          label: "Copy",
-          icon: <Files className="size-5" />,
-          onPress: beforeAction(onCopy, { immediate: true }),
-        },
-        {
-          label: "Edit",
-          icon: <Pencil className="size-5" />,
-          onPress: beforeAction(
-            () => {
-              setEditingText(text);
-              void onEditStart?.();
-            },
-            { interruptGeneration: true },
-          ),
-        },
-        {
-          label: "Steer",
-          icon: <ShipWheel className="size-5" />,
-          onPress: beforeAction(steerMutation.mutate, { interruptGeneration: true }),
-          forRole: "them",
-        },
-        {
-          label: "Regenerate",
-          icon: <RotateCcw className="size-5" />,
-          onPress: beforeAction(regenerateMutation.mutate, { interruptGeneration: true }),
-          forRole: "them",
-        },
-        {
-          label: "Continue",
-          icon: <ArrowRight className="size-5" />,
-          onPress: beforeAction(continueGeneratingMutation.mutate, { interruptGeneration: true }),
-          forRole: "them",
-        },
-        {
-          label: "Delete",
-          icon: <Trash className="size-5" />,
-          onPress: beforeAction(deleteMutation.mutate, { interruptGeneration: true }),
-          className: "text-red-500",
-        },
-      ];
-    }, [
-      onCopy,
-      steerMutation.mutate,
-      regenerateMutation.mutate,
-      continueGeneratingMutation.mutate,
-      deleteMutation.mutate,
-      onTapBackDismiss,
-      isGenerating,
-      interruptGenerationMutation,
-      text,
-      onEditStart,
-    ]);
+        return [
+          {
+            label: "Copy",
+            icon: <Files className="size-5" />,
+            onPress: { callback: beforeAction(onCopy), immediate: true },
+          },
+          {
+            label: "Edit",
+            icon: <Pencil className="size-5" />,
+            onPress: beforeAction(
+              () => {
+                setEditingText(text);
+                void onEditStart?.();
+              },
+              { interruptGeneration: true },
+            ),
+          },
+          {
+            label: "Steer",
+            icon: <ShipWheel className="size-5" />,
+            onPress: beforeAction(steerMutation.mutate, { interruptGeneration: true }),
+            hidden: role === "me",
+          },
+          {
+            label: "Regenerate",
+            icon: <RotateCcw className="size-5" />,
+            onPress: beforeAction(regenerateMutation.mutate, { interruptGeneration: true }),
+            hidden: role === "me",
+          },
+          {
+            label: "Continue",
+            icon: <ArrowRight className="size-5" />,
+            onPress: beforeAction(continueGeneratingMutation.mutate, { interruptGeneration: true }),
+            hidden: role === "me",
+          },
+          {
+            label: "Delete",
+            icon: <Trash className="size-5" />,
+            onPress: beforeAction(deleteMutation.mutate, { interruptGeneration: true }),
+            className: "text-red-500",
+          },
+        ] satisfies TapbackAction[];
+      },
+      [
+        onCopy,
+        steerMutation.mutate,
+        regenerateMutation.mutate,
+        continueGeneratingMutation.mutate,
+        deleteMutation.mutate,
+        onTapBackDismiss,
+        isGenerating,
+        interruptGenerationMutation,
+        text,
+        onEditStart,
+      ],
+    );
 
-    const longPressProps = useTouchHold(onTapBack);
+    const longPressProps = useTouchHold(onTapBack, 300);
 
     const isRefreshing = useMemo(() => {
       return regenerateMutation.isPending || steerMutation.isPending;
@@ -327,7 +275,8 @@ export const ChatBubble = React.memo(
               className,
             )}
           >
-            <motion.div
+            <Tapback
+              as={motion.div}
               variants={{
                 hidden: { opacity: 0, y: 100 },
                 visible: { opacity: 1, y: 0 },
@@ -337,13 +286,9 @@ export const ChatBubble = React.memo(
               animate={"visible"}
               layoutId={layoutId}
               layout="position"
-              onContextMenu={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                // ignore on mobile
-                if (window.innerWidth < 768) return;
-                onTapBack?.();
-              }}
+              actions={tapbackActions(from)}
+              isOpen={isFocused}
+              onOpenChange={(isOpen) => setIsFocused(isOpen)}
               className={twMerge(
                 `[--h:3px] [--w:3px]`,
                 `[--them-bg:linear-gradient(to_bottom,#343435,#343435)]`,
@@ -365,20 +310,17 @@ export const ChatBubble = React.memo(
                 !tail && `before:opacity-0 after:opacity-0`,
                 // shadow if focused
                 (isFocused || isBackdropAnimating) && "z-[100] shadow-xl transition-transform duration-300",
-                // offset
-                shouldOffset && `!-translate-y-[var(--offset)]`,
                 // has reactions -> margin top
                 reactions?.length && "mb-1 mt-5",
                 // editing input
                 isEditing &&
                   "w-full max-w-full border-2 border-[var(--edit-border)] bg-[image:var(--edit-bg)] transition-[border] before:hidden after:hidden",
               )}
-              style={{ "--offset": shouldOffset ? `${shouldOffset}px` : undefined } as React.CSSProperties}
-              {...longPressProps}
+              transformOrigin={from === "me" ? "right" : "left"}
             >
               {/* Reactions */}
               <AnimatePresence>
-                {isReactionsOpen && (
+                {isFocused && (
                   <motion.div
                     initial={{ opacity: 0, width: 0 }}
                     animate={{ opacity: 1, width: 278 }}
@@ -520,47 +462,7 @@ export const ChatBubble = React.memo(
                   <div className="size-2 animate-pulse rounded-full bg-[#656569] text-white [animation-delay:0.999s] [animation-duration:1s]"></div>
                 </div>
               )}
-
-              {/* Context menu (copy, etc.) */}
-              <div ref={dropdownMenuRef}>
-                <AnimatePresence initial={false}>
-                  {isFocused && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0 }}
-                      transition={{ duration: 0.3, ease: [0, 0, 0, 1.05] }}
-                      className={twMerge(
-                        "[--bg:#1A1A1A]",
-                        "absolute top-[100%] z-[100] mb-1 mt-1 flex min-w-[180px] flex-col divide-y divide-white/5 rounded-xl bg-[var(--bg)]  text-white backdrop-blur-xl",
-                        from === "me" && "right-0 [transform-origin:top_right]",
-                        from === "them" && "left-0 [transform-origin:top_left]",
-                      )}
-                    >
-                      {tapbackActions.map((action) => {
-                        if (action.forRole && from !== action.forRole) return null;
-                        if (action.hidden === true) return null;
-                        if (typeof action.hidden === "function" && action.hidden({ from })) return null;
-
-                        return (
-                          <div
-                            key={action.label}
-                            className={twMerge(
-                              "flex w-full cursor-pointer items-center justify-between gap-2 px-4 py-3",
-                              action.className,
-                            )}
-                            onClick={(e) => void action.onPress?.(e)}
-                          >
-                            <span>{action.label}</span>
-                            {action.icon}
-                          </div>
-                        );
-                      })}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </motion.div>
+            </Tapback>
           </section>
 
           <AnimatePresence mode="popLayout">
