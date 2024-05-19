@@ -7,6 +7,11 @@ const hono = new Hono();
 
 hono.get("/follow-message/:chatId/:messageId", (c) => {
   return streamText(c, async (stream) => {
+    // This is not actually an event-stream, but it's necessary for Cloudflare Tunnels to support streaming
+    c.header("Content-Type", "text/event-stream");
+    c.header("Cache-Control", "no-cache");
+    c.header("Connection", "keep-alive");
+
     // hono: need to write something to the stream to make abort work
     await stream.write("");
 
