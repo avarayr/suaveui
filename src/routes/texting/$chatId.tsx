@@ -1,6 +1,5 @@
 import cuid2 from "@paralleldrive/cuid2";
 import { createFileRoute } from "@tanstack/react-router";
-import debounce from "lodash/debounce";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDebounceCallback } from "usehooks-ts";
 import { Texting } from "~/layouts/Texting";
@@ -10,8 +9,6 @@ import { api } from "~/trpc/react";
 export const Route = createFileRoute("/texting/$chatId")({
   component: () => <TextingPage />,
 });
-
-// map of message id to abort controller
 
 const abortControllers = new Map<string, AbortController>();
 const followingMessageIds = new Map<string, boolean>();
@@ -27,11 +24,14 @@ function TextingPage() {
   const messagesQuery = api.chat.getMessages.useQuery(queryOpts, {
     enabled: typeof chatId === "string",
     trpc: { ssr: false },
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
+    refetchOnReconnect: true,
   });
 
   const interruptGenerationMutation = api.chat.interruptGeneration.useMutation({
-    onSuccess: () => {
-      void utils.chat.getMessages.invalidate(queryOpts);
+    onSuccess: async () => {
+      await utils.chat.getMessages.invalidate(queryOpts);
     },
   });
 
@@ -80,6 +80,12 @@ function TextingPage() {
   const tryFollowMessageGeneration = useCallback(
     async ({ chatId, messageId }: { chatId: string; messageId: string }) => {
       try {
+        // if there's abort controller, abort it
+        if (abortControllers.get(messageId)) {
+          abortControllers.get(messageId)?.abort();
+          abortControllers.delete(messageId);
+        }
+
         // set the abort controller
         abortControllers.set(messageId, new AbortController());
 
@@ -91,7 +97,6 @@ function TextingPage() {
           signal: abortControllers.get(messageId)?.signal,
         });
 
-        // this will be a stream
         if (!fetchResult.ok) {
           return;
         }
@@ -104,7 +109,7 @@ function TextingPage() {
 
         const textDecoder = new TextDecoder();
         let { done, value } = await reader.read();
-        while (!done) {
+        while (!done && abortControllers.get(messageId)?.signal?.aborted === false) {
           const chunk = textDecoder.decode(value);
           editMessageLocally({ messageId: messageId, content: chunk, mode: "append", isGenerating: true });
           ({ done, value } = await reader.read());
@@ -130,11 +135,10 @@ function TextingPage() {
       const lastMessages = messagesQuery.data?.messages.slice(-5);
       for (const message of lastMessages ?? []) {
         if (followingMessageIds.has(message.id)) {
-          console.log("Already following this!", { followingMessageIds });
           continue;
         }
+
         if (message.isGenerating) {
-          console.log("Trying to follow", { followingMessageIds });
           followingMessageIds.set(message.id, true);
           await tryFollowMessageGeneration({ chatId, messageId: message.id });
           followingMessageIds.delete(message.id);
@@ -191,14 +195,14 @@ function TextingPage() {
       utils.chat.getMessages.setData(queryOpts, context?.prevData);
     },
 
-    onSuccess: (data, error) => {
-      void utils.chat.getMessages.invalidate(queryOpts);
+    onSuccess: async (data, error) => {
+      await utils.chat.getMessages.invalidate(queryOpts);
     },
   });
 
   const deleteMessageMutation = api.chat.deleteMessage.useMutation({
-    onSuccess: () => {
-      void utils.chat.getMessages.invalidate(queryOpts);
+    onSuccess: async () => {
+      await utils.chat.getMessages.invalidate(queryOpts);
     },
 
     onMutate: async (message) => {
@@ -225,26 +229,26 @@ function TextingPage() {
   });
 
   const steerMessageMutation = api.chat.steerMessage.useMutation({
-    onSuccess: () => {
-      void utils.chat.getMessages.invalidate(queryOpts);
+    onSuccess: async () => {
+      await utils.chat.getMessages.invalidate(queryOpts);
     },
   });
 
   const regenerateMessageMutation = api.chat.regenerateMessage.useMutation({
-    onSuccess: () => {
-      void utils.chat.getMessages.invalidate(queryOpts);
+    onSuccess: async () => {
+      await utils.chat.getMessages.invalidate(queryOpts);
     },
   });
 
   const continueGeneratingMutation = api.chat.continueGenerating.useMutation({
-    onSuccess: () => {
-      void utils.chat.getMessages.invalidate(queryOpts);
+    onSuccess: async () => {
+      await utils.chat.getMessages.invalidate(queryOpts);
     },
   });
 
   const reactMessageMutation = api.chat.reactMessage.useMutation({
-    onSuccess: () => {
-      void utils.chat.getMessages.invalidate(queryOpts);
+    onSuccess: async () => {
+      await utils.chat.getMessages.invalidate(queryOpts);
     },
 
     onMutate: async (message) => {
@@ -277,8 +281,8 @@ function TextingPage() {
   });
 
   const editMessageMutation = api.chat.editMessage.useMutation({
-    onSuccess: () => {
-      void utils.chat.getMessages.invalidate(queryOpts);
+    onSuccess: async () => {
+      await utils.chat.getMessages.invalidate(queryOpts);
     },
 
     onMutate: async (message) => {
