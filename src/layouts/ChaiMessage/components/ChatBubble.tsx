@@ -197,7 +197,7 @@ export const ChatBubble = React.memo(
           onTapBackDismiss();
 
           const executeCallback = async () => {
-            if (interruptGeneration) {
+            if (interruptGeneration && isGenerating) {
               await interruptGenerationMutation.mutateAsync();
             }
             callback?.();
@@ -260,6 +260,7 @@ export const ChatBubble = React.memo(
       continueGeneratingMutation.mutate,
       deleteMutation.mutate,
       onTapBackDismiss,
+      isGenerating,
       interruptGenerationMutation,
       text,
       onEditStart,
