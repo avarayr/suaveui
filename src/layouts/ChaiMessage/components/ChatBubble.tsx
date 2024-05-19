@@ -1,17 +1,15 @@
 import { useMutation } from "@tanstack/react-query";
+import { ReactNode } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
   CheckIcon,
-  CircleDashed,
-  CircleStop,
   Files,
   LoaderCircle,
   Pencil,
   RotateCcw,
   ShipWheel,
   Square,
-  StopCircleIcon,
   Trash,
   XIcon,
 } from "lucide-react";
@@ -20,9 +18,8 @@ import { twMerge } from "tailwind-merge";
 import { useTouchHold } from "~/hooks/useTouchHold";
 import type { Reaction as TReaction } from "~/layouts/types";
 import { ExpandingTextarea } from "./ExpandingTextarea";
-import { Reaction } from "./reactions/Reaction";
 import { SpoilerParticles } from "./SpoilerParticles";
-import { ReactNode } from "@tanstack/react-router";
+import { Reaction } from "./reactions/Reaction";
 
 export type TapbackAction = {
   label: string;
