@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { twMerge } from "tailwind-merge";
 import { useTouchHold } from "~/hooks/useTouchHold";
+import { useOnClickOutside } from "usehooks-ts";
 
 export type TapbackAction = {
   label: string;
@@ -43,6 +44,7 @@ export const Tapback = React.memo(
     const [shouldOffset, setShouldOffset] = useState<number | undefined>(undefined);
     const dropdownMenuRef = useRef<HTMLDivElement>(null);
     const elementRef = useRef<HTMLDivElement>(null);
+    const [isDropdownAnimating, setIsDropdownAnimating] = useState(false);
 
     const Component: React.ElementType = as ?? "div";
 
@@ -83,7 +85,7 @@ export const Tapback = React.memo(
       const transformProps: KeyframeAnimationOptions = {
         duration: 500,
         fill: "forwards",
-        easing: "cubic-bezier(0.275, 0.485, 0.1, 1.1)",
+        easing: "cubic-bezier(0.275, 0.485, 0.1, 1)",
       };
 
       if (shouldOffset) {
@@ -119,11 +121,11 @@ export const Tapback = React.memo(
 
     const onContextMenu: React.MouseEventHandler<HTMLDivElement> = useCallback(
       (e) => {
-        e.preventDefault();
-        e.stopPropagation();
         // ignore on mobile because on mobile we use the long press
         // this is a hack, but it works
         if (window.innerWidth < 768) return;
+        e.preventDefault();
+        e.stopPropagation();
 
         onMenuOpen();
       },
@@ -132,25 +134,41 @@ export const Tapback = React.memo(
 
     const longPressProps = useTouchHold(onMenuOpen, longPressDuration ?? 300);
 
-    return (
-      <Component
-        {...props}
-        className={twMerge(props.className)}
-        onContextMenu={onContextMenu}
-        ref={elementRef}
-        {...longPressProps}
-      >
-        {children}
+    useEffect(() => {
+      const handleClickOutside = (e: MouseEvent) => {
+        if (elementRef.current?.contains(e.target as Node) || dropdownMenuRef.current?.contains(e.target as Node)) {
+          return;
+        }
 
+        if (isDropdownAnimating || !isOpen) return;
+        onOpenChange?.(false);
+      };
+
+      if (isOpen) {
+        document.addEventListener("mousedown", handleClickOutside);
+      } else {
+        document.removeEventListener("mousedown", handleClickOutside);
+      }
+
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+      };
+    }, [isDropdownAnimating, isOpen, onOpenChange]);
+
+    return (
+      <Component {...props} onContextMenu={onContextMenu} ref={elementRef} {...longPressProps}>
+        {children}
         {/* Context menu (copy, etc.) */}
-        <div ref={dropdownMenuRef}>
+        <div ref={dropdownMenuRef} className={twMerge(isDropdownAnimating && "pointer-events-none select-none")}>
           <AnimatePresence initial={false}>
             {isOpen && (
               <motion.div
+                onAnimationStart={() => setIsDropdownAnimating(true)}
+                onAnimationComplete={() => setIsDropdownAnimating(false)}
                 initial={{ opacity: 0, scale: 0 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0 }}
-                transition={{ type: "spring", stiffness: 200, damping: 20 }}
+                transition={{ ease: [0.165, 0.44, 0.14, 1], duration: 0.4 }}
                 className={twMerge(
                   "[--bg:#1A1A1A]",
                   "absolute top-[100%] z-[100] mb-1 mt-1 flex min-w-[180px] flex-col divide-y divide-white/5 rounded-xl bg-[var(--bg)]  text-white backdrop-blur-xl",

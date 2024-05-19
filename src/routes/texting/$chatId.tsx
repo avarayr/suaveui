@@ -132,7 +132,7 @@ function TextingPage() {
 
   useEffect(() => {
     void (async () => {
-      const lastMessages = messagesQuery.data?.messages.slice(-5);
+      const lastMessages = messagesQuery.data?.messages;
       for (const message of lastMessages ?? []) {
         if (followingMessageIds.has(message.id)) {
           continue;

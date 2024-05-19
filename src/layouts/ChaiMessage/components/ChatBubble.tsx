@@ -95,17 +95,20 @@ export const ChatBubble = React.memo(
       mutationFn: onDelete,
     });
 
-    const onTapBack = useCallback(() => {
-      if (isEditing || isFocused) {
-        return;
-      }
-      setIsFocused(true);
-    }, [isEditing, isFocused]);
-
-    const onTapBackDismiss = useCallback(() => {
-      setIsBackdropAnimating(true);
-      setIsFocused(false);
-    }, []);
+    const onTapBackOpenChange = useCallback(
+      (open: boolean) => {
+        if (open) {
+          if (isEditing) {
+            return;
+          }
+          setIsFocused(true);
+        } else {
+          setIsBackdropAnimating(true);
+          setIsFocused(false);
+        }
+      },
+      [isEditing],
+    );
 
     const reactionsSymbols = useMemo(() => {
       return [
@@ -137,16 +140,16 @@ export const ChatBubble = React.memo(
     const reactToMessage = useCallback(
       (reaction: TReaction["type"]) => {
         reactMutation.mutate(reaction);
-        setTimeout(onTapBackDismiss, 700);
+        setTimeout(() => onTapBackOpenChange(false), 700);
       },
-      [onTapBackDismiss, reactMutation],
+      [onTapBackOpenChange, reactMutation],
     );
 
     const tapbackActions = useCallback(
       (role: "me" | "them") => {
         const beforeAction = (callback: () => any, { interruptGeneration = false } = {}) => {
           return async () => {
-            onTapBackDismiss();
+            onTapBackOpenChange(false);
             if (interruptGeneration && isGenerating) {
               await interruptGenerationMutation.mutateAsync();
             }
@@ -203,15 +206,13 @@ export const ChatBubble = React.memo(
         regenerateMutation.mutate,
         continueGeneratingMutation.mutate,
         deleteMutation.mutate,
-        onTapBackDismiss,
+        onTapBackOpenChange,
         isGenerating,
         interruptGenerationMutation,
         text,
         onEditStart,
       ],
     );
-
-    const longPressProps = useTouchHold(onTapBack, 300);
 
     const isRefreshing = useMemo(() => {
       return regenerateMutation.isPending || steerMutation.isPending;
@@ -231,8 +232,6 @@ export const ChatBubble = React.memo(
         <AnimatePresence>
           {isFocused && (
             <motion.div
-              onTouchStart={onTapBackDismiss}
-              onMouseDown={onTapBackDismiss}
               className="fixed left-0 top-0 z-[99] h-dvh w-dvw bg-black/50 backdrop-blur-xl"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -288,7 +287,7 @@ export const ChatBubble = React.memo(
               layout="position"
               actions={tapbackActions(from)}
               isOpen={isFocused}
-              onOpenChange={(isOpen) => setIsFocused(isOpen)}
+              onOpenChange={(isOpen) => onTapBackOpenChange(isOpen)}
               className={twMerge(
                 `[--h:3px] [--w:3px]`,
                 `[--them-bg:linear-gradient(to_bottom,#343435,#343435)]`,
