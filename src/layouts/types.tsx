@@ -55,13 +55,6 @@ export interface Attachment {
   size?: number;
 }
 
-export interface OllamaChatMessage {
-  role: "system" | "user" | "assistant";
-  content: string;
-  date: string;
-  reactions?: Reaction[];
-}
-
 export interface Reaction {
   type: "heart" | "thumbs-up" | "thumbs-down" | "haha" | "exclamation" | "question";
   from: "me" | "them";

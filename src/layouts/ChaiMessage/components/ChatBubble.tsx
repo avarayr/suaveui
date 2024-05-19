@@ -3,11 +3,14 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
   CheckIcon,
+  CircleDashed,
   CircleStop,
   Files,
+  LoaderCircle,
   Pencil,
   RotateCcw,
   ShipWheel,
+  Square,
   StopCircleIcon,
   Trash,
   XIcon,
@@ -99,6 +102,14 @@ export const ChatBubble = React.memo(
       mutationFn: onContinue,
     });
 
+    const interruptGenerationMutation = useMutation({
+      mutationFn: onInterrupt,
+    });
+
+    const deleteMutation = useMutation({
+      mutationFn: onDelete,
+    });
+
     const recalculateOffset = useCallback(() => {
       if (!dropdownMenuRef.current) return;
 
@@ -178,21 +189,25 @@ export const ChatBubble = React.memo(
     );
 
     const tapbackActions = useMemo<TapbackAction[]>(() => {
-      const beforeAction = (callback?: () => any, immediate = false) => {
-        return (e: React.MouseEvent<HTMLDivElement>) => {
+      const beforeAction = (callback: () => any, { immediate = false, interruptGeneration = false } = {}) => {
+        return async (e: React.MouseEvent<HTMLDivElement>) => {
           e.preventDefault();
           e.stopPropagation();
 
-          if (immediate) {
-            onTapBackDismiss();
-            void callback?.();
-            return;
-          }
-
           onTapBackDismiss();
-          setTimeout(() => {
-            void callback?.();
-          }, 350);
+
+          const executeCallback = async () => {
+            if (interruptGeneration) {
+              await interruptGenerationMutation.mutateAsync();
+            }
+            callback?.();
+          };
+
+          if (immediate) {
+            await executeCallback();
+          } else {
+            setTimeout(() => void executeCallback(), 350);
+          }
         };
       };
 
@@ -200,50 +215,54 @@ export const ChatBubble = React.memo(
         {
           label: "Copy",
           icon: <Files className="size-5" />,
-          onPress: beforeAction(onCopy, true),
+          onPress: beforeAction(onCopy, { immediate: true }),
         },
         {
           label: "Edit",
           icon: <Pencil className="size-5" />,
-          onPress: beforeAction(() => {
-            setEditingText(text);
-            void onEditStart?.();
-          }),
+          onPress: beforeAction(
+            () => {
+              setEditingText(text);
+              void onEditStart?.();
+            },
+            { interruptGeneration: true },
+          ),
         },
         {
           label: "Steer",
           icon: <ShipWheel className="size-5" />,
-          onPress: beforeAction(steerMutation.mutate),
+          onPress: beforeAction(steerMutation.mutate, { interruptGeneration: true }),
           forRole: "them",
         },
         {
           label: "Regenerate",
           icon: <RotateCcw className="size-5" />,
-          onPress: beforeAction(regenerateMutation.mutate),
+          onPress: beforeAction(regenerateMutation.mutate, { interruptGeneration: true }),
           forRole: "them",
         },
         {
           label: "Continue",
           icon: <ArrowRight className="size-5" />,
-          onPress: beforeAction(continueGeneratingMutation.mutate),
+          onPress: beforeAction(continueGeneratingMutation.mutate, { interruptGeneration: true }),
           forRole: "them",
         },
         {
           label: "Delete",
           icon: <Trash className="size-5" />,
-          onPress: beforeAction(onDelete),
+          onPress: beforeAction(deleteMutation.mutate, { interruptGeneration: true }),
           className: "text-red-500",
         },
       ];
     }, [
       onCopy,
-      onDelete,
-      onEditStart,
-      onTapBackDismiss,
-      continueGeneratingMutation.mutate,
-      regenerateMutation.mutate,
       steerMutation.mutate,
+      regenerateMutation.mutate,
+      continueGeneratingMutation.mutate,
+      deleteMutation.mutate,
+      onTapBackDismiss,
+      interruptGenerationMutation,
       text,
+      onEditStart,
     ]);
 
     const longPressProps = useTouchHold(onTapBack);
@@ -573,21 +592,26 @@ export const ChatBubble = React.memo(
             )}
             {isGenerating && (
               <motion.section
-                className="flex self-end [transform-origin:right]"
-                initial={{ opacity: 0, scale: 0, x: 20 }}
-                animate={{ opacity: 1, scale: 1, x: 0 }}
-                exit={{ opacity: 0, scale: 0, x: 20 }}
-                transition={{ duration: 0.25 }}
+                className="flex self-end"
+                initial={{ opacity: 0, scale: 0 }}
+                animate={{
+                  opacity: 1,
+                  scale: 1,
+                  transition: { delay: 0.25, type: "spring", stiffness: 200, damping: 20 },
+                }}
+                exit={{ opacity: 0, transition: { duration: 0.25 } }}
               >
                 <button
                   className={twMerge(
-                    "ml-2 flex size-8 items-center justify-center rounded-full border-none bg-[#ae1a06] text-white",
+                    "relative ml-2 flex size-8 items-center justify-center rounded-full border-none bg-white/20 text-white",
                   )}
                   onClick={() => {
-                    void onInterrupt?.();
+                    void interruptGenerationMutation.mutate();
                   }}
                 >
-                  <CircleStop className="size-5" />
+                  {/* Spinner surrounding*/}
+                  <LoaderCircle className="absolute size-[135%] animate-spin stroke-white/20 stroke-[1] ease-linear" />
+                  <Square className="size-3 fill-white" />
                 </button>
               </motion.section>
             )}

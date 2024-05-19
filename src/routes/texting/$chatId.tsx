@@ -47,8 +47,8 @@ function TextingPage() {
       mode: "replace" | "append";
       isGenerating?: boolean;
     }) => {
-      // Cancel outgoing fetches (so they don't overwrite our optimistic update)
-      // await utils.chat.getMessages.cancel(queryOpts);
+      // Cancel outgoing fetches
+      void utils.chat.getMessages.cancel(queryOpts);
 
       // find the message
       const message = utils.chat.getMessages.getData(queryOpts)?.messages.find((m) => m.id === messageId);
@@ -319,47 +319,71 @@ function TextingPage() {
     return (messagesQuery?.data?.totalMessageCount ?? 0) > (messagesQuery.data?.messages.length ?? 0);
   }, [messagesQuery?.data]);
 
-  const handleMessageSend = async (message: string) => {
-    return await sendMessageMutation.mutateAsync({ chatId, content: message, messageId: cuid2.createId() });
-  };
+  const handleMessageSend = useCallback(
+    async (message: string) => {
+      return await sendMessageMutation.mutateAsync({ chatId, content: message, messageId: cuid2.createId() });
+    },
+    [chatId, sendMessageMutation],
+  );
 
-  const handleMessageDelete = async (messageId: string) => {
-    await deleteMessageMutation.mutateAsync({ chatId, messageId });
-  };
+  const handleMessageDelete = useCallback(
+    async (messageId: string) => {
+      await deleteMessageMutation.mutateAsync({ chatId, messageId });
+    },
+    [chatId, deleteMessageMutation],
+  );
 
-  const handleMessageSteer = async (messageId: string) => {
-    await steerMessageMutation.mutateAsync({ chatId, messageId });
-  };
+  const handleMessageSteer = useCallback(
+    async (messageId: string) => {
+      await steerMessageMutation.mutateAsync({ chatId, messageId });
+    },
+    [chatId, steerMessageMutation],
+  );
 
-  const handleMessageReact = async (messageId: string, reaction: Reaction["type"]) => {
-    await reactMessageMutation.mutateAsync({ chatId, messageId, reaction });
-  };
+  const handleMessageReact = useCallback(
+    async (messageId: string, reaction: Reaction["type"]) => {
+      await reactMessageMutation.mutateAsync({ chatId, messageId, reaction });
+    },
+    [chatId, reactMessageMutation],
+  );
 
-  const handleMessageRegenerate = async (messageId: string) => {
-    await regenerateMessageMutation.mutateAsync({ chatId, messageId });
-  };
+  const handleMessageRegenerate = useCallback(
+    async (messageId: string) => {
+      await regenerateMessageMutation.mutateAsync({ chatId, messageId });
+    },
+    [chatId, regenerateMessageMutation],
+  );
 
-  const handleMessageEditStart = (messageId: string) => {
+  const handleMessageEditStart = useCallback((messageId: string) => {
     setEditingMessageId(messageId);
-  };
+  }, []);
 
-  const handleMessageEditDismiss = (messageId: string) => {
+  const handleMessageEditDismiss = useCallback((messageId: string) => {
     setEditingMessageId(undefined);
-  };
+  }, []);
 
-  const handleMessageEditSubmit = async (messageId: string, newContent: string) => {
-    await editMessageMutation.mutateAsync({ chatId: String(chatId), messageId, content: newContent });
-    setEditingMessageId(undefined);
-  };
+  const handleMessageEditSubmit = useCallback(
+    async (messageId: string, newContent: string) => {
+      await editMessageMutation.mutateAsync({ chatId: String(chatId), messageId, content: newContent });
+      setEditingMessageId(undefined);
+    },
+    [chatId, editMessageMutation],
+  );
 
-  const handleMessageInterrupt = async (messageId: string) => {
-    abortControllers.get(messageId)?.abort("User aborted");
-    await interruptGenerationMutation.mutateAsync({ chatId, messageId });
-  };
+  const handleMessageInterrupt = useCallback(
+    async (messageId: string) => {
+      abortControllers.get(messageId)?.abort("User aborted");
+      await interruptGenerationMutation.mutateAsync({ chatId, messageId });
+    },
+    [chatId, interruptGenerationMutation],
+  );
 
-  const handleMessageContinue = async (messageId: string) => {
-    await continueGeneratingMutation.mutateAsync({ chatId, messageId });
-  };
+  const handleMessageContinue = useCallback(
+    async (messageId: string) => {
+      await continueGeneratingMutation.mutateAsync({ chatId, messageId });
+    },
+    [chatId, continueGeneratingMutation],
+  );
 
   if (typeof chatId !== "string") {
     return null;
