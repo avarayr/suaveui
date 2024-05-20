@@ -23,7 +23,7 @@ import { ChatMarkdown } from "~/components/primitives/ChatMarkdown";
 
 export type Reaction = {
   id: TReaction["type"];
-  icon: any;
+  icon: React.JSX.ElementType | React.ReactNode;
 };
 
 export const ChatBubble = React.memo(

@@ -21,9 +21,3 @@ function constructDB() {
 }
 
 export const db = globalThisDb[dbSymbol] ?? constructDB();
-
-export const proxify = <T>(t: ILiveDataProxy<T>) => {
-  // make the t object implement Disposable
-  (t as unknown as IDisposableLiveDataProxy<T>)[Symbol.dispose] = () => t.destroy();
-  return t as unknown as IDisposableLiveDataProxy<T>;
-};

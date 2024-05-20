@@ -2,6 +2,14 @@
 :not(pre) > code[class*="language-"] {
   border-radius: 0.3em;
   white-space: normal;
+  font-size: 0.75rem;
+}
+
+@media (min-width: 768px) {
+  :not(pre) > code.hljs,
+  :not(pre) > code[class*="language-"] {
+    font-size: 0.9rem;
+  }
 }
 .hljs-comment {
   color: hsla(0, 0%, 100%, 0.5);

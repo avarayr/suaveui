@@ -1,5 +1,5 @@
 import { CheckIcon, CopyIcon } from "lucide-react";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
 declare global {
   interface Window {
@@ -12,11 +12,23 @@ declare global {
 export const CodeBlock = ({ lang, children }: { lang: string; children: React.ReactNode }) => {
   const ref = useRef<HTMLElement>(null);
 
+  // Don't let touch-hold events prevent selection
+  const stopPropagation = useCallback((e: { stopPropagation: () => void }) => {
+    e.stopPropagation();
+  }, []);
+
   return (
-    <div className="overflow-hidden rounded-md">
+    <div
+      className="select-text overflow-hidden rounded-md bg-black"
+      onMouseDown={stopPropagation}
+      onMouseUp={stopPropagation}
+      onClick={stopPropagation}
+      onTouchStart={stopPropagation}
+      onTouchEnd={stopPropagation}
+    >
       <CodeBar lang={lang} codeRef={ref} />
       <div className="overflow-y-auto">
-        <code className={`hljs block w-full !whitespace-pre bg-black p-3 language-${lang}`} ref={ref}>
+        <code className={`hljs block w-full !whitespace-pre p-3 language-${lang}`} ref={ref}>
           {children}
         </code>
       </div>
@@ -33,12 +45,17 @@ const CodeBar = React.memo(({ lang, codeRef }: { lang: string | undefined; codeR
         className="ml-auto flex items-center gap-2"
         aria-label="copy codeblock"
         onClick={() => {
-          const codeString = codeRef.current?.textContent;
+          const codeString = codeRef.current?.textContent?.trim();
           if (codeString)
-            void navigator.clipboard.writeText(codeString).then(() => {
-              setIsCopied(true);
-              setTimeout(() => setIsCopied(false), 3000);
-            });
+            void navigator?.clipboard
+              ?.writeText(codeString)
+              .then(() => {
+                setIsCopied(true);
+                setTimeout(() => setIsCopied(false), 3000);
+              })
+              .catch(() => {
+                /* ignore */
+              });
         }}
       >
         {isCopied ? (

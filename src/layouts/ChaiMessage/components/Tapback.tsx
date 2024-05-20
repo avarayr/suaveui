@@ -29,7 +29,7 @@ export type TapbackProps<T extends React.ElementType> = {
 
 export const Tapback = React.memo(
   <T extends React.ElementType>({ ..._props }: TapbackProps<T> & React.ComponentPropsWithoutRef<T>) => {
-    // Cast to get autocomplete
+    // Cast to <div> to get autocomplete
     const {
       as,
       children,
@@ -40,7 +40,8 @@ export const Tapback = React.memo(
       menuClassName,
       actions,
       ...props
-    } = _props as unknown as React.ComponentPropsWithoutRef<"div"> & TapbackProps<T>;
+    } = _props as React.ComponentPropsWithoutRef<"div"> & TapbackProps<T>;
+
     const [shouldOffset, setShouldOffset] = useState<number | undefined>(undefined);
     const dropdownMenuRef = useRef<HTMLDivElement>(null);
     const elementRef = useRef<HTMLDivElement>(null);

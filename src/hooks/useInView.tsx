@@ -17,8 +17,8 @@ type IntersectionObserverInit = {
   timeout?: number;
 };
 
-export function useInView<T = HTMLDivElement>(ref?: React.RefObject<T>, options: IntersectionObserverInit = {}) {
-  const newRef = useRef<T>(null);
+export function useInView<T>(ref?: React.RefObject<T>, options: IntersectionObserverInit = {}) {
+  const newRef = useRef<T | null>(null);
   const [inView, setInView] = useState(false);
   const timeoutRef = useRef<Timer | null>(null);
   ref ??= newRef;

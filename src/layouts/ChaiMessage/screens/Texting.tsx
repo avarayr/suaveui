@@ -34,7 +34,7 @@ export const Texting = React.memo(
     onMessageInterrupt,
     onLoadMore,
   }: TextingProps) => {
-    const [loadMoreButtonRef, loadMoreButtonInView] = useInView(undefined, {
+    const [loadMoreButtonRef, loadMoreButtonInView] = useInView<HTMLButtonElement>(undefined, {
       timeout: 100,
       rootMargin: "-100px 0px -100px 0px",
     });
@@ -164,7 +164,7 @@ export const Texting = React.memo(
 
             {moreMessagesAvailable && (
               <Button
-                ref={loadMoreButtonRef as unknown as React.LegacyRef<HTMLButtonElement>}
+                ref={loadMoreButtonRef}
                 loading={isLoadMorePending}
                 onClick={() => void loadMoreMutate()}
                 variant={"ghost"}
