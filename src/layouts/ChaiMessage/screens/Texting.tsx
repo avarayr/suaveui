@@ -1,20 +1,19 @@
+import { useMutation } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
-import { useAtomValue } from "jotai";
 import { ArrowUp, ChevronLeft, VideoIcon } from "lucide-react";
 import React, { Fragment, useCallback, useEffect, useMemo } from "react";
 import { twMerge } from "tailwind-merge";
+import { Button } from "~/components/primitives/Button";
 import { SpinnerIcon } from "~/components/primitives/SpinnerIcon";
+import { useInView } from "~/hooks/useInView";
 import type { Reaction as TReaction } from "~/layouts/types";
+import { formatDateWithTime } from "~/utils/date";
 import { type TextingProps } from "../../types";
 import { Avatar } from "../components/Avatar";
 import { ChatBubble } from "../components/ChatBubble";
 import { ChatInput } from "../components/ChatInput";
 import { ChaiColors } from "../types";
-import { formatDateWithTime } from "~/utils/date";
-import { useMutation } from "@tanstack/react-query";
-import { Button } from "~/components/primitives/Button";
-import { useInView } from "~/hooks/useInView";
 
 export const Texting = React.memo(
   ({

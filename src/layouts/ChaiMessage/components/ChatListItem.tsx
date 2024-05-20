@@ -17,7 +17,13 @@ export const ChatListItem = React.memo(({ chat }: { chat: RouterOutput["chat"]["
   }, [chat]);
 
   return (
-    <Link to={`/texting/$chatId`} params={{ chatId: chat.id }} key={chat.id} className="group">
+    <Link
+      onContextMenu={(e) => e.preventDefault()}
+      to={`/texting/$chatId`}
+      params={{ chatId: chat.id }}
+      key={chat.id}
+      className="group"
+    >
       <motion.div
         key={chat.id}
         className="flex select-none items-center justify-between text-[1.05rem] *:select-none active:bg-[#3d3d44] active:text-white"

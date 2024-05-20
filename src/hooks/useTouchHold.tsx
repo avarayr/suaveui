@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
  * This hook is used to detect when the user is holding down a touch or mouse button.
@@ -13,17 +13,13 @@ export function useTouchHold(callback: () => void, duration = 300, threshold = 5
   const touchHold = useRef(false);
   const timer = useRef<number | null>(null);
   const initialPosition = useRef<{ x?: number; y?: number } | null>(null);
-
-  const vibrate = useCallback(() => {
-    try {
-      window?.navigator?.vibrate?.([1]);
-    } catch (e) {
-      /* ignore */
-    }
-  }, []);
+  const [contextMenuLastTime, setContextMenuLastTime] = useState<number | null>(null);
 
   const handleTouchStart = useCallback(
     (e: TouchEvent | MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+
       touchHold.current = true;
       initialPosition.current = {
         x: "touches" in e ? e?.touches?.[0]?.clientX : e.clientX,
@@ -31,6 +27,8 @@ export function useTouchHold(callback: () => void, duration = 300, threshold = 5
       };
 
       timer.current = window.setTimeout(() => {
+        timer.current = null;
+
         if (touchHold.current && initialPosition.current) {
           const currentPosition = {
             x: "touches" in e ? e?.touches?.[0]?.clientX : e.clientX,
@@ -45,20 +43,43 @@ export function useTouchHold(callback: () => void, duration = 300, threshold = 5
               Math.pow(currentPosition.y - initialPosition.current.y, 2),
           );
           if (distance <= threshold) {
-            vibrate();
             callback();
           }
         }
       }, duration);
     },
-    [callback, duration, threshold, vibrate],
+    [callback, duration, threshold],
   );
 
-  const handleTouchEnd = useCallback(() => {
+  const reset = useCallback(() => {
     clearTimeout(timer.current!);
+    timer.current = null;
     touchHold.current = false;
     initialPosition.current = null;
   }, []);
+
+  const handleTouchEnd = useCallback(
+    (e: React.TouchEvent | React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (contextMenuLastTime && Date.now() - contextMenuLastTime < 100) {
+        return;
+      }
+
+      // if the user lifted before the timeout executes, trigger an onClick event
+      if (timer.current) {
+        const onClickEvent = new MouseEvent("click", {
+          bubbles: true,
+          cancelable: true,
+        });
+        e.target?.dispatchEvent(onClickEvent);
+      }
+
+      reset();
+    },
+    [contextMenuLastTime, reset],
+  );
 
   const handleTouchMove = useCallback(
     (e: TouchEvent | MouseEvent) => {
@@ -86,6 +107,20 @@ export function useTouchHold(callback: () => void, duration = 300, threshold = 5
     [threshold],
   );
 
+  const onContextMenu: React.MouseEventHandler = useCallback(
+    (e) => {
+      // ignore on mobile because on mobile we use the long press
+      // this is a hack, but it works
+      e.preventDefault();
+      e.stopPropagation();
+      setContextMenuLastTime(Date.now());
+
+      if (window.innerWidth < 768) return;
+      callback();
+    },
+    [callback],
+  );
+
   useEffect(() => {
     document.addEventListener("touchmove", handleTouchMove, { capture: true });
     document.addEventListener("mousemove", handleTouchMove, { capture: true });
@@ -102,6 +137,7 @@ export function useTouchHold(callback: () => void, duration = 300, threshold = 5
     onTouchEnd: handleTouchEnd as unknown as React.TouchEventHandler,
     onMouseDown: handleTouchStart as unknown as React.MouseEventHandler,
     onMouseUp: handleTouchEnd as unknown as React.MouseEventHandler,
-    onMouseLeave: handleTouchEnd as unknown as React.MouseEventHandler,
+    onMouseLeave: reset,
+    onContextMenu: onContextMenu,
   };
 }

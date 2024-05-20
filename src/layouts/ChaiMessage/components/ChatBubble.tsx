@@ -67,7 +67,7 @@ export const ChatBubble = React.memo(
     className?: string;
   }) => {
     const [isFocused, setIsFocused] = useState(false);
-    const [isBackdropAnimating, setIsBackdropAnimating] = useState(false);
+
     const [editingText, setEditingText] = useState<string | undefined>();
 
     const steerMutation = useMutation({
@@ -102,7 +102,6 @@ export const ChatBubble = React.memo(
           }
           setIsFocused(true);
         } else {
-          setIsBackdropAnimating(true);
           setIsFocused(false);
         }
       },
@@ -226,19 +225,6 @@ export const ChatBubble = React.memo(
     return (
       <>
         {/* Focus backdrop */}
-        <AnimatePresence>
-          {isFocused && (
-            <motion.div
-              className="fixed left-0 top-0 z-[99] h-dvh w-dvw bg-black/50 backdrop-blur-xl"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.35, ease: "easeInOut" }}
-              onAnimationStart={() => setIsBackdropAnimating(true)}
-              onAnimationComplete={() => setIsBackdropAnimating(false)}
-            ></motion.div>
-          )}
-        </AnimatePresence>
 
         <div className={twMerge("flex items-center justify-between")}>
           {/* Dismiss Action */}
@@ -304,8 +290,6 @@ export const ChatBubble = React.memo(
                   `chat-bubble-me bg-[image:var(--me-bg)] text-white 
       before:right-[-5px] before:rounded-bl-[18px_14px] before:bg-[image:var(--me-bg)] after:right-[-24px] after:rounded-bl-[10px]`,
                 !tail && `before:opacity-0 after:opacity-0`,
-                // shadow if focused
-                (isFocused || isBackdropAnimating) && "z-[100] shadow-xl transition-transform duration-300",
                 // has reactions -> margin top
                 reactions?.length && "mb-1 mt-5",
                 // editing input
@@ -330,7 +314,7 @@ export const ChatBubble = React.memo(
                     style={{ transformOrigin: "center center" }}
                     className={twMerge(
                       "[--bg:#333335]",
-                      "absolute bottom-[100%] z-[100] mb-1 rounded-full bg-[var(--bg)]  text-[#757577]",
+                      "absolute bottom-[100%] mb-1 rounded-full bg-[var(--bg)]  text-[#757577]",
                       from === "me" && "right-0 [transform-origin:bottom_right]",
                       from === "them" && "left-0 [transform-origin:bottom_left]",
                       // little circles

@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { BellOff, BellRing, Search, Settings } from "lucide-react";
+import { BellOff, BellRing, Search, Settings, Trash } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { twMerge } from "tailwind-merge";
 import { SpinnerIcon } from "~/components/primitives/SpinnerIcon";
@@ -10,9 +10,12 @@ import { type ChatListProps } from "../../types";
 import { ChatListItem } from "../components/ChatListItem";
 import { Padded } from "../components/Padded";
 import { ChaiColors } from "../types";
+import { Tapback } from "../components/Tapback";
 
 export const ChatList = React.memo(
   ({ chats, loading, areNotificationsEnabled, onNotificationToggle }: ChatListProps) => {
+    const [tapbackChatID, setTapbackChatID] = useState<string | undefined>();
+
     const [searchValue, setSearchValue] = useState("");
     const [isSearchInputFocused, setIsSearchInputFocused] = useState(false);
     function handleSearchInputFocus() {
@@ -130,7 +133,23 @@ export const ChatList = React.memo(
           <div className="mt-2 flex flex-col" key="chats-list">
             <AnimatePresence initial={true}>
               {filteredChat.map((chat, i) => (
-                <ChatListItem key={chat.id} chat={chat} />
+                <Tapback
+                  key={chat.id}
+                  as={"div"}
+                  menuClassName="z-[1000]"
+                  onOpenChange={(isOpen) => void setTapbackChatID(isOpen ? chat.id : undefined)}
+                  isOpen={chat.id === tapbackChatID}
+                  actions={[
+                    {
+                      label: "Delete",
+                      className: "text-red-500",
+                      icon: <Trash className="size-5" />,
+                      onPress: () => {},
+                    },
+                  ]}
+                >
+                  <ChatListItem chat={chat} />
+                </Tapback>
               ))}
             </AnimatePresence>
           </div>

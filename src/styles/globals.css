@@ -91,3 +91,8 @@ body {
 ::-webkit-scrollbar-corner {
   background: transparent;
 }
+
+/* Disable touch callout (iOS Safari link tap-hold browser preview) */
+a {
+  -webkit-touch-callout: none;
+}

@@ -37,6 +37,7 @@ module.exports = {
       {
         selector: 'variable',
         format: ['camelCase', 'PascalCase', 'UPPER_CASE'],
+        leadingUnderscore: 'allow',
       },
       // Allow camelCase functions, and PascalCase functions
       {
