@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { debounce } from "lodash";
+import debounce from "lodash/debounce";
 import { forwardRef, useCallback, useLayoutEffect, useRef } from "react";
 import { twMerge } from "tailwind-merge";
 type ExpandingTextareaProps = React.ComponentPropsWithoutRef<typeof motion.textarea> & {

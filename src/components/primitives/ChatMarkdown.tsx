@@ -38,7 +38,6 @@ export const ChatMarkdown = React.memo(({ children }: { children: string | null 
     <ReactMarkdown
       remarkPlugins={[remarkGfm, remarkMath]}
       rehypePlugins={[
-        rehypeKatex,
         [
           rehypeHighlight,
           {
