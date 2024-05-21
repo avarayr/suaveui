@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
+import { Link, useMatch, useParams, useRouter } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowUp, ChevronLeft, VideoIcon } from "lucide-react";
 import React, { Fragment, useCallback, useEffect, useMemo } from "react";
@@ -14,6 +14,7 @@ import { Avatar } from "../components/Avatar";
 import { ChatBubble } from "../components/ChatBubble";
 import { ChatInput } from "../components/ChatInput";
 import { ChaiColors } from "../types";
+import { Route } from "~/routes/texting/$chatId";
 
 export const Texting = React.memo(
   ({
@@ -33,6 +34,8 @@ export const Texting = React.memo(
     onMessageInterrupt,
     onLoadMore,
   }: TextingProps) => {
+    const { frameless } = Route.useSearch<{ frameless?: boolean }>();
+
     const [loadMoreButtonRef, loadMoreButtonInView] = useInView<HTMLButtonElement>(undefined, {
       timeout: 100,
       rootMargin: "-100px 0px -100px 0px",
@@ -76,7 +79,10 @@ export const Texting = React.memo(
         {/* Activity Bar */}
         <section
           style={{ backgroundColor: ChaiColors.TEXTING_ACTIVITYBAR }}
-          className="duration-[350ms] absolute left-0 top-0 z-10 flex h-20 w-full items-center justify-between px-5 text-white transition-all"
+          className={twMerge(
+            "duration-[350ms] absolute left-0 top-0 z-10 flex h-20 w-full items-center justify-between px-5 text-white transition-all",
+            frameless && "hidden",
+          )}
         >
           {/* Back */}
           <Link to="/">
@@ -176,7 +182,7 @@ export const Texting = React.memo(
         </section>
 
         {/* Chat input */}
-        <ChatInput onMessageSend={onMessageSend} />
+        <ChatInput onMessageSend={onMessageSend} className={twMerge(frameless && "hidden")} />
       </motion.main>
     );
   },

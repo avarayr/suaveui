@@ -6,6 +6,7 @@ export interface ChatListProps {
   loading?: boolean;
   areNotificationsEnabled?: boolean;
   onNotificationToggle?: (enabled: boolean) => void;
+  onChatDelete?: (chatId: string) => Promise<any>;
 }
 
 export interface TextingProps {

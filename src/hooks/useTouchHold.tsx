@@ -9,7 +9,17 @@ import { useCallback, useEffect, useRef, useState } from "react";
  * @param callback - The callback function to be called when the user is holding down the touch or mouse button.
  * @param duration - The duration in **milliseconds** for which the callback function should be called.
  */
-export function useTouchHold(callback: () => void, duration = 300, threshold = 5) {
+export function useTouchHold({
+  callback,
+  duration = 300,
+  threshold = 5,
+  enabled = true,
+}: {
+  callback: () => void;
+  duration?: number;
+  threshold?: number;
+  enabled?: boolean;
+}) {
   const touchHold = useRef(false);
   const timer = useRef<number | null>(null);
   const initialPosition = useRef<{ x?: number; y?: number } | null>(null);
@@ -17,6 +27,10 @@ export function useTouchHold(callback: () => void, duration = 300, threshold = 5
 
   const handleTouchStart = useCallback(
     (e: TouchEvent | MouseEvent) => {
+      if (!enabled) {
+        return;
+      }
+
       e.preventDefault();
       e.stopPropagation();
 
@@ -48,7 +62,7 @@ export function useTouchHold(callback: () => void, duration = 300, threshold = 5
         }
       }, duration);
     },
-    [callback, duration, threshold],
+    [callback, duration, enabled, threshold],
   );
 
   const reset = useCallback(() => {
@@ -60,6 +74,10 @@ export function useTouchHold(callback: () => void, duration = 300, threshold = 5
 
   const handleTouchEnd = useCallback(
     (e: React.TouchEvent | React.MouseEvent) => {
+      if (!enabled) {
+        return;
+      }
+
       e.preventDefault();
       e.stopPropagation();
 
@@ -78,11 +96,15 @@ export function useTouchHold(callback: () => void, duration = 300, threshold = 5
 
       reset();
     },
-    [contextMenuLastTime, reset],
+    [contextMenuLastTime, enabled, reset],
   );
 
   const handleTouchMove = useCallback(
     (e: TouchEvent | MouseEvent) => {
+      if (!enabled) {
+        return;
+      }
+
       if (!touchHold.current || !initialPosition.current) {
         return;
       }
@@ -104,11 +126,15 @@ export function useTouchHold(callback: () => void, duration = 300, threshold = 5
         initialPosition.current = null;
       }
     },
-    [threshold],
+    [enabled, threshold],
   );
 
   const onContextMenu: React.MouseEventHandler = useCallback(
     (e) => {
+      if (!enabled) {
+        return;
+      }
+
       // ignore on mobile because on mobile we use the long press
       // this is a hack, but it works
       e.preventDefault();
@@ -118,7 +144,7 @@ export function useTouchHold(callback: () => void, duration = 300, threshold = 5
       if (window.innerWidth < 768) return;
       callback();
     },
-    [callback],
+    [callback, enabled],
   );
 
   useEffect(() => {

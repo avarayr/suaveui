@@ -20,7 +20,7 @@ export type TapbackAction = {
 };
 
 export type TapbackProps<T extends React.ElementType> = {
-  as: T;
+  as?: T;
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   longPressDuration?: number;
@@ -28,13 +28,13 @@ export type TapbackProps<T extends React.ElementType> = {
   actions?: TapbackAction[];
   transformOrigin?: "left" | "right";
   blur?: boolean;
+  blurClassName?: string;
 } & React.ComponentPropsWithoutRef<T>;
 
 const _Tapback = <T extends React.ElementType>({ ..._props }: TapbackProps<T>) => {
   // Cast to <div> to get autocomplete
-
   const {
-    as,
+    as = "div",
     children,
     longPressDuration,
     isOpen,
@@ -43,6 +43,7 @@ const _Tapback = <T extends React.ElementType>({ ..._props }: TapbackProps<T>) =
     menuClassName,
     actions,
     blur = true,
+    blurClassName,
     ...props
   } = _props as React.ComponentPropsWithoutRef<"div"> & TapbackProps<T>;
 
@@ -91,9 +92,9 @@ const _Tapback = <T extends React.ElementType>({ ..._props }: TapbackProps<T>) =
     if (!elementRef.current) return;
 
     const transformProps: KeyframeAnimationOptions = {
-      duration: 220,
+      duration: 200,
       fill: "forwards",
-      easing: "cubic-bezier(0.175, 0.285, 0.455, 1.03)",
+      easing: "cubic-bezier(0.175, 0.15, 0.225, 1)",
     };
 
     // ignore initial render
@@ -139,7 +140,7 @@ const _Tapback = <T extends React.ElementType>({ ..._props }: TapbackProps<T>) =
     [onOpenChange],
   );
 
-  const longPressProps = useTouchHold(onMenuOpen, longPressDuration ?? 300);
+  const longPressProps = useTouchHold({ callback: onMenuOpen, duration: longPressDuration ?? 300, enabled: !isOpen });
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -167,13 +168,16 @@ const _Tapback = <T extends React.ElementType>({ ..._props }: TapbackProps<T>) =
       <AnimatePresence>
         {isOpen && blur && (
           <motion.div
-            className="fixed left-0 top-0 z-[99] h-dvh w-dvw transform-gpu bg-black/50 backdrop-blur-xl"
+            className={twMerge(
+              "fixed left-0 top-0 z-[99] h-dvh w-dvw transform-gpu bg-black/70 backdrop-blur-2xl",
+              blurClassName,
+            )}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1, transition: { duration: 0.18, ease: "easeOut" } }}
             exit={{ opacity: 0, transition: { duration: 0.1 } }}
             onAnimationStart={() => setIsBackdropAnimating(true)}
             onAnimationComplete={() => setIsBackdropAnimating(false)}
-          ></motion.div>
+          />
         )}
       </AnimatePresence>
 
@@ -199,9 +203,9 @@ const _Tapback = <T extends React.ElementType>({ ..._props }: TapbackProps<T>) =
                   initial={{ opacity: 0, scale: 0 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0 }}
-                  transition={{ ease: [0.165, 0.44, 0.14, 1], duration: 0.4 }}
+                  transition={{ type: "spring", stiffness: 200, damping: 20, duration: 0.4 }}
                   className={twMerge(
-                    "[--bg:#1A1A1A]",
+                    "[--bg:#1A1A1ADD]",
                     "absolute top-[100%] z-[100] mb-1 mt-1 flex min-w-[180px] flex-col divide-y divide-white/5 rounded-xl bg-[var(--bg)]  text-white backdrop-blur-xl",
                     transformOrigin === "left" && "left-0 [transform-origin:top_left]",
                     transformOrigin === "right" && "right-0 [transform-origin:top_right]",

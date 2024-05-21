@@ -19,6 +19,17 @@ export const chatRouter = router({
     return chat;
   }),
 
+  delete: publicProcedure.input(z.object({ chatId: z.string() })).mutation(async ({ ctx, input }) => {
+    const chat = await Chat.get(input.chatId);
+    if (!chat) return;
+
+    await Chat.delete(input.chatId);
+
+    return {
+      success: true,
+    };
+  }),
+
   getMessages: publicProcedure
     .input(
       z.object({

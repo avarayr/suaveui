@@ -13,7 +13,7 @@ import { ChaiColors } from "../types";
 import { Tapback } from "../components/Tapback";
 
 export const ChatList = React.memo(
-  ({ chats, loading, areNotificationsEnabled, onNotificationToggle }: ChatListProps) => {
+  ({ chats, loading, areNotificationsEnabled, onNotificationToggle, onChatDelete }: ChatListProps) => {
     const [tapbackChatID, setTapbackChatID] = useState<string | undefined>();
 
     const [searchValue, setSearchValue] = useState("");
@@ -135,8 +135,10 @@ export const ChatList = React.memo(
               {filteredChat.map((chat, i) => (
                 <Tapback
                   key={chat.id}
-                  as={"div"}
-                  menuClassName="z-[1000]"
+                  blur
+                  blurClassName="bg-white/5"
+                  className={twMerge(chat.id === tapbackChatID && "fixed left-0 right-0 top-4 mx-auto w-fit")}
+                  menuClassName={"w-[250px]"}
                   onOpenChange={(isOpen) => void setTapbackChatID(isOpen ? chat.id : undefined)}
                   isOpen={chat.id === tapbackChatID}
                   actions={[
@@ -144,11 +146,34 @@ export const ChatList = React.memo(
                       label: "Delete",
                       className: "text-red-500",
                       icon: <Trash className="size-5" />,
-                      onPress: () => {},
+                      onPress: () => onChatDelete?.(chat.id),
                     },
                   ]}
                 >
-                  <ChatListItem chat={chat} />
+                  <AnimatePresence initial={false} key={"presence_chat_" + chat.id}>
+                    {chat.id === tapbackChatID ? (
+                      <motion.div
+                        layoutId={"chat_list_item" + chat.id}
+                        transition={{ type: "spring", stiffness: 260, damping: 27, duration: 0.4 }}
+                        className="mx-auto mt-auto w-[90dvw] max-w-[600px] rounded-2xl bg-[#1C1C1E] shadow-2xl shadow-white/[2%]"
+                      >
+                        <iframe
+                          id={"texting-iframe" + chat.id}
+                          src={`/texting/${chat.id}?frameless=true`}
+                          className="h-[calc(80dvh-50px)] w-full rounded-2xl border-none bg-transparent"
+                          title="Openrizz Texting"
+                        />
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        className="overflow-hidden"
+                        transition={{ type: "spring", stiffness: 260, damping: 27, duration: 0.4 }}
+                        layoutId={"chat_list_item" + chat.id}
+                      >
+                        <ChatListItem chat={chat} />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </Tapback>
               ))}
             </AnimatePresence>

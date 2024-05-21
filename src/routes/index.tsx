@@ -1,12 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useState } from "react";
-import { useLocalStorage } from "usehooks-ts";
+import { useState } from "react";
 import { NewChatDrawer } from "~/components/NewChatDrawer";
 import { FloatingActionButton } from "~/components/primitives/FloatingActionButton";
 import { useNotifications } from "~/hooks/useNotifications";
 import { ChatList } from "~/layouts/ChatList";
 import { api } from "~/trpc/react";
-import { ClientConsts } from "~/utils/client-consts";
 
 export const Route = createFileRoute("/")({
   component: () => <IndexPage />,
@@ -18,6 +16,11 @@ function IndexPage() {
   const [isNewChatDrawerOpen, setIsNewChatDrawerOpen] = useState(false);
 
   const { toggleNotifications, notificationsEnabled } = useNotifications();
+  const deleteChatMutation = api.chat.delete.useMutation({
+    onSuccess: async () => {
+      await chats.refetch();
+    },
+  });
 
   return (
     <>
@@ -28,6 +31,7 @@ function IndexPage() {
         onNewChatClick={() => setIsNewChatDrawerOpen(true)}
         areNotificationsEnabled={notificationsEnabled}
         onNotificationToggle={(e) => void toggleNotifications(e)}
+        onChatDelete={(chatId) => deleteChatMutation.mutateAsync({ chatId })}
       />
 
       <NewChatDrawer isOpen={isNewChatDrawerOpen} onClose={() => setIsNewChatDrawerOpen(false)} />
