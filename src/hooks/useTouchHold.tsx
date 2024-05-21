@@ -10,11 +10,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
  * @param duration - The duration in **milliseconds** for which the callback function should be called.
  */
 export function useTouchHold({
+  targetRef,
   callback,
   duration = 300,
   threshold = 5,
   enabled = true,
 }: {
+  targetRef: React.RefObject<HTMLElement>;
   callback: () => void;
   duration?: number;
   threshold?: number;
@@ -22,8 +24,22 @@ export function useTouchHold({
 }) {
   const touchHold = useRef(false);
   const timer = useRef<number | null>(null);
+  const scaleTimer = useRef<number | null>(null);
   const initialPosition = useRef<{ x?: number; y?: number } | null>(null);
   const [contextMenuLastTime, setContextMenuLastTime] = useState<number | null>(null);
+  const scaleAnimation = useRef<Animation | null>(null);
+
+  const vibrate = useCallback(() => {
+    window?.navigator?.vibrate([1]);
+  }, []);
+
+  const resetScale = useCallback(() => {
+    clearTimeout(scaleTimer.current!);
+    if (scaleAnimation.current) {
+      scaleAnimation.current.playbackRate = -1;
+      scaleAnimation.current = null;
+    }
+  }, []);
 
   const checkIfInput = useCallback((e: { target: any; stopPropagation: () => void }) => {
     if (
@@ -63,6 +79,18 @@ export function useTouchHold({
         y: "touches" in e ? e?.touches?.[0]?.clientY : e.clientY,
       };
 
+      scaleTimer.current = window.setTimeout(() => {
+        resetScale();
+
+        // animate transform scale to slowly go to 1.05
+
+        scaleAnimation.current =
+          targetRef?.current?.animate(
+            { transform: "scale(1.25)" },
+            { duration: 800, easing: "ease-in-out", fill: "forwards", composite: "accumulate" },
+          ) ?? null;
+      }, 50);
+
       timer.current = window.setTimeout(() => {
         timer.current = null;
 
@@ -80,12 +108,14 @@ export function useTouchHold({
               Math.pow(currentPosition.y - initialPosition.current.y, 2),
           );
           if (distance <= threshold) {
+            vibrate();
             callback();
+            setTimeout(resetScale, 100);
           }
         }
       }, duration);
     },
-    [callback, checkIfInput, duration, enabled, threshold],
+    [callback, checkIfInput, duration, enabled, resetScale, targetRef, threshold, vibrate],
   );
 
   const reset = useCallback(() => {
@@ -93,10 +123,13 @@ export function useTouchHold({
     timer.current = null;
     touchHold.current = false;
     initialPosition.current = null;
-  }, []);
+    resetScale();
+  }, [resetScale]);
 
   const handleTouchEnd = useCallback(
     (e: React.TouchEvent | React.MouseEvent) => {
+      resetScale();
+
       if (checkIfInput(e)) {
         return;
       }
@@ -123,19 +156,11 @@ export function useTouchHold({
 
       reset();
     },
-    [checkIfInput, contextMenuLastTime, enabled, reset],
+    [checkIfInput, contextMenuLastTime, enabled, reset, resetScale],
   );
 
   const handleTouchMove = useCallback(
     (e: TouchEvent | MouseEvent) => {
-      if (checkIfInput(e)) {
-        return;
-      }
-
-      if (!enabled) {
-        return;
-      }
-
       if (!touchHold.current || !initialPosition.current) {
         return;
       }
@@ -152,12 +177,10 @@ export function useTouchHold({
           Math.pow(currentPosition.y - initialPosition.current.y, 2),
       );
       if (distance > threshold) {
-        clearTimeout(timer.current!);
-        touchHold.current = false;
-        initialPosition.current = null;
+        reset();
       }
     },
-    [checkIfInput, enabled, threshold],
+    [reset, threshold],
   );
 
   const onContextMenu: React.MouseEventHandler = useCallback(

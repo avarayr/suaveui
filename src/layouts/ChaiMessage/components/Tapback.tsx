@@ -140,7 +140,12 @@ const _Tapback = <T extends React.ElementType>({ ..._props }: TapbackProps<T>) =
     [onOpenChange],
   );
 
-  const longPressProps = useTouchHold({ callback: onMenuOpen, duration: longPressDuration ?? 300, enabled: !isOpen });
+  const longPressProps = useTouchHold({
+    callback: onMenuOpen,
+    duration: longPressDuration ?? 300,
+    enabled: !isOpen,
+    targetRef: elementRef,
+  });
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -162,6 +167,27 @@ const _Tapback = <T extends React.ElementType>({ ..._props }: TapbackProps<T>) =
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isDropdownAnimating, isOpen, onOpenChange]);
+
+  /**
+   * Detect Esc
+   */
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isOpen) {
+        onOpenChange?.(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener("keydown", handleKeyDown);
+    } else {
+      document.removeEventListener("keydown", handleKeyDown);
+    }
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen, onOpenChange]);
 
   return (
     <>
