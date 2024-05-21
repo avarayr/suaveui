@@ -92,9 +92,9 @@ const _Tapback = <T extends React.ElementType>({ ..._props }: TapbackProps<T>) =
     if (!elementRef.current) return;
 
     const transformProps: KeyframeAnimationOptions = {
-      duration: 200,
+      duration: 310,
       fill: "forwards",
-      easing: "cubic-bezier(0.175, 0.15, 0.225, 1)",
+      easing: "cubic-bezier(0.34, 0.152, 0.1, 1)",
     };
 
     // ignore initial render
@@ -174,7 +174,7 @@ const _Tapback = <T extends React.ElementType>({ ..._props }: TapbackProps<T>) =
             )}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1, transition: { duration: 0.18, ease: "easeOut" } }}
-            exit={{ opacity: 0, transition: { duration: 0.1 } }}
+            exit={{ opacity: 0, transition: { duration: 0.3 } }}
             onAnimationStart={() => setIsBackdropAnimating(true)}
             onAnimationComplete={() => setIsBackdropAnimating(false)}
           />

@@ -25,12 +25,35 @@ export function useTouchHold({
   const initialPosition = useRef<{ x?: number; y?: number } | null>(null);
   const [contextMenuLastTime, setContextMenuLastTime] = useState<number | null>(null);
 
+  const checkIfInput = useCallback((e: { target: any; stopPropagation: () => void }) => {
+    if (
+      e.target instanceof HTMLTextAreaElement ||
+      e.target instanceof HTMLInputElement ||
+      e.target instanceof HTMLSelectElement ||
+      e.target instanceof HTMLButtonElement ||
+      e.target instanceof HTMLOptionElement ||
+      e.target instanceof HTMLFieldSetElement ||
+      e.target instanceof HTMLFormElement ||
+      e.target instanceof HTMLDataListElement
+    ) {
+      // allow propagation to the parent element
+
+      e.stopPropagation();
+      return true;
+    }
+
+    return false;
+  }, []);
+
   const handleTouchStart = useCallback(
     (e: TouchEvent | MouseEvent) => {
-      if (!enabled) {
+      if (checkIfInput(e)) {
         return;
       }
 
+      if (!enabled) {
+        return;
+      }
       e.preventDefault();
       e.stopPropagation();
 
@@ -62,7 +85,7 @@ export function useTouchHold({
         }
       }, duration);
     },
-    [callback, duration, enabled, threshold],
+    [callback, checkIfInput, duration, enabled, threshold],
   );
 
   const reset = useCallback(() => {
@@ -74,6 +97,10 @@ export function useTouchHold({
 
   const handleTouchEnd = useCallback(
     (e: React.TouchEvent | React.MouseEvent) => {
+      if (checkIfInput(e)) {
+        return;
+      }
+
       if (!enabled) {
         return;
       }
@@ -96,11 +123,15 @@ export function useTouchHold({
 
       reset();
     },
-    [contextMenuLastTime, enabled, reset],
+    [checkIfInput, contextMenuLastTime, enabled, reset],
   );
 
   const handleTouchMove = useCallback(
     (e: TouchEvent | MouseEvent) => {
+      if (checkIfInput(e)) {
+        return;
+      }
+
       if (!enabled) {
         return;
       }
@@ -126,11 +157,15 @@ export function useTouchHold({
         initialPosition.current = null;
       }
     },
-    [enabled, threshold],
+    [checkIfInput, enabled, threshold],
   );
 
   const onContextMenu: React.MouseEventHandler = useCallback(
     (e) => {
+      if (checkIfInput(e)) {
+        return;
+      }
+
       if (!enabled) {
         return;
       }
@@ -144,7 +179,7 @@ export function useTouchHold({
       if (window.innerWidth < 768) return;
       callback();
     },
-    [callback, enabled],
+    [callback, checkIfInput, enabled],
   );
 
   useEffect(() => {
