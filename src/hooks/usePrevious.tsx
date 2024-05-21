@@ -1,13 +1,13 @@
 import { useRef } from "react";
 
 export function usePrevious<T>(value: T) {
-  const ref = useRef({
+  const ref = useRef<{
+    value: T;
+    prev: T | undefined;
+  }>({
     value,
     prev: undefined,
-  }) as React.MutableRefObject<{
-    value: T;
-    prev: T;
-  }>;
+  });
 
   const current = ref.current.value;
   if (value !== current) {
