@@ -6,8 +6,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
  * If the distance is lower than the threshold, the callback function is called.
  * This is to ensure that the user is actually holding down the spot, rather than using it as a pivot point to (slowly) scroll the screen.
  *
+ * @param targetRef - The ref to the target element.
  * @param callback - The callback function to be called when the user is holding down the touch or mouse button.
  * @param duration - The duration in **milliseconds** for which the callback function should be called.
+ * @param threshold - The maximum distance allowed for the touch or mouse movement.
+ * @param enabled - Whether the touch hold functionality is enabled or not.
  */
 export function useTouchHold({
   targetRef,
@@ -30,7 +33,7 @@ export function useTouchHold({
   const scaleAnimation = useRef<Animation | null>(null);
 
   const vibrate = useCallback(() => {
-    window?.navigator?.vibrate([1]);
+    window?.navigator?.vibrate?.(1);
   }, []);
 
   const resetScale = useCallback(() => {
@@ -41,51 +44,39 @@ export function useTouchHold({
     }
   }, []);
 
-  const checkIfInput = useCallback((e: { target: any; stopPropagation: () => void }) => {
-    if (
-      e.target instanceof HTMLTextAreaElement ||
-      e.target instanceof HTMLInputElement ||
-      e.target instanceof HTMLSelectElement ||
-      e.target instanceof HTMLButtonElement ||
-      e.target instanceof HTMLOptionElement ||
-      e.target instanceof HTMLFieldSetElement ||
-      e.target instanceof HTMLFormElement ||
-      e.target instanceof HTMLDataListElement
-    ) {
-      // allow propagation to the parent element
-
-      e.stopPropagation();
-      return true;
-    }
-
-    return false;
+  const isInput = useCallback((target: EventTarget | null) => {
+    return (
+      target instanceof HTMLTextAreaElement ||
+      target instanceof HTMLInputElement ||
+      target instanceof HTMLSelectElement ||
+      target instanceof HTMLButtonElement ||
+      target instanceof HTMLOptionElement ||
+      target instanceof HTMLFieldSetElement ||
+      target instanceof HTMLFormElement ||
+      target instanceof HTMLDataListElement
+    );
   }, []);
 
   const handleTouchStart = useCallback(
     (e: TouchEvent | MouseEvent) => {
-      if (checkIfInput(e)) {
+      if (!enabled || isInput(e.target)) {
         return;
       }
 
-      if (!enabled) {
-        return;
-      }
       e.preventDefault();
       e.stopPropagation();
 
       touchHold.current = true;
       initialPosition.current = {
-        x: "touches" in e ? e?.touches?.[0]?.clientX : e.clientX,
-        y: "touches" in e ? e?.touches?.[0]?.clientY : e.clientY,
+        x: "touches" in e ? e.touches[0]?.clientX : e.clientX,
+        y: "touches" in e ? e.touches[0]?.clientY : e.clientY,
       };
 
       scaleTimer.current = window.setTimeout(() => {
         resetScale();
 
-        // animate transform scale to slowly go to 1.05
-
         scaleAnimation.current =
-          targetRef?.current?.animate(
+          targetRef.current?.animate(
             { transform: "scale(1.25)" },
             { duration: 800, easing: "ease-in-out", fill: "forwards", composite: "accumulate" },
           ) ?? null;
@@ -99,7 +90,6 @@ export function useTouchHold({
             x: "touches" in e ? e?.touches?.[0]?.clientX : e.clientX,
             y: "touches" in e ? e?.touches?.[0]?.clientY : e.clientY,
           };
-
           if (!currentPosition.x || !currentPosition.y || !initialPosition.current.x || !initialPosition.current.y)
             return;
 
@@ -107,6 +97,7 @@ export function useTouchHold({
             Math.pow(currentPosition.x - initialPosition.current.x, 2) +
               Math.pow(currentPosition.y - initialPosition.current.y, 2),
           );
+
           if (distance <= threshold) {
             vibrate();
             callback();
@@ -115,11 +106,12 @@ export function useTouchHold({
         }
       }, duration);
     },
-    [callback, checkIfInput, duration, enabled, resetScale, targetRef, threshold, vibrate],
+    [callback, duration, enabled, isInput, resetScale, targetRef, threshold, vibrate],
   );
 
   const reset = useCallback(() => {
     clearTimeout(timer.current!);
+    clearTimeout(scaleTimer.current!);
     timer.current = null;
     touchHold.current = false;
     initialPosition.current = null;
@@ -130,11 +122,7 @@ export function useTouchHold({
     (e: React.TouchEvent | React.MouseEvent) => {
       resetScale();
 
-      if (checkIfInput(e)) {
-        return;
-      }
-
-      if (!enabled) {
+      if (!enabled || isInput(e.target)) {
         return;
       }
 
@@ -145,7 +133,6 @@ export function useTouchHold({
         return;
       }
 
-      // if the user lifted before the timeout executes, trigger an onClick event
       if (timer.current) {
         const onClickEvent = new MouseEvent("click", {
           bubbles: true,
@@ -156,7 +143,7 @@ export function useTouchHold({
 
       reset();
     },
-    [checkIfInput, contextMenuLastTime, enabled, reset, resetScale],
+    [contextMenuLastTime, enabled, isInput, reset, resetScale],
   );
 
   const handleTouchMove = useCallback(
@@ -166,8 +153,8 @@ export function useTouchHold({
       }
 
       const currentPosition = {
-        x: "touches" in e ? e?.touches?.[0]?.clientX : e.clientX,
-        y: "touches" in e ? e?.touches?.[0]?.clientY : e.clientY,
+        x: "touches" in e ? e.touches?.[0]?.clientX : e.clientX,
+        y: "touches" in e ? e.touches?.[0]?.clientY : e.clientY,
       };
 
       if (!currentPosition.x || !currentPosition.y || !initialPosition.current.x || !initialPosition.current.y) return;
@@ -176,6 +163,7 @@ export function useTouchHold({
         Math.pow(currentPosition.x - initialPosition.current.x, 2) +
           Math.pow(currentPosition.y - initialPosition.current.y, 2),
       );
+
       if (distance > threshold) {
         reset();
       }
@@ -183,26 +171,23 @@ export function useTouchHold({
     [reset, threshold],
   );
 
-  const onContextMenu: React.MouseEventHandler = useCallback(
-    (e) => {
-      if (checkIfInput(e)) {
+  const onContextMenu = useCallback(
+    (e: React.MouseEvent) => {
+      if (!enabled || isInput(e.target)) {
         return;
       }
 
-      if (!enabled) {
-        return;
-      }
-
-      // ignore on mobile because on mobile we use the long press
-      // this is a hack, but it works
       e.preventDefault();
       e.stopPropagation();
       setContextMenuLastTime(Date.now());
 
-      if (window.innerWidth < 768) return;
+      if (window.innerWidth < 768) {
+        return;
+      }
+
       callback();
     },
-    [callback, checkIfInput, enabled],
+    [callback, enabled, isInput],
   );
 
   useEffect(() => {
@@ -210,17 +195,18 @@ export function useTouchHold({
     document.addEventListener("mousemove", handleTouchMove, { capture: true });
 
     return () => {
-      clearTimeout(timer.current!);
+      reset();
+
       document.removeEventListener("touchmove", handleTouchMove, { capture: true });
       document.removeEventListener("mousemove", handleTouchMove, { capture: true });
     };
-  }, [handleTouchMove]);
+  }, [handleTouchMove, reset]);
 
   return {
     onTouchStart: handleTouchStart as unknown as React.TouchEventHandler,
-    onTouchEnd: handleTouchEnd as unknown as React.TouchEventHandler,
     onMouseDown: handleTouchStart as unknown as React.MouseEventHandler,
-    onMouseUp: handleTouchEnd as unknown as React.MouseEventHandler,
+    onTouchEnd: handleTouchEnd as React.TouchEventHandler,
+    onMouseUp: handleTouchEnd as React.MouseEventHandler,
     onMouseLeave: reset,
     onContextMenu: onContextMenu,
   };

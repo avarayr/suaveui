@@ -195,7 +195,7 @@ const _Tapback = <T extends React.ElementType>({ ..._props }: TapbackProps<T>) =
         {isOpen && blur && (
           <motion.div
             className={twMerge(
-              "fixed left-0 top-0 z-[99] h-dvh w-dvw transform-gpu bg-black/70 backdrop-blur-2xl",
+              "fixed left-0 top-0 z-[99] h-dvh w-dvw transform-gpu select-none bg-black/70 backdrop-blur-2xl",
               blurClassName,
             )}
             initial={{ opacity: 0 }}
