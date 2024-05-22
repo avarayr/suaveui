@@ -52,6 +52,8 @@ const _Tapback = <T extends React.ElementType>({ ..._props }: TapbackProps<T>) =
   const [isBackdropAnimating, setIsBackdropAnimating] = useState(false);
   const dropdownMenuRef = useRef<HTMLDivElement>(null);
   const elementRef = useRef<HTMLDivElement>(null);
+  const upAnimationRef = useRef<Animation | null>(null);
+  const downAnimationRef = useRef<Animation | null>(null);
 
   const [isDropdownAnimating, setIsDropdownAnimating] = useState(false);
 
@@ -89,30 +91,36 @@ const _Tapback = <T extends React.ElementType>({ ..._props }: TapbackProps<T>) =
   }, [isOpen, longPressDuration, recalculateOffset]);
 
   useEffect(() => {
-    if (!elementRef.current) return;
+    void (async () => {
+      if (!elementRef.current) return;
 
-    const transformProps: KeyframeAnimationOptions = {
-      duration: 310,
-      fill: "forwards",
-      easing: "cubic-bezier(0.34, 0.152, 0.1, 1)",
-    };
+      const transformProps: KeyframeAnimationOptions = {
+        duration: 310,
+        fill: "forwards",
+        easing: "cubic-bezier(0.34, 0.152, 0.1, 1)",
+      };
 
-    // ignore initial render
-    if (shouldOffset === prevShouldOffset) {
-      return;
-    }
+      // ignore initial render
+      if (shouldOffset === prevShouldOffset) {
+        return;
+      }
 
-    if (shouldOffset) {
-      void elementRef.current
-        .animate({ transform: `translate3D(0, ${-shouldOffset}px, 0)` }, transformProps)
-        .finished.then((ev) => {
-          ev.commitStyles();
-        });
-    } else {
-      void elementRef.current.animate({ transform: `translate3D(0, 0, 0)` }, transformProps).finished.then((ev) => {
-        ev.commitStyles();
-      });
-    }
+      if (shouldOffset) {
+        upAnimationRef.current?.cancel();
+        upAnimationRef.current = await elementRef.current.animate(
+          { transform: `translate3D(0, ${-shouldOffset}px, 0)` },
+          transformProps,
+        ).finished;
+      } else {
+        downAnimationRef.current?.cancel();
+        downAnimationRef.current = await elementRef.current.animate({ transform: "initial" }, { ...transformProps })
+          .finished;
+
+        // Cancel at the end to fix motion-framer bug where the "layout" animations
+        // stop working
+        downAnimationRef.current.cancel();
+      }
+    })();
   }, [shouldOffset, prevShouldOffset]);
 
   const onMenuOpen = useCallback(() => {
