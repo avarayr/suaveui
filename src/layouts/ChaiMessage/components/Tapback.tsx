@@ -103,9 +103,15 @@ const _Tapback = <T extends React.ElementType>({ ..._props }: TapbackProps<T>) =
     }
 
     if (shouldOffset) {
-      elementRef.current.animate({ transform: `translate3D(0, ${-shouldOffset}px, 0)` }, transformProps);
+      void elementRef.current
+        .animate({ transform: `translate3D(0, ${-shouldOffset}px, 0)` }, transformProps)
+        .finished.then((ev) => {
+          ev.commitStyles();
+        });
     } else {
-      elementRef.current.animate({ transform: `translate3D(0, 0, 0)` }, transformProps);
+      void elementRef.current.animate({ transform: `translate3D(0, 0, 0)` }, transformProps).finished.then((ev) => {
+        ev.commitStyles();
+      });
     }
   }, [shouldOffset, prevShouldOffset]);
 

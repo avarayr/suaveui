@@ -1,8 +1,8 @@
+import { motion } from "framer-motion";
 import { JsxRuntimeComponents } from "node_modules/react-markdown/lib";
 import React from "react";
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
-import rehypeKatex from "rehype-katex";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import { CodeBlock } from "~/components/primitives/CodeBlock";
@@ -22,7 +22,7 @@ const code = React.memo(
 );
 
 const p = React.memo((props?: { children?: React.ReactNode; className?: string }) => {
-  return <p className="whitespace-pre-wrap">{props?.children}</p>;
+  return <motion.p className="whitespace-pre-wrap">{props?.children}</motion.p>;
 });
 
 const a = React.memo((props: { href?: string; children: React.ReactElement }) => {

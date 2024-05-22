@@ -12,7 +12,7 @@ import {
   Trash,
   XIcon,
 } from "lucide-react";
-import React, { ReactNode, useCallback, useMemo, useState } from "react";
+import React, { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { twMerge } from "tailwind-merge";
 import type { Reaction as TReaction } from "~/layouts/types";
 import { ExpandingTextarea } from "./ExpandingTextarea";
@@ -46,6 +46,7 @@ export const ChatBubble = React.memo(
     onEditDismiss,
     onEditSubmit,
     className,
+    onTapbackOpenChange: onTapbackOpenChangeProp,
   }: {
     from: "me" | "them";
     text: string;
@@ -64,6 +65,7 @@ export const ChatBubble = React.memo(
     onEditStart?: () => void;
     onEditDismiss?: () => void;
     onEditSubmit?: (newContent: string) => void | Promise<void>;
+    onTapbackOpenChange?: (open: boolean) => void;
     className?: string;
   }) => {
     const [isFocused, setIsFocused] = useState(false);
@@ -107,6 +109,10 @@ export const ChatBubble = React.memo(
       },
       [isEditing],
     );
+
+    useEffect(() => {
+      onTapbackOpenChangeProp?.(isFocused);
+    }, [isFocused, onTapbackOpenChangeProp]);
 
     const reactionsSymbols = useMemo(() => {
       return [
@@ -397,8 +403,7 @@ export const ChatBubble = React.memo(
                         reaction.from === "them" && `bg-[#222225] before:bg-[#222225] after:bg-[#222225]`,
                         from === "me" && reaction.from === "me" && "ring-[1px] ring-black/30",
                         from === "them" && reaction.from === "them" && "ring-[1px] ring-black/30",
-                        // if focused, opacity is 30%
-                        isFocused && "!opacity-0 transition-opacity",
+                        (isFocused || isEditing) && "!opacity-0",
                         // if reaction is a heart, text is red
                         reaction.type === "heart" && "text-[#F9538B]",
                       )}
@@ -472,7 +477,7 @@ export const ChatBubble = React.memo(
             )}
             {isGenerating && (
               <motion.section
-                className="flex self-end"
+                className="flex self-end overflow-clip"
                 initial={{ opacity: 0, scale: 0 }}
                 animate={{
                   opacity: 1,
@@ -490,7 +495,7 @@ export const ChatBubble = React.memo(
                   }}
                 >
                   {/* Spinner surrounding*/}
-                  <LoaderCircle className="absolute size-[135%] animate-spin stroke-white/20 stroke-[1] ease-linear" />
+                  <LoaderCircle className="absolute size-[125%] animate-spin stroke-white/20 stroke-[1] ease-linear" />
                   <Square className="size-3 fill-white" />
                 </button>
               </motion.section>

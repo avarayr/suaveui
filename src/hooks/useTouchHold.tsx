@@ -40,7 +40,12 @@ export function useTouchHold({
     clearTimeout(scaleTimer.current!);
     if (scaleAnimation.current) {
       scaleAnimation.current.playbackRate = -1;
-      scaleAnimation.current = null;
+      scaleAnimation.current.onfinish = () => {
+        if (scaleAnimation.current) {
+          scaleAnimation.current?.commitStyles();
+          scaleAnimation.current = null;
+        }
+      };
     }
   }, []);
 

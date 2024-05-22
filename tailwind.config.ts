@@ -96,6 +96,7 @@ const config = {
         spin: "spin 1s linear infinite",
         shimmer: "shimmer 1.5s ease-in-out infinite",
         "text-reveal": "text-reveal 1s forwards",
+        "fade-in": "fade-in 0.3s forwards",
       },
     },
     keyframes: {
@@ -117,6 +118,10 @@ const config = {
       "text-reveal": {
         "0%": { "background-position": "0% 0%" },
         "100%": { "background-position": "200% 0%" },
+      },
+      "fade-in": {
+        "0%": { opacity: "0" },
+        "100%": { opacity: "1" },
       },
     },
   },
