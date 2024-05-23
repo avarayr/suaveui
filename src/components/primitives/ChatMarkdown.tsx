@@ -12,7 +12,9 @@ const code = React.memo(
   ({ children, className, inline }: { className?: string; children?: React.ReactNode; inline?: boolean }) => {
     const match = /language-(\w+)/.exec(className || "");
     const lang = match?.[1];
-
+    if (!lang) {
+      return children;
+    }
     if (inline) {
       return <code className={className}>{children}</code>;
     } else {
@@ -27,7 +29,7 @@ const p = React.memo((props?: { children?: React.ReactNode; className?: string }
 
 const a = React.memo((props: { href?: string; children: React.ReactElement }) => {
   return (
-    <a href={props.href} target="_blank" rel="noopener noreferrer" className="text-[#377AE8] underline">
+    <a href={props.href} target="_blank" rel="noopener noreferrer" className="underline">
       {props.children}
     </a>
   );

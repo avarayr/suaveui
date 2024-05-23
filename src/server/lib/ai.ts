@@ -1,4 +1,4 @@
-import OpenAI from "openai";
+import OpenAI, { APIError } from "openai";
 import invariant from "~/utils/invariant";
 import { StreamBuffer } from "./streamBuffer";
 
@@ -28,8 +28,8 @@ export interface CompletionProps {
 }
 
 const openai = new OpenAI({
-  apiKey: "",
-  baseURL: "http://localhost:1234/v1",
+  apiKey: process.env.AI_API_KEY,
+  baseURL: "http://localhost:1234/v1/",
 });
 
 export const ai = {
@@ -61,12 +61,13 @@ export const ai = {
     const streamBuffer = new StreamBuffer(messageId);
     this.chatStreamBuffer.set(messageId, streamBuffer);
 
+    let generatedTokens = 0;
     try {
       const stream = await openai.chat.completions.create({
         model,
         stream: true,
         messages: messages.filter((m) => m.content?.trim()) as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
-        max_tokens: options?.num_predict,
+        max_tokens: 500,
         temperature: options?.temperature,
         seed: options?.seed,
       } as const);
@@ -74,24 +75,32 @@ export const ai = {
       for await (const chunk of stream) {
         const token = chunk.choices[0];
 
-        if (token?.finish_reason === "stop" || streamBuffer.isAborted()) {
-          break;
-        }
-
         const text = token?.delta.content;
         if (text) {
+          generatedTokens++;
           streamBuffer.append(text);
         }
-      }
 
-      streamBuffer.finish();
+        console.log({ token });
+        if (token?.finish_reason || streamBuffer.isAborted()) {
+          break;
+        }
+      }
+      console.log("stream ended");
 
       const result = streamBuffer.getResult();
       return result;
     } catch (error) {
       console.error("Error in chatStream:", error);
-      throw error;
+
+      if (error instanceof APIError) {
+        streamBuffer.append(`Error: ${error.message}`);
+      }
+      if (generatedTokens === 0) {
+        return "";
+      }
     } finally {
+      streamBuffer.finish();
       this.chatStreamBuffer.delete(messageId);
     }
   },

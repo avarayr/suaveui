@@ -283,6 +283,7 @@ export const ChatBubble = React.memo(
               transition={{ type: "spring", stiffness: 200, mass: 0.3, damping: 20 }}
               initial={"hidden"}
               animate={"visible"}
+              exit={"hidden"}
               layoutId={layoutId}
               layout="position"
               actions={tapbackActions(from)}

@@ -1,20 +1,19 @@
 import { useMutation } from "@tanstack/react-query";
-import { Link, useMatch, useParams, useRouter } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowUp, ChevronLeft, VideoIcon } from "lucide-react";
-import React, { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { twMerge } from "tailwind-merge";
 import { Button } from "~/components/primitives/Button";
 import { SpinnerIcon } from "~/components/primitives/SpinnerIcon";
 import { useInView } from "~/hooks/useInView";
 import type { Reaction as TReaction } from "~/layouts/types";
-import { formatDateWithTime } from "~/utils/date";
+import { Route } from "~/routes/texting/$chatId";
 import { type TextingProps } from "../../types";
 import { Avatar } from "../components/Avatar";
 import { ChatBubble } from "../components/ChatBubble";
 import { ChatInput } from "../components/ChatInput";
 import { ChaiColors } from "../types";
-import { Route } from "~/routes/texting/$chatId";
 
 export const Texting = ({
   data,

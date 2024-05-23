@@ -117,7 +117,7 @@ export const chatRouter = router({
         await Chat.removeMessage(chatId, messageId);
       }
 
-      return { success: true };
+      return { success: true, result };
     }),
 
   deleteMessage: publicProcedure

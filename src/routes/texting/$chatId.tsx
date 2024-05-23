@@ -29,12 +29,6 @@ function TextingPage() {
     refetchOnReconnect: true,
   });
 
-  const interruptGenerationMutation = api.chat.interruptGeneration.useMutation({
-    onSuccess: async () => {
-      await utils.chat.getMessages.invalidate(queryOpts);
-    },
-  });
-
   const editMessageLocally = useCallback(
     ({
       messageId,
@@ -76,6 +70,20 @@ function TextingPage() {
     },
     [queryOpts, utils.chat.getMessages],
   );
+
+  const interruptGenerationMutation = api.chat.interruptGeneration.useMutation({
+    onSuccess: async (data, { messageId }) => {
+      if (data.success) {
+        const content = data.result?.trim();
+        if (content) {
+          editMessageLocally({ messageId, content, mode: "replace" });
+        }
+        return;
+      }
+      // invalidate the query
+      await utils.chat.getMessages.invalidate(queryOpts);
+    },
+  });
 
   const tryFollowMessageGeneration = useCallback(
     async ({ chatId, messageId }: { chatId: string; messageId: string }) => {
