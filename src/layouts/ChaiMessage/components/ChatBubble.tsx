@@ -324,9 +324,9 @@ export const ChatBubble = React.memo(
                     exit={{ opacity: 0, transition: { duration: 0.1 } }}
                     transition={{
                       type: "spring",
-                      stiffness: 200,
-                      damping: 25,
-                      delay: 0.2,
+                      stiffness: 250,
+                      damping: 20,
+                      delay: 0.11,
                     }}
                     style={{ transformOrigin: "center center" }}
                     className={twMerge(
@@ -370,7 +370,7 @@ export const ChatBubble = React.memo(
                               )}
                             />
                           )}
-                          <reaction.icon className="z-[10] size-6" transition={{ delay: i * 0.05 + 0.25 }} />
+                          <reaction.icon className="z-[10] size-6" transition={{ delay: i * 0.05 + 0.22 }} />
                         </motion.div>
                       ))}
                     </div>

@@ -133,6 +133,9 @@ export const Texting = ({
       )}
 
       <section className="flex h-1 w-full flex-grow flex-col-reverse gap-2 overflow-y-auto overflow-x-clip px-5 pb-2 pt-24">
+        {/* A dummy div that takes up remaining vertical space to push the tail down */}
+        <div className="flex-grow" />
+
         <AnimatePresence initial={false}>
           {messages.map((message, i) => {
             return (

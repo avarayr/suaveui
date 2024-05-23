@@ -217,6 +217,10 @@ const _Tapback = <T extends React.ElementType>({ ..._props }: TapbackProps<T>) =
             exit={{ opacity: 0, transition: { duration: 0.3 } }}
             onAnimationStart={() => setIsBackdropAnimating(true)}
             onAnimationComplete={() => setIsBackdropAnimating(false)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenChange?.(false);
+            }}
           />
         )}
       </AnimatePresence>
