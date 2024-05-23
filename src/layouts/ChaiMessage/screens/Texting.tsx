@@ -42,27 +42,46 @@ export const Texting = ({
   const persona = data?.chat?.personas?.[0];
 
   const messages = useMemo(() => {
+    // sort in reverse chronological order
+    // because we're using a reverse flex direction for chat messages
     return [...(data?.messages ?? [])].sort(
       (a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime(),
     );
   }, [data?.messages]);
 
+  const shouldDisplayTime = useCallback((_messages: typeof messages, i: number) => {
+    const timestampInterval = 1000 * 60 * 30; // 30 minutes
+    const message = _messages[i];
+    const nextMessage = _messages[i + 1];
+
+    const currentTimestamp = message?.createdAt ? message.createdAt.getTime() : 0;
+    const nextTimestamp = nextMessage?.createdAt ? nextMessage.createdAt.getTime() : 0;
+    const hasDayChanged = message?.createdAt?.getDate() !== nextMessage?.createdAt?.getDate();
+    const shouldDisplayTime = currentTimestamp - nextTimestamp >= timestampInterval || hasDayChanged;
+    return shouldDisplayTime;
+  }, []);
+
   const shouldShowTail = useCallback(
-    (i: number) => {
-      if (messages[i - 1] && messages[i - 1]?.role !== messages[i]?.role) {
+    (_messages: typeof messages, i: number) => {
+      if (_messages[i - 1] && _messages[i - 1]?.role !== _messages[i]?.role) {
         return true;
       }
+
+      // if we have a timestamp, we should show the tail
+      // because timestamp act as a separator
+      if (shouldDisplayTime(_messages, i)) {
+        return true;
+      }
+
       return i === 0;
     },
-    [messages],
+    [shouldDisplayTime],
   );
 
   const { mutate: loadMoreMutate, isPending: isLoadMorePending } = useMutation({
     mutationFn: onLoadMore,
     mutationKey: ["load-more"],
   });
-
-  const timestampInterval = 1000 * 60 * 30; // 30 minutes
 
   useEffect(() => {
     if (loadMoreButtonInView) {
@@ -116,13 +135,15 @@ export const Texting = ({
       <section className="flex h-1 w-full flex-grow flex-col-reverse gap-2 overflow-y-auto overflow-x-clip px-5 pb-2 pt-24">
         <AnimatePresence initial={false}>
           {messages.map((message, i) => {
-            const element = (
+            return (
               <ChatBubble
                 key={"chat_bubble_" + message.id}
                 layoutId={"chat_bubble_" + message.id}
                 from={message.role === "user" ? "me" : "them"}
                 text={message.content}
-                tail={shouldShowTail(i)}
+                tail={shouldShowTail(messages, i)}
+                createdAt={message.createdAt ?? undefined}
+                showTimestamp={shouldDisplayTime(messages, i)}
                 onDelete={() => onMessageDelete(message.id)}
                 onSteer={() => onMessageSteer(message.id)}
                 onContinue={() => onMessageContinue(message.id)}
@@ -136,28 +157,6 @@ export const Texting = ({
                 isGenerating={message.isGenerating ?? false}
                 onInterrupt={() => onMessageInterrupt(message.id)}
               />
-            );
-            let timestampElement = null;
-
-            const nextMessage = messages[i + 1];
-            const currentTimestamp = message.createdAt ? message.createdAt.getTime() : 0;
-            const nextTimestamp = nextMessage?.createdAt ? nextMessage.createdAt.getTime() : 0;
-            const hasDayChanged = message.createdAt?.getDate() !== nextMessage?.createdAt?.getDate();
-            const shouldDisplayTime = currentTimestamp - nextTimestamp >= timestampInterval || hasDayChanged;
-
-            if (shouldDisplayTime) {
-              timestampElement = (
-                <motion.div layout="position" className="timestamp mt-1 w-full text-center text-xs text-[#7D7C80]">
-                  {formatDateWithTime(message.createdAt!)}
-                </motion.div>
-              );
-            }
-
-            return (
-              <Fragment key={"chat_container_" + message.id}>
-                {element}
-                {timestampElement}
-              </Fragment>
             );
           })}
 

@@ -20,6 +20,7 @@ import { SpoilerParticles } from "./SpoilerParticles";
 import { Reaction } from "./reactions/Reaction";
 import { Tapback, TapbackAction } from "./Tapback";
 import { ChatMarkdown } from "~/components/primitives/ChatMarkdown";
+import { formatDateWithTime } from "~/utils/date";
 
 export type Reaction = {
   id: TReaction["type"];
@@ -36,6 +37,7 @@ export const ChatBubble = React.memo(
     isGenerating,
     reactions,
     isEditing,
+    createdAt,
     onContinue,
     onInterrupt,
     onDelete,
@@ -45,6 +47,7 @@ export const ChatBubble = React.memo(
     onEditStart,
     onEditDismiss,
     onEditSubmit,
+    showTimestamp,
     className,
     onTapbackOpenChange: onTapbackOpenChangeProp,
   }: {
@@ -56,6 +59,8 @@ export const ChatBubble = React.memo(
     isGenerating?: boolean;
     reactions?: TReaction[] | null;
     isEditing?: boolean;
+    showTimestamp?: boolean;
+    createdAt?: Date;
     onInterrupt?: () => Promise<any>;
     onSteer?: () => Promise<void>;
     onRegenerate?: () => Promise<void>;
@@ -229,9 +234,15 @@ export const ChatBubble = React.memo(
     );
 
     return (
-      <>
-        {/* Focus backdrop */}
+      <motion.div layoutRoot>
+        {/* Timestamp */}
+        {showTimestamp && createdAt && (
+          <motion.div layout="position" className="timestamp mb-3 mt-1 w-full text-center text-xs text-[#7D7C80]">
+            {formatDateWithTime(createdAt)}
+          </motion.div>
+        )}
 
+        {/* Focus backdrop */}
         <div className={twMerge("flex items-center justify-between")}>
           {/* Dismiss Action */}
           <AnimatePresence mode="popLayout">
@@ -502,7 +513,7 @@ export const ChatBubble = React.memo(
             )}
           </AnimatePresence>
         </div>
-      </>
+      </motion.div>
     );
   },
 );
