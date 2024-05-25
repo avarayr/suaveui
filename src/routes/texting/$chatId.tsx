@@ -210,7 +210,8 @@ function TextingPage() {
 
   const deleteMessageMutation = api.chat.deleteMessage.useMutation({
     onSuccess: async () => {
-      await utils.chat.getMessages.invalidate(queryOpts);
+      // TODO: figure out how to make this work with pagination
+      // await utils.chat.getMessages.invalidate(queryOpts);
     },
 
     onMutate: async (message) => {
@@ -244,6 +245,7 @@ function TextingPage() {
 
   const regenerateMessageMutation = api.chat.regenerateMessage.useMutation({
     onSuccess: async () => {
+      // TODO: figure out how to make this work with pagination
       await utils.chat.getMessages.invalidate(queryOpts);
     },
   });

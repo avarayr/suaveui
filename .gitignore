@@ -47,3 +47,6 @@ yarn-error.log*
 # pwa
 dist
 dev-dist
+
+.output
+.vinxi

@@ -55,3 +55,23 @@ export const routeTree = rootRoute.addChildren({
 })
 
 /* prettier-ignore-end */
+
+/* ROUTE_MANIFEST_START
+{
+  "routes": {
+    "__root__": {
+      "filePath": "__root.tsx",
+      "children": [
+        "/",
+        "/texting/$chatId"
+      ]
+    },
+    "/": {
+      "filePath": "index.tsx"
+    },
+    "/texting/$chatId": {
+      "filePath": "texting/$chatId.tsx"
+    }
+  }
+}
+ROUTE_MANIFEST_END */

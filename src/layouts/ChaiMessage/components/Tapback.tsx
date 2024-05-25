@@ -1,10 +1,8 @@
-import { AnimatePresence, motion, useAnimationControls } from "framer-motion";
-import React, { forwardRef, useCallback, useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { twMerge } from "tailwind-merge";
-import { useTouchHold } from "~/hooks/useTouchHold";
-import { useOnClickOutside } from "usehooks-ts";
-import { createPortal } from "react-dom";
 import { usePrevious } from "~/hooks/usePrevious";
+import { useTouchHold } from "~/hooks/useTouchHold";
 
 export type TapbackAction = {
   label: string;
@@ -111,14 +109,16 @@ const _Tapback = <T extends React.ElementType>({ ..._props }: TapbackProps<T>) =
           { transform: `translate3D(0, ${-shouldOffset}px, 0)` },
           transformProps,
         ).finished;
+
+        // upAnimationRef?.current?.commitStyles();
+        // upAnimationRef?.current?.cancel();
       } else {
         downAnimationRef.current?.cancel();
         downAnimationRef.current = await elementRef.current.animate({ transform: "initial" }, { ...transformProps })
           .finished;
 
-        // Cancel at the end to fix motion-framer bug where the "layout" animations
-        // stop working
-        downAnimationRef.current.cancel();
+        // motion framer bugfix
+        downAnimationRef?.current?.cancel();
       }
     })();
   }, [shouldOffset, prevShouldOffset]);

@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, MotionConfig, motion } from "framer-motion";
 import { ArrowUp, ChevronLeft, VideoIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo } from "react";
 import { twMerge } from "tailwind-merge";
@@ -144,7 +144,7 @@ export const Texting = ({
                 from={message.role === "user" ? "me" : "them"}
                 text={message.content}
                 tail={shouldShowTail(messages, i)}
-                createdAt={message.createdAt ?? undefined}
+                createdAt={message.createdAt?.getTime() ?? undefined}
                 showTimestamp={shouldDisplayTime(messages, i)}
                 onDelete={() => onMessageDelete(message.id)}
                 onSteer={() => onMessageSteer(message.id)}

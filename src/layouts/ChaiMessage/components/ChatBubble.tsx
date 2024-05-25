@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, MotionConfig, motion } from "framer-motion";
 import {
   ArrowRight,
   CheckIcon,
@@ -37,7 +37,7 @@ export const ChatBubble = React.memo(
     isGenerating,
     reactions,
     isEditing,
-    createdAt,
+    createdAt: createdAtNumber,
     onContinue,
     onInterrupt,
     onDelete,
@@ -60,7 +60,8 @@ export const ChatBubble = React.memo(
     reactions?: TReaction[] | null;
     isEditing?: boolean;
     showTimestamp?: boolean;
-    createdAt?: Date;
+    createdAt?: number;
+    className?: string;
     onInterrupt?: () => Promise<any>;
     onSteer?: () => Promise<void>;
     onRegenerate?: () => Promise<void>;
@@ -71,7 +72,6 @@ export const ChatBubble = React.memo(
     onEditDismiss?: () => void;
     onEditSubmit?: (newContent: string) => void | Promise<void>;
     onTapbackOpenChange?: (open: boolean) => void;
-    className?: string;
   }) => {
     const [isFocused, setIsFocused] = useState(false);
 
@@ -114,6 +114,10 @@ export const ChatBubble = React.memo(
       },
       [isEditing],
     );
+
+    const createdAt = useMemo(() => {
+      return createdAtNumber ? new Date(createdAtNumber) : undefined;
+    }, [createdAtNumber]);
 
     useEffect(() => {
       onTapbackOpenChangeProp?.(isFocused);
@@ -283,7 +287,6 @@ export const ChatBubble = React.memo(
               transition={{ type: "spring", stiffness: 200, mass: 0.3, damping: 20 }}
               initial={"hidden"}
               animate={"visible"}
-              exit={"hidden"}
               layoutId={layoutId}
               layout="position"
               actions={tapbackActions(from)}
@@ -516,5 +519,22 @@ export const ChatBubble = React.memo(
         </div>
       </motion.div>
     );
+  },
+  (prevProps, nextProps) => {
+    const toCheck = [
+      "from",
+      "text",
+      "layoutId",
+      "createdAt",
+      "tail",
+      "typing",
+      "isGenerating",
+      "reactions",
+      "isEditing",
+      "showTimestamp",
+      "className",
+    ] as const satisfies (keyof typeof prevProps)[];
+    const diff = toCheck.every((key) => prevProps[key] === nextProps[key]);
+    return diff;
   },
 );

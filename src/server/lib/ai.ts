@@ -1,17 +1,14 @@
-import OpenAI, { APIError } from "openai";
 import invariant from "~/utils/invariant";
 import { StreamBuffer } from "./streamBuffer";
+import type OpenAI from "openai";
+import { OpenAIStream } from "./OpenAIStream";
 
 export interface AIChatMessage {
   role: "system" | "user" | "assistant" | Omit<string, "system" | "user" | "assistant">;
   content: string;
 }
 
-export interface AIOptions {
-  seed?: number;
-  num_predict?: number;
-  temperature?: number;
-}
+export type AIOptions = OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming;
 
 export interface ChatProps {
   model: string;
@@ -27,10 +24,8 @@ export interface CompletionProps {
   options?: AIOptions;
 }
 
-const openai = new OpenAI({
-  apiKey: process.env.AI_API_KEY,
-  baseURL: "http://localhost:1234/v1/",
-});
+const AI_BASE_URL = "https://openrouter.ai/api/v1";
+const COMPLETIONS_ENDPOINT = "/chat/completions";
 
 export const ai = {
   /**
@@ -39,16 +34,22 @@ export const ai = {
   chatStreamBuffer: new Map<string, StreamBuffer>(),
 
   chat: async ({ messages, model, options }: ChatProps) => {
-    const response = await openai.chat.completions.create({
-      model,
-      stream: false,
-      messages: messages.filter((m) => m.content?.trim()) as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
-      max_tokens: options?.num_predict,
-      temperature: options?.temperature,
-      seed: options?.seed,
-    } as const);
+    const response = await fetch(`${AI_BASE_URL}${COMPLETIONS_ENDPOINT}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.AI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        ...options,
+        model,
+        stream: false,
+        messages: messages.filter((m) => m.content?.trim()) as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
+      }),
+    });
 
-    const content = response.choices?.[0];
+    const responseJson = (await response.json()) as OpenAI.Chat.Completions.ChatCompletion;
+    const content = responseJson.choices?.[0];
 
     if (!content) {
       return null;
@@ -63,39 +64,33 @@ export const ai = {
 
     let generatedTokens = 0;
     try {
-      const stream = await openai.chat.completions.create({
-        model,
-        stream: true,
-        messages: messages.filter((m) => m.content?.trim()) as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
-        max_tokens: 500,
-        temperature: options?.temperature,
-        seed: options?.seed,
-      } as const);
+      const stream = OpenAIStream({
+        baseUrl: AI_BASE_URL,
+        apiKey: process.env.AI_API_KEY,
+        payload: {
+          ...options,
+          model,
+          stream: true,
+          messages: messages.filter((m) => m.content?.trim()) as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
+        },
+      });
 
       for await (const chunk of stream) {
-        const token = chunk.choices[0];
-
-        const text = token?.delta.content;
-        if (text) {
+        if (chunk) {
           generatedTokens++;
-          streamBuffer.append(text);
+          streamBuffer.append(chunk);
         }
 
-        console.log({ token });
-        if (token?.finish_reason || streamBuffer.isAborted()) {
+        if (streamBuffer.isAborted()) {
           break;
         }
       }
-      console.log("stream ended");
 
       const result = streamBuffer.getResult();
       return result;
     } catch (error) {
       console.error("Error in chatStream:", error);
 
-      if (error instanceof APIError) {
-        streamBuffer.append(`Error: ${error.message}`);
-      }
       if (generatedTokens === 0) {
         return "";
       }
