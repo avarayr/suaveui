@@ -1,5 +1,5 @@
 import { getRouterContext, Outlet, useMatches } from "@tanstack/react-router";
-import { motion, MotionProps, useIsPresent } from "framer-motion";
+import { motion, MotionConfig, MotionProps, useIsPresent } from "framer-motion";
 import cloneDeep from "lodash/cloneDeep";
 import { forwardRef, useContext, useRef } from "react";
 import { AnimatedOutletProps, RouteTransitionVariants } from "./AnimatedOutlet.types";

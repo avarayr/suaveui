@@ -10,6 +10,7 @@ import { ChatListItem } from "../components/ChatListItem";
 import { Padded } from "../components/Padded";
 import { Tapback } from "../components/Tapback";
 import { ChaiColors } from "../types";
+import { useRouteTransitioning } from "~/hooks/useRouteTransitioning";
 
 type Chat = RouterOutput["chat"]["all"][number];
 
@@ -181,6 +182,8 @@ const ChatListItems = React.memo(
     setTapbackChatID: (chatID: string | undefined) => void;
     onChatDelete?: (chatID: string) => unknown;
   }) => {
+    const [, , routeTransitioningClassName] = useRouteTransitioning();
+
     return (
       <div className="mt-2 flex flex-col">
         <AnimatePresence initial={false}>
@@ -206,9 +209,9 @@ const ChatListItems = React.memo(
                 <ChatPreviewFrame chatId={chat.id} />
               ) : (
                 <motion.div
-                  className="overflow-hidden"
-                  transition={{ type: "spring", stiffness: 260, damping: 27, duration: 0.4 }}
                   layoutId={`chat_list_item_${chat.id}`}
+                  transition={{ type: "spring", stiffness: 260, damping: 27, duration: 0.4 }}
+                  className={twMerge("overflow-hidden", routeTransitioningClassName)}
                 >
                   <ChatListItem chat={chat} />
                 </motion.div>

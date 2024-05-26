@@ -47,11 +47,6 @@ body {
 }
 
 * {
-  /* Fix for Safari */
-  -webkit-backface-visibility: hidden;
-  -moz-backface-visibility: hidden;
-  backface-visibility: hidden;
-
   /* Fix for Chrome */
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -59,11 +54,6 @@ body {
   /* Fix for Edge */
   -ms-font-smoothing: antialiased;
   -webkit-font-smoothing: antialiased;
-
-  /* Fix for IE */
-  -ms-text-size-adjust: 100%;
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
 }
 
 /* Scrollbar */

@@ -21,6 +21,7 @@ import { Reaction } from "./reactions/Reaction";
 import { Tapback, TapbackAction } from "./Tapback";
 import { ChatMarkdown } from "~/components/primitives/ChatMarkdown";
 import { formatDateWithTime } from "~/utils/date";
+import { useRouteTransitioning } from "~/hooks/useRouteTransitioning";
 
 export type Reaction = {
   id: TReaction["type"];
@@ -32,7 +33,6 @@ export const ChatBubble = React.memo(
     from,
     text,
     tail,
-    layoutId,
     typing,
     isGenerating,
     reactions,
@@ -54,7 +54,6 @@ export const ChatBubble = React.memo(
     from: "me" | "them";
     text: string;
     tail?: boolean;
-    layoutId: string;
     typing?: boolean;
     isGenerating?: boolean;
     reactions?: TReaction[] | null;
@@ -73,6 +72,8 @@ export const ChatBubble = React.memo(
     onEditSubmit?: (newContent: string) => void | Promise<void>;
     onTapbackOpenChange?: (open: boolean) => void;
   }) => {
+    const [, , routeTransitioningClassName] = useRouteTransitioning();
+
     const [isFocused, setIsFocused] = useState(false);
 
     const [editingText, setEditingText] = useState<string | undefined>();
@@ -241,7 +242,13 @@ export const ChatBubble = React.memo(
       <motion.div layoutRoot>
         {/* Timestamp */}
         {showTimestamp && createdAt && (
-          <motion.div layout="position" className="timestamp mb-3 mt-1 w-full text-center text-xs text-[#7D7C80]">
+          <motion.div
+            layout="position"
+            className={twMerge(
+              "timestamp mb-3 mt-1 w-full text-center text-xs text-[#7D7C80]",
+              routeTransitioningClassName,
+            )}
+          >
             {formatDateWithTime(createdAt)}
           </motion.div>
         )}
@@ -287,7 +294,6 @@ export const ChatBubble = React.memo(
               transition={{ type: "spring", stiffness: 200, mass: 0.3, damping: 20 }}
               initial={"hidden"}
               animate={"visible"}
-              layoutId={layoutId}
               layout="position"
               actions={tapbackActions(from)}
               isOpen={isFocused}
@@ -316,6 +322,7 @@ export const ChatBubble = React.memo(
                 // editing input
                 isEditing &&
                   "w-full max-w-full border-2 border-[var(--edit-border)] bg-[image:var(--edit-bg)] transition-[border] before:hidden after:hidden",
+                routeTransitioningClassName,
               )}
               transformOrigin={from === "me" ? "right" : "left"}
             >
@@ -524,7 +531,6 @@ export const ChatBubble = React.memo(
     const toCheck = [
       "from",
       "text",
-      "layoutId",
       "createdAt",
       "tail",
       "typing",
