@@ -92,7 +92,7 @@ export const Texting = React.memo(
 
     return (
       <motion.main
-        className="flex h-dvh w-dvw flex-col justify-between overflow-x-hidden bg-black text-white antialiased contain-strict"
+        className="flex h-svh w-dvw flex-col justify-between overflow-x-hidden bg-black text-white antialiased contain-strict"
         exit={{ y: 15, opacity: 0 }}
       >
         {/* Activity Bar */}
@@ -135,7 +135,7 @@ export const Texting = React.memo(
 
         <section className="flex h-1 w-full flex-grow flex-col-reverse gap-2 overflow-y-auto overflow-x-clip px-5 pb-2 pt-24">
           {/* A dummy div that takes up remaining vertical space to push the tail down */}
-          <div className="flex-grow" />
+          {/* <div className="flex-grow" /> */}
 
           <AnimatePresence initial={false} mode="popLayout">
             {messages.map((message, i) => {

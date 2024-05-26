@@ -36,7 +36,7 @@ export const ChatInput = React.memo(({ onMessageSend, className }: ChatInputProp
           autoComplete="off"
           rows={1}
           wrap="hard"
-          className="h-auto min-h-9 w-full flex-grow rounded-3xl border border-[#1F2021] bg-transparent px-3 py-[0.35rem] pr-10 text-white placeholder-[#434346] caret-blue-600 outline-none selection:bg-[#346DD9]/30"
+          className="h-auto min-h-9 w-full flex-grow rounded-3xl border border-[#1F2021] bg-transparent px-3 py-[5px] pr-10 text-white placeholder-[#434346] caret-blue-600 outline-none selection:bg-[#346DD9]/30"
           placeholder="Message..."
           value={message}
           onChange={(e) => setMessage(e.target.value)}

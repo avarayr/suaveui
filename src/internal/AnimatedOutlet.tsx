@@ -1,5 +1,5 @@
 import { getRouterContext, Outlet, useMatches } from "@tanstack/react-router";
-import { motion, MotionConfig, MotionProps, useIsPresent } from "framer-motion";
+import { backIn, backInOut, backOut, easeIn, motion, MotionConfig, MotionProps, useIsPresent } from "framer-motion";
 import cloneDeep from "lodash/cloneDeep";
 import { forwardRef, useContext, useRef } from "react";
 import { AnimatedOutletProps, RouteTransitionVariants } from "./AnimatedOutlet.types";
@@ -11,12 +11,10 @@ export const TransitionProps = {
   exit: "exit",
   transition: {
     duration: 0.45,
-    ease: [0.39, 0, 0, 1],
-  },
-  style: {
-    display: "grid",
-    alignSelf: "stretch",
-    justifySelf: "stretch",
+    ease: (p) => {
+      const factor = 3.3;
+      return p < 0.5 ? Math.pow(p * 2, factor) / 2 : 1 - Math.pow((1 - p) * 2, factor) / 2;
+    },
   },
 } as const satisfies MotionProps;
 

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { NewChatDrawer } from "~/components/NewChatDrawer";
 import { FloatingActionButton } from "~/components/primitives/FloatingActionButton";
 import { useNotifications } from "~/hooks/useNotifications";
+import { useRouteTransitioning } from "~/hooks/useRouteTransitioning";
 import { ChatList } from "~/layouts/ChatList";
 import { api } from "~/trpc/react";
 
@@ -11,7 +12,12 @@ export const Route = createFileRoute("/")({
 });
 
 function IndexPage() {
-  const chats = api.chat.all.useQuery();
+  const [isRouteTransitioning] = useRouteTransitioning();
+
+  const chats = api.chat.all.useQuery(undefined, {
+    enabled: !isRouteTransitioning,
+    refetchOnMount: false,
+  });
 
   const [isNewChatDrawerOpen, setIsNewChatDrawerOpen] = useState(false);
 

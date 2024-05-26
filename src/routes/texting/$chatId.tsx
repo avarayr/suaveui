@@ -2,6 +2,7 @@ import cuid2 from "@paralleldrive/cuid2";
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDebounceCallback } from "usehooks-ts";
+import { useRouteTransitioning } from "~/hooks/useRouteTransitioning";
 import { Texting } from "~/layouts/Texting";
 import { Reaction } from "~/layouts/types";
 import { api } from "~/trpc/react";
@@ -14,6 +15,8 @@ const abortControllers = new Map<string, AbortController>();
 const followingMessageIds = new Map<string, boolean>();
 
 function TextingPage() {
+  const [isRouteTransitioning] = useRouteTransitioning();
+
   const { chatId } = Route.useParams();
   const utils = api.useUtils();
   const [editingMessageId, setEditingMessageId] = useState<string | undefined>(undefined);
@@ -22,10 +25,10 @@ function TextingPage() {
     typeof api.chat.getMessages.useQuery
   >[0];
   const messagesQuery = api.chat.getMessages.useQuery(queryOpts, {
-    enabled: typeof chatId === "string",
+    enabled: typeof chatId === "string" && !isRouteTransitioning,
     trpc: { ssr: false },
     refetchOnWindowFocus: false,
-    refetchOnMount: true,
+    refetchOnMount: false,
     refetchOnReconnect: true,
   });
 

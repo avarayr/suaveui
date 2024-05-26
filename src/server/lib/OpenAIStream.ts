@@ -40,10 +40,12 @@ export async function* OpenAIStream({
   baseUrl,
   payload,
   apiKey,
+  signal,
 }: {
   baseUrl: string;
   apiKey?: string;
   payload: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming;
+  signal?: AbortSignal;
 }) {
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
@@ -59,6 +61,7 @@ export async function* OpenAIStream({
     },
     method: "POST",
     body: JSON.stringify(payload),
+    signal,
   });
 
   const readableStream = new ReadableStream({

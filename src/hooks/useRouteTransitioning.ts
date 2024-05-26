@@ -1,7 +1,7 @@
 import { atom, useAtom } from "jotai";
 const IsRouteTransitioningAtom = atom<boolean>(false);
 
-const disableTransitionClassnames = "!transform-none !transition-none";
+const disableTransitionClassnames = "!opacity-100 !transform-none !transition-none";
 
 export const useRouteTransitioning = () => {
   const [isRouteTransitioning, setIsRouteTransitioning] = useAtom(IsRouteTransitioningAtom);

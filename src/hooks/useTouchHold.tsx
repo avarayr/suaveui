@@ -29,7 +29,7 @@ export function useTouchHold({
   const timer = useRef<number | null>(null);
   const scaleTimer = useRef<number | null>(null);
   const initialPosition = useRef<{ x?: number; y?: number } | null>(null);
-  const [contextMenuLastTime, setContextMenuLastTime] = useState<number | null>(null);
+
   const scaleAnimation = useRef<Animation | null>(null);
 
   const vibrate = useCallback(() => {
@@ -77,16 +77,6 @@ export function useTouchHold({
         y: "touches" in e ? e.touches[0]?.clientY : e.clientY,
       };
 
-      scaleTimer.current = window.setTimeout(() => {
-        resetScale();
-
-        scaleAnimation.current =
-          targetRef.current?.animate(
-            { transform: "scale(1.25)" },
-            { duration: 800, easing: "ease-in-out", fill: "forwards", composite: "accumulate" },
-          ) ?? null;
-      }, 50);
-
       timer.current = window.setTimeout(() => {
         timer.current = null;
 
@@ -110,6 +100,16 @@ export function useTouchHold({
           }
         }
       }, duration);
+
+      scaleTimer.current = window.setTimeout(() => {
+        resetScale();
+
+        scaleAnimation.current =
+          targetRef.current?.animate(
+            { transform: "scale(1.25)" },
+            { duration: 800, easing: "ease-in-out", fill: "forwards", composite: "accumulate" },
+          ) ?? null;
+      }, 50);
     },
     [callback, duration, enabled, isInput, resetScale, targetRef, threshold, vibrate],
   );
@@ -134,10 +134,6 @@ export function useTouchHold({
       e.preventDefault();
       e.stopPropagation();
 
-      if (contextMenuLastTime && Date.now() - contextMenuLastTime < 100) {
-        return;
-      }
-
       if (timer.current) {
         const onClickEvent = new MouseEvent("click", {
           bubbles: true,
@@ -148,7 +144,7 @@ export function useTouchHold({
 
       reset();
     },
-    [contextMenuLastTime, enabled, isInput, reset, resetScale],
+    [enabled, isInput, reset, resetScale],
   );
 
   const handleTouchMove = useCallback(
@@ -184,7 +180,6 @@ export function useTouchHold({
 
       e.preventDefault();
       e.stopPropagation();
-      setContextMenuLastTime(Date.now());
 
       if (window.innerWidth < 768) {
         return;

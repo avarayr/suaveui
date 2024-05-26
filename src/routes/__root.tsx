@@ -1,8 +1,7 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 import { createRootRouteWithContext, useMatch, useMatches } from "@tanstack/react-router";
-import { AnimatePresence, MotionConfig, MotionGlobalConfig } from "framer-motion";
-import { atom, useAtom } from "jotai";
-import { startTransition, useCallback, useEffect, useLayoutEffect, useState } from "react";
+import { AnimatePresence, LayoutGroup } from "framer-motion";
+import { useCallback, useEffect } from "react";
 import { useRouteTransitioning } from "~/hooks/useRouteTransitioning";
 import AnimatedOutlet from "~/internal/AnimatedOutlet";
 
@@ -21,17 +20,19 @@ export const Route = createRootRouteWithContext()({
     }, [nextMatch?.id, setIsRouteTransitioning]);
 
     const onExitComplete = useCallback(() => {
-      setIsRouteTransitioning(false);
+      setTimeout(() => {
+        setIsRouteTransitioning(false);
+      }, 300);
     }, [setIsRouteTransitioning]);
 
     // Sets the transition state to false on initial render (hooks always run in order)
     useEffect(() => {
-      onExitComplete();
+      setIsRouteTransitioning(false);
     }, [onExitComplete, setIsRouteTransitioning]);
 
     return (
       <main>
-        <AnimatePresence onExitComplete={onExitComplete} initial={false} mode="popLayout">
+        <AnimatePresence onExitComplete={onExitComplete} initial={false} mode="popLayout" presenceAffectsLayout>
           <AnimatedOutlet key={nextMatch?.id} />
         </AnimatePresence>
       </main>
