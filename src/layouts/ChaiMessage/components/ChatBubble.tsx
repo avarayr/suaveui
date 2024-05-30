@@ -279,6 +279,15 @@ export const ChatBubble = React.memo(
           >
             <Tapback
               as={motion.div}
+              initial={{
+                opacity: 0,
+                y: 100,
+              }}
+              animate={{
+                opacity: 1,
+                y: 0,
+              }}
+              transition={{ ease: "easeOut", duration: 0.2 }}
               exit={{
                 height: 0,
                 overflow: "hidden",
