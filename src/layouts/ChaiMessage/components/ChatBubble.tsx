@@ -72,8 +72,6 @@ export const ChatBubble = React.memo(
     onEditSubmit?: (newContent: string) => void | Promise<void>;
     onTapbackOpenChange?: (open: boolean) => void;
   }) => {
-    const [, , routeTransitioningClassName] = useRouteTransitioning();
-
     const [isFocused, setIsFocused] = useState(false);
 
     const [editingText, setEditingText] = useState<string | undefined>();
@@ -242,15 +240,9 @@ export const ChatBubble = React.memo(
       <motion.div layoutRoot>
         {/* Timestamp */}
         {showTimestamp && createdAt && (
-          <motion.div
-            layout="position"
-            className={twMerge(
-              "timestamp mb-3 mt-1 w-full text-center text-xs text-[#7D7C80]",
-              routeTransitioningClassName,
-            )}
-          >
+          <div className={twMerge("timestamp mb-3 mt-1 w-full text-center text-xs text-[#7D7C80]")}>
             {formatDateWithTime(createdAt)}
-          </motion.div>
+          </div>
         )}
 
         {/* Focus backdrop */}
@@ -287,14 +279,14 @@ export const ChatBubble = React.memo(
           >
             <Tapback
               as={motion.div}
-              variants={{
-                hidden: { opacity: 0, y: 100 },
-                visible: { opacity: 1, y: 0 },
+              exit={{
+                height: 0,
+                overflow: "hidden",
+                margin: 0,
+                padding: 0,
+                opacity: 0,
+                filter: "grayscale(1)",
               }}
-              transition={{ type: "spring", stiffness: 200, mass: 0.3, damping: 20 }}
-              initial={"hidden"}
-              animate={"visible"}
-              layout="position"
               actions={tapbackActions(from)}
               isOpen={isFocused}
               onOpenChange={(isOpen) => onTapBackOpenChange(isOpen)}
@@ -316,13 +308,13 @@ export const ChatBubble = React.memo(
                 from === "me" &&
                   `chat-bubble-me bg-[image:var(--me-bg)] text-white 
       before:right-[-5px] before:rounded-bl-[18px_14px] before:bg-[image:var(--me-bg)] after:right-[-24px] after:rounded-bl-[10px]`,
+                tail && "has-tail",
                 !tail && `before:opacity-0 after:opacity-0`,
                 // has reactions -> margin top
                 reactions?.length && "mb-1 mt-5",
                 // editing input
                 isEditing &&
                   "w-full max-w-full border-2 border-[var(--edit-border)] bg-[image:var(--edit-bg)] transition-[border] before:hidden after:hidden",
-                routeTransitioningClassName,
               )}
               transformOrigin={from === "me" ? "right" : "left"}
             >

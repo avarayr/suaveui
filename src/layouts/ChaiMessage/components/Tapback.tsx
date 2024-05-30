@@ -110,14 +110,15 @@ const _Tapback = <T extends React.ElementType>({ ..._props }: TapbackProps<T>) =
           transformProps,
         ).finished;
 
-        // upAnimationRef?.current?.commitStyles();
-        // upAnimationRef?.current?.cancel();
+        upAnimationRef?.current?.commitStyles();
+        upAnimationRef?.current?.cancel();
       } else {
         downAnimationRef.current?.cancel();
         downAnimationRef.current = await elementRef.current.animate({ transform: "initial" }, { ...transformProps })
           .finished;
 
         // motion framer bugfix
+        downAnimationRef?.current?.commitStyles();
         downAnimationRef?.current?.cancel();
       }
     })();

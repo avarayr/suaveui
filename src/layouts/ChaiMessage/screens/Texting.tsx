@@ -2,12 +2,11 @@ import { useMutation } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowUp, ChevronLeft, VideoIcon } from "lucide-react";
-import React, { useCallback, useEffect, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { twMerge } from "tailwind-merge";
 import { Button } from "~/components/primitives/Button";
 import { SpinnerIcon } from "~/components/primitives/SpinnerIcon";
 import { useInView } from "~/hooks/useInView";
-import { useRouteTransitioning } from "~/hooks/useRouteTransitioning";
 import type { Reaction as TReaction } from "~/layouts/types";
 import { Route } from "~/routes/texting/$chatId";
 import { type TextingProps } from "../../types";
@@ -15,6 +14,12 @@ import { Avatar } from "../components/Avatar";
 import { ChatBubble } from "../components/ChatBubble";
 import { ChatInput } from "../components/ChatInput";
 import { ChaiColors } from "../types";
+import { useAutoScroll } from "~/hooks/useAutoScroll";
+
+const lerp = (start: number, end: number, t: number) => start * (1 - t) + end * t;
+const easeOut = (t: number) => {
+  return 1 - Math.pow(1 - t, 2); // Quadratic easing out function
+};
 
 export const Texting = React.memo(
   ({
@@ -34,7 +39,10 @@ export const Texting = React.memo(
     onMessageInterrupt,
     onLoadMore,
   }: TextingProps) => {
+    const scrollerRef = useRef<HTMLDivElement>(null);
     const { frameless } = Route.useSearch<{ frameless?: boolean }>();
+    const [isSticky, setIsSticky] = useState(true);
+    const [initialLoad, setInitialLoad] = useState(false);
 
     const [loadMoreButtonRef, loadMoreButtonInView] = useInView<HTMLButtonElement>(undefined, {
       timeout: 100,
@@ -46,25 +54,25 @@ export const Texting = React.memo(
       // sort in reverse chronological order
       // because we're using a reverse flex direction for chat messages
       return [...(data?.messages ?? [])].sort(
-        (a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime(),
+        (b, a) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime(),
       );
     }, [data?.messages]);
 
     const shouldDisplayTime = useCallback((_messages: typeof messages, i: number) => {
       const timestampInterval = 1000 * 60 * 30; // 30 minutes
+      const prevMessage = _messages[i - 1];
       const message = _messages[i];
-      const nextMessage = _messages[i + 1];
 
       const currentTimestamp = message?.createdAt ? message.createdAt.getTime() : 0;
-      const nextTimestamp = nextMessage?.createdAt ? nextMessage.createdAt.getTime() : 0;
-      const hasDayChanged = message?.createdAt?.getDate() !== nextMessage?.createdAt?.getDate();
+      const nextTimestamp = prevMessage?.createdAt ? prevMessage.createdAt.getTime() : 0;
+      const hasDayChanged = message?.createdAt?.getDate() !== prevMessage?.createdAt?.getDate();
       const shouldDisplayTime = currentTimestamp - nextTimestamp >= timestampInterval || hasDayChanged;
       return shouldDisplayTime;
     }, []);
 
     const shouldShowTail = useCallback(
       (_messages: typeof messages, i: number) => {
-        if (_messages[i - 1] && _messages[i - 1]?.role !== _messages[i]?.role) {
+        if (_messages[i + 1] && _messages[i + 1]?.role !== _messages[i]?.role) {
           return true;
         }
 
@@ -74,7 +82,7 @@ export const Texting = React.memo(
           return true;
         }
 
-        return i === 0;
+        return i === _messages.length - 1;
       },
       [shouldDisplayTime],
     );
@@ -89,6 +97,73 @@ export const Texting = React.memo(
         void loadMoreMutate();
       }
     }, [loadMoreButtonInView, loadMoreMutate]);
+
+    /**
+     * On initial load of messages, scroll to the bottom of the chat (when messages are available)
+     */
+    useEffect(() => {
+      if (messages.length > 0 && !initialLoad) {
+        scrollerRef.current?.scrollTo({ top: scrollerRef.current.scrollHeight, behavior: "instant" });
+        setInitialLoad(true);
+      }
+    }, [messages, initialLoad]);
+
+    /**
+     * On load, scroll to the bottom of the chat
+     */
+    useAutoScroll(scrollerRef, messages, isSticky);
+
+    /**
+     * When isSticky is on, listen for resize events and scroll to the bottom (snap instantly) on resize
+     */
+    useEffect(() => {
+      const handleResize = () => {
+        if (isSticky) {
+          scrollerRef.current?.scrollTo({ top: scrollerRef.current.scrollHeight, behavior: "instant" });
+        }
+      };
+
+      window.addEventListener("resize", handleResize);
+
+      return () => {
+        window.removeEventListener("resize", handleResize);
+      };
+    }, [isSticky]);
+
+    useEffect(() => {
+      const handleScroll = () => {
+        if (scrollerRef.current) {
+          const scrollHeight = scrollerRef.current.scrollHeight;
+          const clientHeight = scrollerRef.current.clientHeight;
+          const currentScrollTop = scrollerRef.current.scrollTop;
+
+          // Calculate the distance from the bottom
+          const distanceFromBottom = scrollHeight - clientHeight - currentScrollTop;
+
+          // If the user is close enough to the bottom, enable sticky scroll
+          const shouldSticky = distanceFromBottom <= 10;
+          setIsSticky(shouldSticky);
+        }
+      };
+
+      // Attach the event listeners
+      const scroller = scrollerRef.current;
+      if (scroller) {
+        scroller.addEventListener("wheel", handleScroll);
+        scroller.addEventListener("touchstart", handleScroll);
+        scroller.addEventListener("touchend", handleScroll);
+        scroller.addEventListener("touchcancel", handleScroll);
+      }
+
+      return () => {
+        // Remove the event listeners when component unmounts
+
+        scroller?.removeEventListener("wheel", handleScroll);
+        scroller?.removeEventListener("touchstart", handleScroll);
+        scroller?.removeEventListener("touchend", handleScroll);
+        scroller?.removeEventListener("touchcancel", handleScroll);
+      };
+    }, []);
 
     return (
       <motion.main
@@ -133,7 +208,22 @@ export const Texting = React.memo(
           </div>
         )}
 
-        <section className="flex h-1 w-full flex-grow flex-col-reverse gap-2 overflow-y-auto overflow-x-clip px-5 pb-2 pt-24">
+        <section
+          ref={scrollerRef}
+          className="flex h-1 w-full flex-grow flex-col gap-2 overflow-y-auto overflow-x-clip px-5 pb-2 pt-24"
+        >
+          {moreMessagesAvailable && (
+            <Button
+              ref={loadMoreButtonRef}
+              loading={isLoadMorePending}
+              onClick={() => void loadMoreMutate()}
+              variant={"ghost"}
+            >
+              <ArrowUp className="mr-1 size-3 text-white/40" />
+              Load More
+            </Button>
+          )}
+
           {/* A dummy div that takes up remaining vertical space to push the tail down */}
           {/* <div className="flex-grow" /> */}
 
@@ -162,18 +252,6 @@ export const Texting = React.memo(
                 />
               );
             })}
-
-            {moreMessagesAvailable && (
-              <Button
-                ref={loadMoreButtonRef}
-                loading={isLoadMorePending}
-                onClick={() => void loadMoreMutate()}
-                variant={"ghost"}
-              >
-                <ArrowUp className="mr-1 size-3 text-white/40" />
-                Load More
-              </Button>
-            )}
           </AnimatePresence>
         </section>
 

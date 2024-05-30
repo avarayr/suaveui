@@ -196,6 +196,10 @@ function TextingPage() {
         ],
       }));
 
+      // wait a little before sending the message (optimistic update will appear instantly)
+      // this is for good UX purposes
+      await new Promise((resolve) => setTimeout(resolve, 700));
+
       // Return the previous data so we can revert if something goes wrong
       return { prevData };
     },
