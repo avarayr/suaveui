@@ -16,8 +16,6 @@ const abortControllers = new Map<string, AbortController>();
 const followingMessageIds = new Map<string, boolean>();
 
 function TextingPage() {
-  const [isRouteTransitioning] = useRouteTransitioning();
-
   const { chatId } = Route.useParams();
   const utils = api.useUtils();
   const [editingMessageId, setEditingMessageId] = useState<string | undefined>(undefined);
@@ -25,11 +23,12 @@ function TextingPage() {
   const queryOpts = { chatId, limit: ClientConsts.MessageLoadLimit } as const satisfies Parameters<
     typeof api.chat.getMessages.useQuery
   >[0];
+
   const messagesQuery = api.chat.getMessages.useQuery(queryOpts, {
-    enabled: typeof chatId === "string" && !isRouteTransitioning,
+    enabled: typeof chatId === "string",
     trpc: { ssr: false },
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    refetchOnMount: true,
     refetchOnReconnect: true,
   });
 

@@ -1,8 +1,9 @@
 import { easeOut } from "framer-motion";
 import { useCallback, useEffect, useRef } from "react";
 import { useDebounceCallback } from "usehooks-ts";
+import { VListHandle } from "virtua";
 
-export const useAutoScroll = (scrollerRef: React.RefObject<HTMLDivElement>, messages: any[], isSticky: boolean) => {
+export const useAutoScroll = (scrollerRef: React.RefObject<VListHandle>, messages: any[], isSticky: boolean) => {
   const animationRef = useRef<{
     startTime: number | null;
     previousTargetScrollTop: number | null;
@@ -18,10 +19,10 @@ export const useAutoScroll = (scrollerRef: React.RefObject<HTMLDivElement>, mess
       if (!scrollerRef.current || isTouching.current) return;
 
       const { startTime, previousTargetScrollTop } = animationRef.current;
-      const currentScrollTop = scrollerRef.current.scrollTop;
-      const scrollHeight = scrollerRef.current.scrollHeight;
-      const clientHeight = scrollerRef.current.clientHeight;
-      const targetScrollTop = scrollHeight - clientHeight;
+      const currentScrollTop = scrollerRef.current.scrollOffset;
+      const scrollHeight = scrollerRef.current.scrollSize - scrollerRef.current.viewportSize;
+
+      const targetScrollTop = scrollHeight;
 
       console.log("Scrolling to bottom", { currentScrollTop, targetScrollTop, previousTargetScrollTop });
       if (previousTargetScrollTop) {
@@ -38,14 +39,14 @@ export const useAutoScroll = (scrollerRef: React.RefObject<HTMLDivElement>, mess
       }
 
       const elapsed = timestamp - animationRef.current.startTime!;
-      const duration = 2000; // Duration of the animation in milliseconds
-      const progress = Math.min(elapsed / duration, 0.5);
+      const duration = 1200; // Duration of the animation in milliseconds
+      const progress = Math.min(elapsed / duration, 1);
       const easingProgress = easeOut(progress);
       const difference = targetScrollTop - currentScrollTop;
 
       const newScrollTop = currentScrollTop + difference * easingProgress;
 
-      scrollerRef.current.scrollTop = newScrollTop;
+      scrollerRef.current.scrollTo(newScrollTop);
 
       if (progress < 1 && difference > 5) {
         requestAnimationFrame(scrollToBottom);

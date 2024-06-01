@@ -237,7 +237,7 @@ export const ChatBubble = React.memo(
     );
 
     return (
-      <motion.div layoutRoot>
+      <motion.div layoutRoot className="chat-bubble-container">
         {/* Timestamp */}
         {showTimestamp && createdAt && (
           <div className={twMerge("timestamp mb-3 mt-1 w-full text-center text-xs text-[#7D7C80]")}>
@@ -279,15 +279,6 @@ export const ChatBubble = React.memo(
           >
             <Tapback
               as={motion.div}
-              transition={{ ease: "easeOut", duration: 0.2 }}
-              exit={{
-                height: 0,
-                overflow: "hidden",
-                margin: 0,
-                padding: 0,
-                opacity: 0,
-                filter: "grayscale(1)",
-              }}
               actions={tapbackActions(from)}
               isOpen={isFocused}
               onOpenChange={(isOpen) => onTapBackOpenChange(isOpen)}
@@ -303,7 +294,6 @@ export const ChatBubble = React.memo(
       after:bottom-0 after:h-[30px] after:w-[24px] after:bg-black
       after:transition-opacity after:content-['']
       `,
-
                 from === "them" &&
                   `chat-bubble-them bg-[image:var(--them-bg)] text-white 
       before:left-[-5px] before:rounded-br-[18px_14px] before:bg-[image:var(--them-bg)] after:left-[-24px] after:rounded-br-[10px]`,

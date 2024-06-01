@@ -2,7 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowUp, ChevronLeft, VideoIcon } from "lucide-react";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { twMerge } from "tailwind-merge";
 import { Button } from "~/components/primitives/Button";
 import { SpinnerIcon } from "~/components/primitives/SpinnerIcon";
@@ -15,6 +15,7 @@ import { ChatBubble } from "../components/ChatBubble";
 import { ChatInput } from "../components/ChatInput";
 import { ChaiColors } from "../types";
 import { useAutoScroll } from "~/hooks/useAutoScroll";
+import { VList, VListHandle, Virtualizer } from "virtua";
 
 const lerp = (start: number, end: number, t: number) => start * (1 - t) + end * t;
 const easeOut = (t: number) => {
@@ -39,7 +40,7 @@ export const Texting = React.memo(
     onMessageInterrupt,
     onLoadMore,
   }: TextingProps) => {
-    const scrollerRef = useRef<HTMLDivElement>(null);
+    const scrollerRef = useRef<VListHandle>(null);
     const { frameless } = Route.useSearch<{ frameless?: boolean }>();
     const [isSticky, setIsSticky] = useState(true);
     const [initialLoad, setInitialLoad] = useState(false);
@@ -103,7 +104,7 @@ export const Texting = React.memo(
      */
     useEffect(() => {
       if (messages.length > 0 && !initialLoad) {
-        scrollerRef.current?.scrollTo({ top: scrollerRef.current.scrollHeight, behavior: "instant" });
+        scrollerRef.current?.scrollTo(scrollerRef.current.scrollSize);
         setInitialLoad(true);
       }
     }, [messages, initialLoad]);
@@ -119,7 +120,7 @@ export const Texting = React.memo(
     useEffect(() => {
       const handleResize = () => {
         if (isSticky) {
-          scrollerRef.current?.scrollTo({ top: scrollerRef.current.scrollHeight, behavior: "instant" });
+          scrollerRef.current?.scrollTo(scrollerRef.current.scrollSize);
         }
       };
 
@@ -149,19 +150,19 @@ export const Texting = React.memo(
       // Attach the event listeners
       const scroller = scrollerRef.current;
       if (scroller) {
-        scroller.addEventListener("wheel", handleScroll);
-        scroller.addEventListener("touchstart", handleScroll);
-        scroller.addEventListener("touchend", handleScroll);
-        scroller.addEventListener("touchcancel", handleScroll);
+        scroller.addEventListener?.("wheel", handleScroll);
+        scroller.addEventListener?.("touchstart", handleScroll);
+        scroller.addEventListener?.("touchend", handleScroll);
+        scroller.addEventListener?.("touchcancel", handleScroll);
       }
 
       return () => {
         // Remove the event listeners when component unmounts
 
-        scroller?.removeEventListener("wheel", handleScroll);
-        scroller?.removeEventListener("touchstart", handleScroll);
-        scroller?.removeEventListener("touchend", handleScroll);
-        scroller?.removeEventListener("touchcancel", handleScroll);
+        scroller?.removeEventListener?.("wheel", handleScroll);
+        scroller?.removeEventListener?.("touchstart", handleScroll);
+        scroller?.removeEventListener?.("touchend", handleScroll);
+        scroller?.removeEventListener?.("touchcancel", handleScroll);
       };
     }, []);
 
@@ -208,52 +209,34 @@ export const Texting = React.memo(
           </div>
         )}
 
-        <section
+        <VList
           ref={scrollerRef}
-          className="flex h-1 w-full flex-grow flex-col gap-2 overflow-y-auto overflow-x-clip px-5 pb-2 pt-24"
+          className="flex h-1 w-full flex-grow flex-col overflow-y-auto overflow-x-clip px-5 pb-2 pt-24 !contain-style"
         >
-          {moreMessagesAvailable && (
-            <Button
-              ref={loadMoreButtonRef}
-              loading={isLoadMorePending}
-              onClick={() => void loadMoreMutate()}
-              variant={"ghost"}
-            >
-              <ArrowUp className="mr-1 size-3 text-white/40" />
-              Load More
-            </Button>
-          )}
-
-          {/* A dummy div that takes up remaining vertical space to push the tail down */}
-          {/* <div className="flex-grow" /> */}
-
-          <AnimatePresence initial={false} mode="popLayout">
-            {messages.map((message, i) => {
-              return (
-                <ChatBubble
-                  key={"chat_bubble_" + message.id}
-                  from={message.role === "user" ? "me" : "them"}
-                  text={message.content}
-                  tail={shouldShowTail(messages, i)}
-                  createdAt={message.createdAt?.getTime() ?? undefined}
-                  showTimestamp={shouldDisplayTime(messages, i)}
-                  onDelete={() => onMessageDelete(message.id)}
-                  onSteer={() => onMessageSteer(message.id)}
-                  onContinue={() => onMessageContinue(message.id)}
-                  onRegenerate={() => onMessageRegenerate(message.id)}
-                  onReact={(reaction) => onMessageReact(message.id, reaction)}
-                  onEditStart={() => onMessageEditStart(message.id)}
-                  reactions={message.reactions as TReaction[] | null}
-                  isEditing={Boolean(editingMessageId && message.id === editingMessageId)}
-                  onEditDismiss={() => onMessageEditDismiss(message.id)}
-                  onEditSubmit={(newContent) => onMessageEditSubmit(message.id, newContent)}
-                  isGenerating={message.isGenerating ?? false}
-                  onInterrupt={() => onMessageInterrupt(message.id)}
-                />
-              );
-            })}
-          </AnimatePresence>
-        </section>
+          {messages.map((message, i) => (
+            <ChatBubble
+              className={"my-1"}
+              key={"chat_bubble_" + message.id}
+              from={message.role === "user" ? "me" : "them"}
+              text={message.content}
+              tail={shouldShowTail(messages, i)}
+              createdAt={message.createdAt?.getTime() ?? undefined}
+              showTimestamp={shouldDisplayTime(messages, i)}
+              onDelete={() => onMessageDelete(message.id)}
+              onSteer={() => onMessageSteer(message.id)}
+              onContinue={() => onMessageContinue(message.id)}
+              onRegenerate={() => onMessageRegenerate(message.id)}
+              onReact={(reaction) => onMessageReact(message.id, reaction)}
+              onEditStart={() => onMessageEditStart(message.id)}
+              reactions={message.reactions as TReaction[] | null}
+              isEditing={Boolean(editingMessageId && message.id === editingMessageId)}
+              onEditDismiss={() => onMessageEditDismiss(message.id)}
+              onEditSubmit={(newContent) => onMessageEditSubmit(message.id, newContent)}
+              isGenerating={message.isGenerating ?? false}
+              onInterrupt={() => onMessageInterrupt(message.id)}
+            />
+          ))}
+        </VList>
 
         {/* Chat input */}
         <ChatInput onMessageSend={onMessageSend} className={twMerge(frameless && "hidden")} />
