@@ -293,7 +293,7 @@ export const Chat = {
       })
       .then(async (aiResponse) => {
         // Once finished, edit the message to include the generated text
-        if (aiResponse?.trim() === "") {
+        if (!aiResponse?.trim()) {
           // delete the message
           await Chat.removeMessage(chatId, messageId);
           return aiResponse;
