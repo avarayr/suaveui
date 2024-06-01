@@ -6,6 +6,7 @@ import { useRouteTransitioning } from "~/hooks/useRouteTransitioning";
 import { Texting } from "~/layouts/Texting";
 import { Reaction } from "~/layouts/types";
 import { api } from "~/trpc/react";
+import { ClientConsts } from "~/utils/client-consts";
 
 export const Route = createFileRoute("/texting/$chatId")({
   component: () => <TextingPage />,
@@ -20,8 +21,8 @@ function TextingPage() {
   const { chatId } = Route.useParams();
   const utils = api.useUtils();
   const [editingMessageId, setEditingMessageId] = useState<string | undefined>(undefined);
-  const messageFetchLimit = 50;
-  const queryOpts = { chatId, limit: messageFetchLimit } as const satisfies Parameters<
+
+  const queryOpts = { chatId, limit: ClientConsts.MessageLoadLimit } as const satisfies Parameters<
     typeof api.chat.getMessages.useQuery
   >[0];
   const messagesQuery = api.chat.getMessages.useQuery(queryOpts, {
@@ -320,7 +321,7 @@ function TextingPage() {
   const handleLoadMore = useDebounceCallback(async () => {
     const data = await utils.chat.getMessages.fetch({
       chatId,
-      limit: messageFetchLimit,
+      limit: ClientConsts.MessageLoadLimit,
       offset: (messagesQuery.data?.messages.length ?? 0) + 1,
     });
 

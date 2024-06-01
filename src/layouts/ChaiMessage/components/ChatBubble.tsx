@@ -279,14 +279,6 @@ export const ChatBubble = React.memo(
           >
             <Tapback
               as={motion.div}
-              initial={{
-                opacity: 0,
-                y: 100,
-              }}
-              animate={{
-                opacity: 1,
-                y: 0,
-              }}
               transition={{ ease: "easeOut", duration: 0.2 }}
               exit={{
                 height: 0,
@@ -311,6 +303,7 @@ export const ChatBubble = React.memo(
       after:bottom-0 after:h-[30px] after:w-[24px] after:bg-black
       after:transition-opacity after:content-['']
       `,
+
                 from === "them" &&
                   `chat-bubble-them bg-[image:var(--them-bg)] text-white 
       before:left-[-5px] before:rounded-br-[18px_14px] before:bg-[image:var(--them-bg)] after:left-[-24px] after:rounded-br-[10px]`,
@@ -324,6 +317,8 @@ export const ChatBubble = React.memo(
                 // editing input
                 isEditing &&
                   "w-full max-w-full border-2 border-[var(--edit-border)] bg-[image:var(--edit-bg)] transition-[border] before:hidden after:hidden",
+                // animation
+                "animate-fade-in",
               )}
               transformOrigin={from === "me" ? "right" : "left"}
             >
@@ -464,7 +459,7 @@ export const ChatBubble = React.memo(
 
               {(typing || (isGenerating && text.length === 0)) && (
                 // three dots animation
-                <div className="flex items-center gap-1 py-1">
+                <div className="flex items-center gap-1 py-2">
                   <div className="size-2 animate-pulse rounded-full bg-[#656569] text-white [animation-delay:0.333s] [animation-duration:1s]"></div>
                   <div className="size-2 animate-pulse rounded-full bg-[#545457] text-white [animation-delay:0.666s] [animation-duration:1s]"></div>
                   <div className="size-2 animate-pulse rounded-full bg-[#656569] text-white [animation-delay:0.999s] [animation-duration:1s]"></div>
@@ -517,7 +512,7 @@ export const ChatBubble = React.memo(
                     void interruptGenerationMutation.mutate();
                   }}
                 >
-                  {/* Spinner surrounding*/}
+                  {/* Spinner surrounding */}
                   <LoaderCircle className="absolute size-[125%] animate-spin stroke-white/20 stroke-[1] ease-linear" />
                   <Square className="size-3 fill-white" />
                 </button>

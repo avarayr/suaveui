@@ -24,8 +24,8 @@ export interface CompletionProps {
   options?: AIOptions;
 }
 
-const AI_BASE_URL = "https://openrouter.ai/api/v1";
-// const AI_BASE_URL = "http://127.0.0.1:1234/v1";
+// const AI_BASE_URL = "https://openrouter.ai/api/v1";
+const AI_BASE_URL = "http://127.0.0.1:1234/v1";
 const COMPLETIONS_ENDPOINT = "/chat/completions";
 
 export const ai = {
