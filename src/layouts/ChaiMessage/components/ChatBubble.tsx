@@ -288,18 +288,11 @@ export const ChatBubble = React.memo(
                 `[--me-bg:linear-gradient(to_bottom,#137BFF,#117BFF)]`,
                 `[--edit-bg:black]`,
                 `[--edit-border:#202020]`,
-                `relative max-w-[70dvw] select-none list-none whitespace-pre-wrap break-words rounded-[18px] px-[calc(var(--w)*4)] py-[calc(var(--h)*2)] [-webkit-user-select:none]
-      before:absolute before:bottom-0 before:h-[calc(var(--h)*5)]
-      before:w-[calc(var(--h)*4)] before:transition-opacity before:content-[''] after:absolute
-      after:bottom-0 after:h-[30px] after:w-[24px] after:bg-black
-      after:transition-opacity after:content-['']
-      `,
+                `relative max-w-[70dvw] select-none list-none whitespace-pre-wrap break-words rounded-[18px] px-[calc(var(--w)*4)] py-[calc(var(--h)*2)] [-webkit-user-select:none] before:absolute before:bottom-0 before:h-[calc(var(--h)*5)] before:w-[calc(var(--h)*4)] before:transition-opacity before:content-[''] after:absolute after:bottom-0 after:h-[30px] after:w-[24px] after:bg-black after:transition-opacity after:content-['']`,
                 from === "them" &&
-                  `chat-bubble-them bg-[image:var(--them-bg)] text-white 
-      before:left-[-5px] before:rounded-br-[18px_14px] before:bg-[image:var(--them-bg)] after:left-[-24px] after:rounded-br-[10px]`,
+                  `chat-bubble-them bg-[image:var(--them-bg)] text-white before:left-[-5px] before:rounded-br-[18px_14px] before:bg-[image:var(--them-bg)] after:left-[-24px] after:rounded-br-[10px]`,
                 from === "me" &&
-                  `chat-bubble-me bg-[image:var(--me-bg)] text-white 
-      before:right-[-5px] before:rounded-bl-[18px_14px] before:bg-[image:var(--me-bg)] after:right-[-24px] after:rounded-bl-[10px]`,
+                  `chat-bubble-me bg-[image:var(--me-bg)] text-white before:right-[-5px] before:rounded-bl-[18px_14px] before:bg-[image:var(--me-bg)] after:right-[-24px] after:rounded-bl-[10px]`,
                 tail && "has-tail",
                 !tail && `before:opacity-0 after:opacity-0`,
                 // has reactions -> margin top
@@ -328,7 +321,7 @@ export const ChatBubble = React.memo(
                     style={{ transformOrigin: "center center" }}
                     className={twMerge(
                       "[--bg:#333335]",
-                      "absolute bottom-[100%] mb-1 rounded-full bg-[var(--bg)]  text-[#757577]",
+                      "absolute bottom-[100%] mb-1 rounded-full bg-[var(--bg)] text-[#757577]",
                       from === "me" && "right-0 [transform-origin:bottom_right]",
                       from === "them" && "left-0 [transform-origin:bottom_left]",
                       // little circles
@@ -390,23 +383,12 @@ export const ChatBubble = React.memo(
                         damping: 25,
                       }}
                       className={twMerge(
-                        `absolute -top-5 z-[9] flex h-8 w-8 items-center justify-center  rounded-full text-white
-                    [transform-origin:bottom_right]
-                  *:size-4
-                  `,
+                        `absolute -top-5 z-[9] flex h-8 w-8 items-center justify-center rounded-full text-white [transform-origin:bottom_right] *:size-4`,
                         // two little blobs
                         from === "me" &&
-                          `
-                    -left-4
-                    before:absolute before:-left-0 before:top-6 before:size-[0.6rem] before:rounded-full  before:content-['']
-                    after:absolute after:-left-1  after:top-8 after:size-[0.3rem] after:rounded-full after:content-['']
-                  `,
+                          `-left-4 before:absolute before:-left-0 before:top-6 before:size-[0.6rem] before:rounded-full before:content-[''] after:absolute after:-left-1 after:top-8 after:size-[0.3rem] after:rounded-full after:content-['']`,
                         from === "them" &&
-                          `
-                    -right-4
-                    before:absolute before:-right-0 before:top-6 before:size-[0.6rem] before:rounded-full  before:content-['']
-                    after:absolute after:-right-1  after:top-8 after:size-[0.3rem] after:rounded-full after:content-['']
-                  `,
+                          `-right-4 before:absolute before:-right-0 before:top-6 before:size-[0.6rem] before:rounded-full before:content-[''] after:absolute after:-right-1 after:top-8 after:size-[0.3rem] after:rounded-full after:content-['']`,
                         reaction.from === "me" && `bg-[#137BFF] before:bg-[#137BFF] after:bg-[#137BFF]`,
                         reaction.from === "them" && `bg-[#222225] before:bg-[#222225] after:bg-[#222225]`,
                         from === "me" && reaction.from === "me" && "ring-[1px] ring-black/30",
@@ -449,7 +431,7 @@ export const ChatBubble = React.memo(
 
               {(typing || (isGenerating && text.length === 0)) && (
                 // three dots animation
-                <div className="flex items-center gap-1 py-2">
+                <div className="flex items-center gap-1 py-[6px]">
                   <div className="size-2 animate-pulse rounded-full bg-[#656569] text-white [animation-delay:0.333s] [animation-duration:1s]"></div>
                   <div className="size-2 animate-pulse rounded-full bg-[#545457] text-white [animation-delay:0.666s] [animation-duration:1s]"></div>
                   <div className="size-2 animate-pulse rounded-full bg-[#656569] text-white [animation-delay:0.999s] [animation-duration:1s]"></div>

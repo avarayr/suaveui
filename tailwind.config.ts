@@ -98,6 +98,7 @@ const config = {
         "text-reveal": "text-reveal 1s forwards",
         "fade-in": "fade-in 0.3s forwards",
         "slide-up": "slide-up 0.8s forwards",
+        "scale-from-bottom": "scale-from-bottom 0.6s forwards",
         "scale-from-bottom-left": "scale-from-bottom-left 0.6s forwards",
         "scale-from-bottom-right": "scale-from-bottom-right 0.6s forwards",
       },
@@ -129,6 +130,11 @@ const config = {
       "slide-up": {
         "0%": { transform: "translateY(100%)", opacity: "0" },
         "100%": { transform: "translateY(0)", opacity: "1" },
+      },
+      "scale-from-bottom": {
+        "0%": { transform: "scale(0)", opacity: "0", transformOrigin: "bottom center" },
+        "50%": { transform: "scale(1.03)", opacity: "1" },
+        "100%": { transform: "scale(1)", opacity: "1" },
       },
       "scale-from-bottom-left": {
         "0%": { transform: "scale(0)", opacity: "0", transformOrigin: "bottom left" },

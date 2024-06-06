@@ -1,11 +1,12 @@
 import { useMutation } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { AnimatePresence, motion } from "framer-motion";
-import { ArrowUp, ChevronLeft, VideoIcon } from "lucide-react";
-import React, { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { motion } from "framer-motion";
+import { ArrowDown, ChevronLeft, VideoIcon } from "lucide-react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { twMerge } from "tailwind-merge";
-import { Button } from "~/components/primitives/Button";
+import { VListHandle, Virtualizer } from "virtua";
 import { SpinnerIcon } from "~/components/primitives/SpinnerIcon";
+import { useAutoScroll } from "~/hooks/useAutoScroll";
 import { useInView } from "~/hooks/useInView";
 import type { Reaction as TReaction } from "~/layouts/types";
 import { Route } from "~/routes/texting/$chatId";
@@ -14,13 +15,6 @@ import { Avatar } from "../components/Avatar";
 import { ChatBubble } from "../components/ChatBubble";
 import { ChatInput } from "../components/ChatInput";
 import { ChaiColors } from "../types";
-import { useAutoScroll } from "~/hooks/useAutoScroll";
-import { VList, VListHandle, Virtualizer } from "virtua";
-
-const lerp = (start: number, end: number, t: number) => start * (1 - t) + end * t;
-const easeOut = (t: number) => {
-  return 1 - Math.pow(1 - t, 2); // Quadratic easing out function
-};
 
 export const Texting = React.memo(
   ({
@@ -41,8 +35,9 @@ export const Texting = React.memo(
     onLoadMore,
   }: TextingProps) => {
     const scrollerRef = useRef<VListHandle>(null);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+
     const { frameless } = Route.useSearch<{ frameless?: boolean }>();
-    const [isSticky, setIsSticky] = useState(true);
     const [initialLoad, setInitialLoad] = useState(false);
 
     const [loadMoreButtonRef, loadMoreButtonInView] = useInView<HTMLButtonElement>(undefined, {
@@ -100,71 +95,14 @@ export const Texting = React.memo(
     }, [loadMoreButtonInView, loadMoreMutate]);
 
     /**
-     * On initial load of messages, scroll to the bottom of the chat (when messages are available)
-     */
-    useEffect(() => {
-      if (messages.length > 0 && !initialLoad) {
-        scrollerRef.current?.scrollTo(scrollerRef.current.scrollSize);
-        setInitialLoad(true);
-      }
-    }, [messages, initialLoad]);
-
-    /**
      * On load, scroll to the bottom of the chat
      */
-    useAutoScroll(scrollerRef, messages, isSticky);
+    const { JumpToBottomButton, jumpToBottom } = useAutoScroll({ scrollerRef, messages, scrollContainerRef });
 
-    /**
-     * When isSticky is on, listen for resize events and scroll to the bottom (snap instantly) on resize
-     */
-    useEffect(() => {
-      const handleResize = () => {
-        if (isSticky) {
-          scrollerRef.current?.scrollTo(scrollerRef.current.scrollSize);
-        }
-      };
-
-      window.addEventListener("resize", handleResize);
-
-      return () => {
-        window.removeEventListener("resize", handleResize);
-      };
-    }, [isSticky]);
-
-    useEffect(() => {
-      const handleScroll = () => {
-        if (scrollerRef.current) {
-          const scrollHeight = scrollerRef.current.scrollHeight;
-          const clientHeight = scrollerRef.current.clientHeight;
-          const currentScrollTop = scrollerRef.current.scrollTop;
-
-          // Calculate the distance from the bottom
-          const distanceFromBottom = scrollHeight - clientHeight - currentScrollTop;
-
-          // If the user is close enough to the bottom, enable sticky scroll
-          const shouldSticky = distanceFromBottom <= 10;
-          setIsSticky(shouldSticky);
-        }
-      };
-
-      // Attach the event listeners
-      const scroller = scrollerRef.current;
-      if (scroller) {
-        scroller.addEventListener?.("wheel", handleScroll);
-        scroller.addEventListener?.("touchstart", handleScroll);
-        scroller.addEventListener?.("touchend", handleScroll);
-        scroller.addEventListener?.("touchcancel", handleScroll);
-      }
-
-      return () => {
-        // Remove the event listeners when component unmounts
-
-        scroller?.removeEventListener?.("wheel", handleScroll);
-        scroller?.removeEventListener?.("touchstart", handleScroll);
-        scroller?.removeEventListener?.("touchend", handleScroll);
-        scroller?.removeEventListener?.("touchcancel", handleScroll);
-      };
-    }, []);
+    const onBeforeMessageSend = (...props: Parameters<typeof onMessageSend>) => {
+      jumpToBottom();
+      return onMessageSend(...props);
+    };
 
     return (
       <motion.main
@@ -209,37 +147,43 @@ export const Texting = React.memo(
           </div>
         )}
 
-        <VList
-          ref={scrollerRef}
-          className="flex h-1 w-full flex-grow flex-col overflow-y-auto overflow-x-clip px-5 pb-2 pt-24 !contain-style"
+        <div
+          ref={scrollContainerRef}
+          className="flex h-1 w-full flex-grow flex-col overflow-y-auto overflow-x-clip px-5 pb-2 pt-24"
         >
-          {messages.map((message, i) => (
-            <ChatBubble
-              className={"my-1"}
-              key={"chat_bubble_" + message.id}
-              from={message.role === "user" ? "me" : "them"}
-              text={message.content}
-              tail={shouldShowTail(messages, i)}
-              createdAt={message.createdAt?.getTime() ?? undefined}
-              showTimestamp={shouldDisplayTime(messages, i)}
-              onDelete={() => onMessageDelete(message.id)}
-              onSteer={() => onMessageSteer(message.id)}
-              onContinue={() => onMessageContinue(message.id)}
-              onRegenerate={() => onMessageRegenerate(message.id)}
-              onReact={(reaction) => onMessageReact(message.id, reaction)}
-              onEditStart={() => onMessageEditStart(message.id)}
-              reactions={message.reactions as TReaction[] | null}
-              isEditing={Boolean(editingMessageId && message.id === editingMessageId)}
-              onEditDismiss={() => onMessageEditDismiss(message.id)}
-              onEditSubmit={(newContent) => onMessageEditSubmit(message.id, newContent)}
-              isGenerating={message.isGenerating ?? false}
-              onInterrupt={() => onMessageInterrupt(message.id)}
-            />
-          ))}
-        </VList>
+          <Virtualizer ref={scrollerRef}>
+            {messages.map((message, i) => (
+              <ChatBubble
+                className={"my-1"}
+                key={"chat_bubble_" + message.id}
+                from={message.role === "user" ? "me" : "them"}
+                text={message.content}
+                tail={shouldShowTail(messages, i)}
+                createdAt={message.createdAt?.getTime() ?? undefined}
+                showTimestamp={shouldDisplayTime(messages, i)}
+                onDelete={() => onMessageDelete(message.id)}
+                onSteer={() => onMessageSteer(message.id)}
+                onContinue={() => onMessageContinue(message.id)}
+                onRegenerate={() => onMessageRegenerate(message.id)}
+                onReact={(reaction) => onMessageReact(message.id, reaction)}
+                onEditStart={() => onMessageEditStart(message.id)}
+                reactions={message.reactions as TReaction[] | null}
+                isEditing={Boolean(editingMessageId && message.id === editingMessageId)}
+                onEditDismiss={() => onMessageEditDismiss(message.id)}
+                onEditSubmit={(newContent) => onMessageEditSubmit(message.id, newContent)}
+                isGenerating={message.isGenerating ?? false}
+                onInterrupt={() => onMessageInterrupt(message.id)}
+              />
+            ))}
+          </Virtualizer>
+        </div>
+
+        <JumpToBottomButton>
+          <ArrowDown className="size-4" />
+        </JumpToBottomButton>
 
         {/* Chat input */}
-        <ChatInput onMessageSend={onMessageSend} className={twMerge(frameless && "hidden")} />
+        <ChatInput onMessageSend={onBeforeMessageSend} className={twMerge(frameless && "hidden")} />
       </motion.main>
     );
   },
