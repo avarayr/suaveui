@@ -2,6 +2,11 @@
 
 SuaveUI is an experimental PWA chat UI built specifically for interacting with Local AI Models.
 
+# Demo GIF
+
+![suaveui](https://github.com/user-attachments/assets/3447806f-c05a-4d38-a5dd-94f1fda7d6a6)
+
+
 # Installation
 
 While SuaveUI is in early alpha, installation is via cloning and running a server
