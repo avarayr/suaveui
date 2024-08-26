@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { AnimatePresence, MotionConfig, motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
   CheckIcon,
@@ -14,14 +14,13 @@ import {
 } from "lucide-react";
 import React, { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { twMerge } from "tailwind-merge";
-import type { Reaction as TReaction } from "~/layouts/types";
-import { ExpandingTextarea } from "./ExpandingTextarea";
-import { SpoilerParticles } from "./SpoilerParticles";
-import { Reaction } from "./reactions/Reaction";
-import { Tapback, TapbackAction } from "./Tapback";
 import { ChatMarkdown } from "~/components/primitives/ChatMarkdown";
+import type { Reaction as TReaction } from "~/layouts/types";
 import { formatDateWithTime } from "~/utils/date";
-import { useRouteTransitioning } from "~/hooks/useRouteTransitioning";
+import { ExpandingTextarea } from "./ExpandingTextarea";
+import { Reaction } from "./reactions/Reaction";
+import { SpoilerParticles } from "./SpoilerParticles";
+import { Tapback, TapbackAction } from "./Tapback";
 
 export type Reaction = {
   id: TReaction["type"];
