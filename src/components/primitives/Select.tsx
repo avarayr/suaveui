@@ -9,7 +9,17 @@ const Select = SelectPrimitive.Root;
 
 const SelectGroup = SelectPrimitive.Group;
 
-const SelectValue = SelectPrimitive.Value;
+const SelectValue = React.forwardRef<
+  React.ElementRef<typeof SelectPrimitive.Value>,
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Value> & {
+    icon?: React.ReactNode;
+  }
+>(({ ...props }, ref) => (
+  <div className="flex gap-2">
+    <SelectPrimitive.Icon asChild>{props.icon}</SelectPrimitive.Icon>
+    <SelectPrimitive.Value ref={ref} {...props} />
+  </div>
+));
 
 const SelectTrigger = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Trigger>,
@@ -28,11 +38,7 @@ const SelectTrigger = React.forwardRef<
   >
     {children}
     <SelectPrimitive.Icon asChild>
-      {loading ? (
-        <SpinnerIcon className="text-white/60" />
-      ) : (
-        <ChevronDown className="h-4 w-4 opacity-50" />
-      )}
+      {loading ? <SpinnerIcon className="text-white/60" /> : <ChevronDown className="h-4 w-4 opacity-50" />}
     </SelectPrimitive.Icon>
   </SelectPrimitive.Trigger>
 ));
@@ -44,10 +50,7 @@ const SelectScrollUpButton = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SelectPrimitive.ScrollUpButton
     ref={ref}
-    className={twMerge(
-      "flex cursor-default items-center justify-center py-1",
-      className,
-    )}
+    className={twMerge("flex cursor-default items-center justify-center py-1", className)}
     {...props}
   >
     <ChevronUp className="h-4 w-4" />
@@ -61,17 +64,13 @@ const SelectScrollDownButton = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SelectPrimitive.ScrollDownButton
     ref={ref}
-    className={twMerge(
-      "flex cursor-default items-center justify-center py-1",
-      className,
-    )}
+    className={twMerge("flex cursor-default items-center justify-center py-1", className)}
     {...props}
   >
     <ChevronDown className="h-4 w-4" />
   </SelectPrimitive.ScrollDownButton>
 ));
-SelectScrollDownButton.displayName =
-  SelectPrimitive.ScrollDownButton.displayName;
+SelectScrollDownButton.displayName = SelectPrimitive.ScrollDownButton.displayName;
 
 const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
@@ -131,9 +130,7 @@ const SelectItem = React.forwardRef<
     )}
     {...props}
   >
-    <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
-      {icon}
-    </span>
+    <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">{icon}</span>
 
     <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
   </SelectPrimitive.Item>
@@ -144,11 +141,7 @@ const SelectSeparator = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Separator>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Separator>
 >(({ className, ...props }, ref) => (
-  <SelectPrimitive.Separator
-    ref={ref}
-    className={twMerge("-mx-1 my-1 h-px w-full bg-accent", className)}
-    {...props}
-  />
+  <SelectPrimitive.Separator ref={ref} className={twMerge("-mx-1 my-1 h-px w-full bg-accent", className)} {...props} />
 ));
 SelectSeparator.displayName = SelectPrimitive.Separator.displayName;
 

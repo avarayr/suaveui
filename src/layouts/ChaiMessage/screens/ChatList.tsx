@@ -15,7 +15,7 @@ import { useRouteTransitioning } from "~/hooks/useRouteTransitioning";
 type Chat = RouterOutput["chat"]["all"][number];
 
 export const ChatList = React.memo(
-  ({ chats, loading, areNotificationsEnabled, onNotificationToggle, onChatDelete }: ChatListProps) => {
+  ({ chats, loading, areNotificationsEnabled, onNotificationToggle, onChatDelete, onSettingsClick }: ChatListProps) => {
     const [tapbackChatID, setTapbackChatID] = useState<string | undefined>();
     const [searchValue, setSearchValue] = useState("");
     const [isSearchInputFocused, setIsSearchInputFocused] = useState(false);
@@ -32,7 +32,11 @@ export const ChatList = React.memo(
       <motion.main className="flex h-dvh w-dvw flex-col overflow-x-hidden bg-black text-white antialiased">
         <AnimatePresence initial={false}>
           {!isSearchInputFocused && (
-            <Header areNotificationsEnabled={areNotificationsEnabled} onNotificationToggle={onNotificationToggle} />
+            <Header
+              areNotificationsEnabled={areNotificationsEnabled}
+              onNotificationToggle={onNotificationToggle}
+              onSettingsClick={onSettingsClick}
+            />
           )}
         </AnimatePresence>
 
@@ -62,9 +66,11 @@ export const Header = React.memo(
   ({
     areNotificationsEnabled,
     onNotificationToggle,
+    onSettingsClick,
   }: {
     areNotificationsEnabled: boolean | undefined;
     onNotificationToggle?: (enabled: boolean) => void;
+    onSettingsClick?: () => void;
   }) => {
     return (
       <motion.div
@@ -87,7 +93,7 @@ export const Header = React.memo(
               {areNotificationsEnabled ? <BellRing /> : <BellOff />}
             </button>
 
-            <button className="text-2xl text-white/50 hover:text-white" aria-label="Settings">
+            <button className="text-2xl text-white/50 hover:text-white" aria-label="Settings" onClick={onSettingsClick}>
               <Settings />
             </button>
           </section>
