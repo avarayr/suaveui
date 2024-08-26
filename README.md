@@ -17,6 +17,9 @@ Requirements: Bun, Node
 2. `bun install`
 3. `bun dev`
 
+### 🛑 🛑 🛑 Note: Currently only LM Studio works as a backend. Please launch LM Studio "local server mode", choose a model and start a server on port 1234.
+Ollama and others are coming soon.
+
 # Goals
 
 1. Have a single-executable, one-click local install app that doesn't require Docker. (Highest priority)
