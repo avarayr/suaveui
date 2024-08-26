@@ -9,7 +9,7 @@ type GlobalThisDb = {
 const globalThisDb = globalThis as unknown as GlobalThisDb;
 
 function constructDB() {
-  const db = new AceBase("openrizz", {
+  const db = new AceBase("suaveui", {
     logLevel: "error",
     storage: {
       removeVoidProperties: true,

@@ -42,8 +42,8 @@ export default createApp({
           },
           includeAssets: ["favicon.ico", "apple-touch-icon.png"],
           manifest: {
-            name: "Openrizz",
-            short_name: "Openrizz",
+            name: "SuaveUI",
+            short_name: "SuaveUI",
             theme_color: "#000000",
             icons: [
               {

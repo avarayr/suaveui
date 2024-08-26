@@ -16,7 +16,7 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     (async () => {
       const data = JSON.parse(
-        event?.data?.text() || `{ "title": "Openrizz", "message": "You have a new notification" }`,
+        event?.data?.text() || `{ "title": "SuaveUI", "message": "You have a new notification" }`,
       ) as { title?: string; message?: string };
 
       if (!data.title || !data.message) {
