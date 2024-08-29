@@ -1,16 +1,14 @@
-import React, { useEffect, useRef, useState } from "react";
-import { useDebounceCallback } from "usehooks-ts";
+import React, { useState } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Input } from "~/components/primitives/Input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/primitives/Select";
-import { SettingsSchemas } from "~/server/schema/Settings";
+import { SettingsSchemas, ProviderDefaults } from "~/server/schema/Settings";
 import { api } from "~/trpc/react";
-import { FormProvider, useForm, Controller } from "react-hook-form";
-import { z } from "zod";
+import { Button } from "~/components/primitives/Button";
 
-const icons: Record<
-  "Ollama" | "LM Studio" | "Jan" | "OpenAI" | "OpenRouter" | "Any OpenAI-compatible",
-  React.ReactNode
-> = {
+const icons: Record<string, React.ReactNode> = {
   Ollama: "🦙",
   "LM Studio": (
     <img
@@ -31,83 +29,126 @@ const icons: Record<
   "Any OpenAI-compatible": "🦜",
 };
 
-export const GeneralTab = () => {
-  const generalSettings = api.settings.general.useQuery();
-  const changeProviderMutation = api.settings.setProvider.useMutation({
-    onSettled: () => generalSettings.refetch(),
+type ProviderSchema = z.infer<typeof SettingsSchemas.provider>;
+
+export const GeneralTab: React.FC = () => {
+  const [isSaved, setIsSaved] = useState(false);
+  const { data: generalSettings, isLoading: isSettingsLoading, refetch } = api.settings.general.useQuery();
+  const { mutate: updateSettings, isPending: isSetProviderPending } = api.settings.setProvider.useMutation({
+    onSuccess: async () => {
+      setIsSaved(true);
+      setTimeout(() => setIsSaved(false), 1000);
+      await refetch();
+    },
+    onError: (error) => {
+      console.error("Error updating settings:", error);
+    },
   });
 
-  const methods = useForm<z.infer<typeof SettingsSchemas.provider>>();
-  const { handleSubmit, setValue, watch, reset, register } = methods;
+  const { control, handleSubmit, watch, reset, setValue, getValues } = useForm<ProviderSchema>({
+    resolver: zodResolver(SettingsSchemas.provider),
+    defaultValues: generalSettings || { type: "Ollama" },
+  });
 
-  const onSubmit = (data: FormData) => {
-    const dataJSON = Object.fromEntries(Object.entries(data));
-    changeProviderMutation.mutate(dataJSON as any);
-  };
-
-  const debouncedSubmit = useDebounceCallback(() => {
-    void handleSubmit(onSubmit)();
-  }, 200);
-
-  const providersSchema = SettingsSchemas.provider.options;
   const selectedProvider = watch("type");
 
-  // Add this useEffect to trigger debouncedSubmit only when values change
   React.useEffect(() => {
-    const subscription = methods.watch((value, { name, type }) => {
-      debouncedSubmit();
-    });
-    return () => subscription.unsubscribe();
-  }, [methods, debouncedSubmit]);
+    if (generalSettings) {
+      reset(generalSettings);
+    }
+  }, [generalSettings, reset]);
 
   React.useEffect(() => {
-    if (generalSettings.data) {
-      reset(generalSettings.data);
+    if (selectedProvider in ProviderDefaults) {
+      const defaults = ProviderDefaults[selectedProvider];
+      Object.entries(defaults).forEach(([key, value]) => {
+        const currentValue = getValues(key as keyof ProviderSchema);
+        if (currentValue === undefined) {
+          setValue(key as keyof ProviderSchema, value as ProviderSchema[keyof ProviderSchema], {
+            shouldValidate: true,
+            shouldDirty: false,
+          });
+        }
+      });
     }
-  }, [generalSettings.data, reset]);
+  }, [selectedProvider, setValue, getValues]);
+
+  const onSubmit = handleSubmit((data: ProviderSchema) => {
+    // Replace empty strings with undefined
+    const cleanedData = Object.fromEntries(
+      Object.entries(data).map(([key, value]) => [key, value === "" ? undefined : value]),
+    ) as ProviderSchema;
+    updateSettings(cleanedData);
+  });
+
+  if (isSettingsLoading) {
+    return <div>Loading...</div>;
+  }
+
+  const providerFields =
+    SettingsSchemas.provider.options.find((option) => option.shape.type.value === selectedProvider)?.shape || {};
 
   return (
     <div className="flex flex-col gap-3">
       <h3 className="text-xl font-bold">Provider</h3>
-      <FormProvider {...methods}>
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <Select
-            name="type"
-            value={selectedProvider}
-            onValueChange={(value) => {
-              setValue("type", value as any);
-            }}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Provider" />
-            </SelectTrigger>
-            <SelectContent>
-              {providersSchema.map((provider) => (
-                <SelectItem
-                  key={provider.shape.type.value}
-                  value={provider.shape.type.value}
-                  icon={<span className="size-4">{icons[provider.shape.type.value]}</span>}
-                >
-                  {provider.shape.type.value}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          {selectedProvider && (
-            <div className="mt-2 flex flex-col gap-2">
-              {Object.keys(providersSchema.find((option) => option.shape.type.value === selectedProvider)?.shape || {})
-                .filter((fieldName) => fieldName !== "type")
-                .map((fieldName) => (
-                  <div key={fieldName} className="flex flex-col gap-3">
-                    <label className="text-sm font-bold">{fieldName}</label>
-                    <Input intent="secondary" name={fieldName} {...register(fieldName)} />
-                  </div>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          void onSubmit();
+        }}
+        className="space-y-4"
+      >
+        <Controller
+          name="type"
+          control={control}
+          render={({ field }) => (
+            <Select onValueChange={field.onChange} value={field.value}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select provider" />
+              </SelectTrigger>
+              <SelectContent>
+                {SettingsSchemas.provider.options.map((option) => (
+                  <SelectItem key={option.shape.type.value} value={option.shape.type.value}>
+                    <span className="flex items-center gap-2">
+                      <span className="size-4">{icons[option.shape.type.value]}</span>
+                      {option.shape.type.value}
+                    </span>
+                  </SelectItem>
                 ))}
-            </div>
+              </SelectContent>
+            </Select>
           )}
-        </form>
-      </FormProvider>
+        />
+
+        {Object.entries(providerFields).map(([fieldName, schema]) => {
+          if (fieldName === "type") return null;
+          return (
+            <Controller
+              key={fieldName}
+              name={fieldName as keyof ProviderSchema}
+              control={control}
+              render={({ field, fieldState: { error } }) => (
+                <div>
+                  <label htmlFor={fieldName} className="block text-sm font-medium text-gray-700">
+                    {fieldName}
+                  </label>
+                  <Input {...field} id={fieldName} className="mt-1" intent="secondary" />
+                  {error && <p className="mt-1 text-sm text-red-600">{error.message}</p>}
+                </div>
+              )}
+            />
+          );
+        })}
+
+        <Button
+          type="submit"
+          variant={isSaved ? "outline" : "destructive"}
+          className="w-full"
+          disabled={isSetProviderPending || isSaved}
+        >
+          {isSaved ? "Saved!" : isSetProviderPending ? "Saving..." : "Save Changes"}
+        </Button>
+      </form>
     </div>
   );
 };
