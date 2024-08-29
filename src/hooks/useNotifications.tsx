@@ -1,11 +1,11 @@
 import { atom, useAtom } from "jotai";
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { toast } from "sonner";
 import { useLocalStorage } from "usehooks-ts";
 import { api } from "~/trpc/react";
 import { ClientConsts } from "~/utils/client-consts";
 import { base64ToUint8Array } from "~/utils/string";
-import { BanIcon, BellDot, CircleX, CogIcon, ShieldAlertIcon } from "lucide-react";
+
 const subscriptionAtom = atom<PushSubscription | null>(null);
 const registrationAtom = atom<ServiceWorkerRegistration | null>(null);
 
@@ -86,11 +86,13 @@ export const useNotifications = () => {
              */
             if (window.location.protocol !== "https:") {
               throw new Error(
-                `Notifications permission has been denied.<br><br> It seems like you're not using a HTTPS connection, which is required for notifications to work.`,
+                `Notifications permission has been denied. It seems like you're not using a HTTPS connection, which is required for notifications to work.`,
               );
             }
 
-            throw new Error("Notifications are not allowed on this device.");
+            throw new Error(
+              "Notifications are not allowed on this device. Please check site permissions. Are you using Incognito Mode?",
+            );
           }
 
           if (granted) {
