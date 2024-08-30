@@ -191,7 +191,7 @@ export const GeneralTab = () => {
                         {isModelsLoading ? (
                           <SelectItem value="loading">Loading models...</SelectItem>
                         ) : modelFetchError ? (
-                          <SelectItem value="error" icon={<AlertCircle className="h-4 w-4" />}>
+                          <SelectItem value="error" disabled icon={<AlertCircle className="h-4 w-4" />}>
                             {modelFetchError}
                           </SelectItem>
                         ) : (
