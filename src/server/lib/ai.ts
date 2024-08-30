@@ -102,7 +102,19 @@ export const ai = {
     });
 
     const responseJson = (await response.json()) as OpenAI.Chat.Completions.ChatCompletion;
-    console.log({ responseJson });
+
+    // if response.error, throw an error
+    // happens with ollama when the model is not set/found
+    if (
+      typeof responseJson === "object" &&
+      "error" in responseJson &&
+      typeof responseJson.error === "object" &&
+      responseJson.error !== null &&
+      "message" in responseJson.error
+    ) {
+      throw new Error((responseJson.error as { message: string }).message);
+    }
+
     const content = responseJson.choices?.[0];
 
     if (!content) {

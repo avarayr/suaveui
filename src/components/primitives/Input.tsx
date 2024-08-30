@@ -7,6 +7,7 @@ import { type ChangeEvent, forwardRef, useMemo } from "react";
 import { twMerge } from "tailwind-merge";
 import { api } from "~/trpc/react";
 import { useFormContext } from "react-hook-form";
+import { toast } from "sonner";
 
 const input = cva("input", {
   variants: {
@@ -46,7 +47,12 @@ const InputComponent = forwardRef<HTMLInputElement, InputProps>((props, ref) => 
   }
 
   const hasText = props.value !== undefined && props.value !== "";
-  const aiGenerateMutation = api.ai.generate.useMutation();
+  const aiGenerateMutation = api.ai.generate.useMutation({
+    onError(error, variables, context) {
+      // show a toast error
+      toast.error(error.message);
+    },
+  });
 
   const error = useMemo(() => {
     if (!context?.formState.errors[props.name]) return null;
