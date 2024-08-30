@@ -1,17 +1,28 @@
 // routers/settings.ts
-import { SettingsSchemas } from "~/server/schema/Settings";
+import { SettingsSchemas, ProviderDefaults } from "~/server/schema/Settings";
 import { publicProcedure, router } from "../trpc";
 import { Settings } from "~/server/models/Settings";
 import { z } from "zod";
-import { ProviderDefaults } from "~/server/schema/Settings";
 import { ai } from "~/server/lib/ai";
 
 export const settingsRouter = router({
   general: publicProcedure.query(async () => {
     const provider = await Settings.getValue<z.infer<typeof SettingsSchemas.provider>>("provider");
-
-    return provider;
+    return provider || null; // Return null if no settings are found
   }),
+
+  getProviderDefaults: publicProcedure
+    .input(
+      z.object({
+        name: z.string().refine((value) => Object.keys(ProviderDefaults).includes(value), {
+          message: "Provider not found",
+        }),
+      }),
+    )
+    .query(({ input }) => {
+      const providerType = input.name as keyof typeof ProviderDefaults;
+      return ProviderDefaults[providerType] || {};
+    }),
 
   setProvider: publicProcedure.input(SettingsSchemas.provider).mutation(async ({ input }) => {
     const providerType = input.type;

@@ -1,4 +1,3 @@
-//
 import React, { useState, useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -8,7 +7,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~
 import { SettingsSchemas, ProviderDefaults } from "~/server/schema/Settings";
 import { api } from "~/trpc/react";
 import { Button } from "~/components/primitives/Button";
-import { Alert, AlertTitle, AlertDescription } from "~/components/primitives/Alert";
 import { AlertCircle } from "lucide-react";
 
 const icons: Record<string, React.ReactNode> = {
@@ -48,9 +46,9 @@ export const GeneralTab = () => {
     },
   });
 
-  const { control, handleSubmit, watch, reset, setValue, getValues } = useForm<ProviderSchema>({
+  const { control, handleSubmit, watch, reset, setValue } = useForm<ProviderSchema>({
     resolver: zodResolver(SettingsSchemas.provider),
-    defaultValues: generalSettings || { type: "Ollama", baseUrl: ProviderDefaults.Ollama.baseUrl },
+    defaultValues: generalSettings || undefined,
   });
 
   const selectedProvider = watch("type");
@@ -66,6 +64,11 @@ export const GeneralTab = () => {
     refetch: refetchModels,
   } = api.settings.getAvailbaleModels.useQuery({ baseUrl, apiKey }, { retry: false });
 
+  const { data: providerDefaults } = api.settings.getProviderDefaults.useQuery(
+    { name: selectedProvider || "" },
+    { enabled: !!selectedProvider },
+  );
+
   useEffect(() => {
     if (modelsError) {
       setModelFetchError(modelsError.message);
@@ -74,31 +77,23 @@ export const GeneralTab = () => {
     }
   }, [modelsError]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (generalSettings) {
       reset(generalSettings);
+    }
+  }, [generalSettings, reset]);
+
+  useEffect(() => {
+    if (selectedProvider && providerDefaults) {
+      const newValues = { ...providerDefaults, type: selectedProvider };
+      Object.keys(newValues).forEach((key) => {
+        setValue(key as keyof ProviderSchema, newValues[key as keyof ProviderSchema]);
+      });
       void refetchModels();
     }
-  }, [generalSettings, refetchModels, reset]);
-
-  React.useEffect(() => {
-    if (selectedProvider in ProviderDefaults) {
-      const defaults = ProviderDefaults[selectedProvider];
-      Object.entries(defaults).forEach(([key, value]) => {
-        setValue(key as keyof ProviderSchema, value as ProviderSchema[keyof ProviderSchema], {
-          shouldValidate: true,
-          shouldDirty: true,
-        });
-      });
-    }
-  }, [selectedProvider, setValue]);
-
-  React.useEffect(() => {
-    void refetchModels();
-  }, [baseUrl, apiKey, refetchModels]);
+  }, [selectedProvider, providerDefaults, setValue, refetchModels]);
 
   const onSubmit = handleSubmit((data: ProviderSchema) => {
-    // Replace empty strings with undefined
     const cleanedData = Object.fromEntries(
       Object.entries(data).map(([key, value]) => [key, value === "" ? undefined : value]),
     ) as ProviderSchema;
@@ -127,7 +122,13 @@ export const GeneralTab = () => {
           name="type"
           control={control}
           render={({ field }) => (
-            <Select onValueChange={field.onChange} value={field.value}>
+            <Select
+              onValueChange={(value) => {
+                field.onChange(value);
+                setValue("type", value as ProviderSchema["type"], { shouldDirty: true });
+              }}
+              value={field.value}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select provider" />
               </SelectTrigger>
