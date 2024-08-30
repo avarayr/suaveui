@@ -286,7 +286,6 @@ export const Chat = {
     // Generate the response in the background
     return ai
       .chatStream({
-        model: process.env.MODEL!,
         messageId: messageId,
         messages: contextMessagesLLM,
         options,
