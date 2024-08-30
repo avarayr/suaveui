@@ -71,4 +71,14 @@ export const settingsRouter = router({
         throw new Error("Failed to fetch models, check if the base url is correct.");
       }
     }),
+  getProviderSettings: publicProcedure.input(z.object({ providerType: z.string() })).query(async ({ input }) => {
+    const allSettings = await Settings.getValue<z.infer<typeof SettingsSchemas.provider>>("provider");
+    const providerDefaults = ProviderDefaults[input.providerType as keyof typeof ProviderDefaults] || {};
+
+    if (allSettings && allSettings.type === input.providerType) {
+      return allSettings;
+    } else {
+      return { ...providerDefaults, type: input.providerType } as z.infer<typeof SettingsSchemas.provider>;
+    }
+  }),
 });

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -46,14 +46,23 @@ export const GeneralTab = () => {
     },
   });
 
-  const { control, handleSubmit, watch, reset, setValue } = useForm<ProviderSchema>({
+  const {
+    control,
+    handleSubmit,
+    watch,
+    reset,
+    setValue,
+    formState: { errors },
+  } = useForm<ProviderSchema>({
     resolver: zodResolver(SettingsSchemas.provider),
     defaultValues: generalSettings || undefined,
+    mode: "onChange",
   });
 
   const selectedProvider = watch("type");
   const baseUrl = watch("baseUrl");
   const apiKey = watch("apiKey");
+  const selectedModel = watch("model");
 
   const [modelFetchError, setModelFetchError] = useState<string | null>(null);
 
@@ -66,6 +75,11 @@ export const GeneralTab = () => {
 
   const { data: providerDefaults } = api.settings.getProviderDefaults.useQuery(
     { name: selectedProvider || "" },
+    { enabled: !!selectedProvider },
+  );
+
+  const { data: providerSettings, refetch: refetchProviderSettings } = api.settings.getProviderSettings.useQuery(
+    { providerType: selectedProvider || "" },
     { enabled: !!selectedProvider },
   );
 
@@ -84,14 +98,16 @@ export const GeneralTab = () => {
   }, [generalSettings, reset]);
 
   useEffect(() => {
-    if (selectedProvider && providerDefaults) {
-      const newValues = { ...providerDefaults, type: selectedProvider };
-      Object.keys(newValues).forEach((key) => {
-        setValue(key as keyof ProviderSchema, newValues[key as keyof ProviderSchema]);
-      });
+    if (selectedProvider && providerSettings) {
+      reset(providerSettings);
       void refetchModels();
     }
-  }, [selectedProvider, providerDefaults, setValue, refetchModels]);
+  }, [selectedProvider, providerSettings, reset, refetchModels]);
+
+  const onProviderChange = (value: string) => {
+    setValue("type", value as ProviderSchema["type"], { shouldDirty: true });
+    void refetchProviderSettings();
+  };
 
   const onSubmit = handleSubmit((data: ProviderSchema) => {
     const cleanedData = Object.fromEntries(
@@ -99,6 +115,13 @@ export const GeneralTab = () => {
     ) as ProviderSchema;
     updateSettings(cleanedData);
   });
+
+  const modelError = useMemo(() => {
+    return {
+      model: "model" in errors ? errors.model : null,
+      message: "model" in errors ? errors.model?.message : null,
+    };
+  }, [errors]);
 
   if (isSettingsLoading) {
     return <div>Loading...</div>;
@@ -125,7 +148,7 @@ export const GeneralTab = () => {
             <Select
               onValueChange={(value) => {
                 field.onChange(value);
-                setValue("type", value as ProviderSchema["type"], { shouldDirty: true });
+                onProviderChange(value);
               }}
               value={field.value}
             >
@@ -161,7 +184,7 @@ export const GeneralTab = () => {
                       Model
                     </label>
                     <Select onValueChange={field.onChange} value={field.value || ""}>
-                      <SelectTrigger>
+                      <SelectTrigger className={modelError.model ? "border-red-500" : ""}>
                         <SelectValue placeholder="Model" />
                       </SelectTrigger>
                       <SelectContent>
@@ -180,6 +203,12 @@ export const GeneralTab = () => {
                         )}
                       </SelectContent>
                     </Select>
+                    {modelError.model && (
+                      <p className="mt-1 text-sm text-red-600">
+                        <AlertCircle className="mr-2 inline-block h-4 w-4" />
+                        {modelError.message}
+                      </p>
+                    )}
                   </div>
                 )}
               />

@@ -43,12 +43,12 @@ export const SettingsSchemas = {
     z.object({
       type: z.literal("OpenAI"),
       apiKey: z.string().default(ProviderDefaults.OpenAI.apiKey),
-      model: z.string().optional(),
+      model: z.string(),
     }),
     z.object({
       type: z.literal("OpenRouter"),
       apiKey: z.string().default(ProviderDefaults.OpenRouter.apiKey),
-      model: z.string().optional(),
+      model: z.string(),
     }),
     z.object({
       type: z.literal("Any OpenAI-compatible"),
