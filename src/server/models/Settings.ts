@@ -10,6 +10,6 @@ export const Settings = {
 
   async setValue<T>(key: string, value: T) {
     const ref = await db.ref(`settings/${key}`).set(value);
-    return (await ref.get())?.val();
+    return (await ref.get())?.val() as T;
   },
 };

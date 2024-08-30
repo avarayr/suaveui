@@ -14,13 +14,12 @@ export const aiRouter = router({
     )
     .mutation(async ({ input }) => {
       const response = await ai.generate({
-        model: process.env.MODEL!,
         prompt: input.prompt,
         system: input.system,
         stream: false,
         options: {
-          num_predict: input.max_tokens,
-          temperature: input.temperature ?? 1,
+          max_tokens: input.max_tokens,
+          temperature: input.temperature,
         },
       });
 

@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+//
+import React, { useState, useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -7,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~
 import { SettingsSchemas, ProviderDefaults } from "~/server/schema/Settings";
 import { api } from "~/trpc/react";
 import { Button } from "~/components/primitives/Button";
+import { Alert, AlertTitle, AlertDescription } from "~/components/primitives/Alert";
+import { AlertCircle } from "lucide-react";
 
 const icons: Record<string, React.ReactNode> = {
   Ollama: "🦙",
@@ -31,7 +34,7 @@ const icons: Record<string, React.ReactNode> = {
 
 type ProviderSchema = z.infer<typeof SettingsSchemas.provider>;
 
-export const GeneralTab: React.FC = () => {
+export const GeneralTab = () => {
   const [isSaved, setIsSaved] = useState(false);
   const { data: generalSettings, isLoading: isSettingsLoading, refetch } = api.settings.general.useQuery();
   const { mutate: updateSettings, isPending: isSetProviderPending } = api.settings.setProvider.useMutation({
@@ -47,31 +50,52 @@ export const GeneralTab: React.FC = () => {
 
   const { control, handleSubmit, watch, reset, setValue, getValues } = useForm<ProviderSchema>({
     resolver: zodResolver(SettingsSchemas.provider),
-    defaultValues: generalSettings || { type: "Ollama" },
+    defaultValues: generalSettings || { type: "Ollama", baseUrl: ProviderDefaults.Ollama.baseUrl },
   });
 
   const selectedProvider = watch("type");
+  const baseUrl = watch("baseUrl");
+  const apiKey = watch("apiKey");
+
+  const [modelFetchError, setModelFetchError] = useState<string | null>(null);
+
+  const {
+    data: models,
+    isLoading: isModelsLoading,
+    error: modelsError,
+    refetch: refetchModels,
+  } = api.settings.getAvailbaleModels.useQuery({ baseUrl, apiKey }, { retry: false });
+
+  useEffect(() => {
+    if (modelsError) {
+      setModelFetchError(modelsError.message);
+    } else {
+      setModelFetchError(null);
+    }
+  }, [modelsError]);
 
   React.useEffect(() => {
     if (generalSettings) {
       reset(generalSettings);
+      void refetchModels();
     }
-  }, [generalSettings, reset]);
+  }, [generalSettings, refetchModels, reset]);
 
   React.useEffect(() => {
     if (selectedProvider in ProviderDefaults) {
       const defaults = ProviderDefaults[selectedProvider];
       Object.entries(defaults).forEach(([key, value]) => {
-        const currentValue = getValues(key as keyof ProviderSchema);
-        if (currentValue === undefined) {
-          setValue(key as keyof ProviderSchema, value as ProviderSchema[keyof ProviderSchema], {
-            shouldValidate: true,
-            shouldDirty: false,
-          });
-        }
+        setValue(key as keyof ProviderSchema, value as ProviderSchema[keyof ProviderSchema], {
+          shouldValidate: true,
+          shouldDirty: true,
+        });
       });
     }
-  }, [selectedProvider, setValue, getValues]);
+  }, [selectedProvider, setValue]);
+
+  React.useEffect(() => {
+    void refetchModels();
+  }, [baseUrl, apiKey, refetchModels]);
 
   const onSubmit = handleSubmit((data: ProviderSchema) => {
     // Replace empty strings with undefined
@@ -91,6 +115,7 @@ export const GeneralTab: React.FC = () => {
   return (
     <div className="flex flex-col gap-3">
       <h3 className="text-xl font-bold">Provider</h3>
+
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -120,8 +145,46 @@ export const GeneralTab: React.FC = () => {
           )}
         />
 
-        {Object.entries(providerFields).map(([fieldName, schema]) => {
+        {Object.entries(providerFields).map(([fieldName]) => {
           if (fieldName === "type") return null;
+
+          if (fieldName === "model") {
+            return (
+              <Controller
+                name="model"
+                key={fieldName}
+                control={control}
+                render={({ field }) => (
+                  <div>
+                    <label htmlFor="model" className="block text-sm font-medium text-gray-700">
+                      Model
+                    </label>
+                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Model" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {isModelsLoading ? (
+                          <SelectItem value="loading">Loading models...</SelectItem>
+                        ) : modelFetchError ? (
+                          <SelectItem value="error" icon={<AlertCircle className="h-4 w-4" />}>
+                            {modelFetchError}
+                          </SelectItem>
+                        ) : (
+                          models?.map((model) => (
+                            <SelectItem key={model} value={model}>
+                              {model}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              />
+            );
+          }
+
           return (
             <Controller
               key={fieldName}
