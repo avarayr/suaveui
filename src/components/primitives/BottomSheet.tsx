@@ -40,6 +40,7 @@ export const BottomSheet = forwardRef((props: BottomSheetProps, ref: React.Forwa
           }}
         />
       }
+      scrollLocking
       blocking={false}
       {...props}
       ref={ref}
