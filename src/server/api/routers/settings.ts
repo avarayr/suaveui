@@ -65,7 +65,9 @@ export const settingsRouter = router({
           throw new Error("Failed to fetch models");
         }
 
-        return ((await response.json()) as { data: { id: string }[] }).data.map((model) => model.id);
+        return ((await response.json()) as { data: { id: string }[] }).data
+          .map((model) => model.id)
+          .toSorted((a, b) => a.localeCompare(b));
       } catch (error) {
         console.error("Error fetching models:", error);
         throw new Error("Failed to fetch models, check if the base url is correct.");
