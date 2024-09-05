@@ -33,7 +33,12 @@ export const RemoteAccessTab = () => {
 
   const handleCopyLink = () => {
     if (status?.url) {
-      void navigator.clipboard.writeText(status.url);
+      const tempInput = document.createElement("input");
+      tempInput.value = status.url;
+      document.body.appendChild(tempInput);
+      tempInput.select();
+      document.execCommand("copy");
+      document.body.removeChild(tempInput);
       setIsCopied(true);
       setTimeout(() => setIsCopied(false), 2000);
     }

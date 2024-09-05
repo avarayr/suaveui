@@ -12,12 +12,11 @@ self.addEventListener("message", (event) => {
  * On push notification, show the notification ONLY if the clients.visibilityState is hidden
  */
 self.addEventListener("push", (event) => {
-  // if the client is not hidden, show the notification
   event.waitUntil(
     (async () => {
       const data = JSON.parse(
         event?.data?.text() || `{ "title": "SuaveUI", "message": "You have a new notification" }`,
-      ) as { title?: string; message?: string };
+      ) as { title?: string; message?: string; silent?: boolean };
 
       if (!data.title || !data.message) {
         return;
@@ -30,9 +29,6 @@ self.addEventListener("push", (event) => {
 
       const anyVisibleClients = allClients.some((c) => c.visibilityState === "visible");
 
-      /**
-       * If the client on the page, don't show the notification
-       */
       if (anyVisibleClients) {
         return;
       }
@@ -40,6 +36,7 @@ self.addEventListener("push", (event) => {
       await self.registration.showNotification(data.title, {
         body: data.message,
         icon: "/assets/pwa/android-chrome-192x192.png",
+        silent: data.silent ?? false,
       });
     })(),
   );

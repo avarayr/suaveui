@@ -4,6 +4,7 @@ import { TabList, TabListProps } from "./primitives/TabList";
 import { Bell, Cog, Globe, Settings } from "lucide-react";
 import { GeneralTab } from "./settings/tabs/GeneralTab";
 import { RemoteAccessTab } from "./settings/tabs/RemoteAccessTab";
+import { NotificationsTab } from "./settings/tabs/NotificationsTab";
 
 type Props = {
   isOpen: boolean;
@@ -28,7 +29,7 @@ export const SettingsDrawer = (props: Props) => {
       label: "Notifications",
       id: "notifications",
       icon: <Bell className="mr-2 size-4" />,
-      children: <div>Notifications</div>,
+      children: <NotificationsTab />,
     },
   ];
 

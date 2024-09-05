@@ -2,6 +2,7 @@ export const ClientConsts = {
   LocalStorageKeys: {
     areNotificationsEnabled: "areNotificationsEnabled",
     dbSubscriptionID: "dbSubscriptionID",
+    areSilentNotifications: "areSilentNotifications",
   },
   /**
    * TODO: Reduce this number once we figure out how to handle:

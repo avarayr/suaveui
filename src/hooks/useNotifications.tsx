@@ -22,6 +22,11 @@ export const useNotifications = () => {
     ClientConsts.LocalStorageKeys.areNotificationsEnabled,
     false,
   );
+  const [silentNotifications, setSilentNotifications] = useLocalStorage(
+    ClientConsts.LocalStorageKeys.areSilentNotifications,
+    false,
+  );
+
   const dbSubscribeMutation = api.notification.storeSubscription.useMutation();
   const dbUnsubscribeMutation = api.notification.removeSubscription.useMutation();
 
@@ -93,21 +98,19 @@ export const useNotifications = () => {
       const promise = async () => {
         if (enabled) {
           const permission = await window?.Notification?.requestPermission();
-          const granted = permission === "granted";
 
-          if (permission === "denied") {
+          if (permission === "denied" || permission === undefined) {
             if (window.location.protocol !== "https:") {
               throw new Error(
                 `Notifications permission has been denied. It seems like you're not using a HTTPS connection, which is required for notifications to work.`,
               );
             }
-
             throw new Error(
               "Notifications are not allowed on this device. Please check site permissions. Are you using Incognito Mode?",
             );
           }
 
-          if (granted) {
+          if (permission === "granted") {
             // Generate VAPID keys if they don't exist
             const vapidKeys = await utils.notification.vapidKeys.getPublicKey.fetch();
             if (!vapidKeys) {
@@ -145,6 +148,37 @@ export const useNotifications = () => {
     ],
   );
 
+  const toggleSilentNotifications = useCallback(
+    async (silent: boolean) => {
+      setSilentNotifications(silent);
+      // Update the subscription with the new silent setting
+      if (subscription) {
+        const updatedSubscription = await registration?.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: subscription.options.applicationServerKey,
+        });
+        if (updatedSubscription) {
+          await dbSubscribeMutation.mutateAsync({
+            subscription: JSON.parse(JSON.stringify(updatedSubscription)) as WebPushSubscription,
+          });
+          setSubscription(updatedSubscription);
+        }
+      }
+    },
+    [subscription, registration, dbSubscribeMutation, setSilentNotifications, setSubscription],
+  );
+
+  const sendTestNotification = useCallback(async () => {
+    if (!registration) {
+      throw new Error("Service Worker not registered");
+    }
+    await registration.showNotification("Test Notification", {
+      body: "This is a test notification",
+      icon: "/assets/pwa/android-chrome-192x192.png",
+      silent: silentNotifications,
+    });
+  }, [registration, silentNotifications]);
+
   /**
    * Use effect to query permissions and disable notifications
    * if user has recently denied permission
@@ -174,5 +208,8 @@ export const useNotifications = () => {
   return {
     toggleNotifications,
     notificationsEnabled: Boolean(notificationsEnabled && registration),
+    silentNotifications,
+    toggleSilentNotifications,
+    sendTestNotification,
   };
 };
