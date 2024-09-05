@@ -1,14 +1,14 @@
-import React, { useState, useCallback } from "react";
-import { api } from "~/trpc/react";
+import { AlertCircle, Check, ExternalLink, Globe, InfoIcon, Link, Loader2 } from "lucide-react";
+import { useCallback, useState, useEffect } from "react";
+import { toast } from "sonner";
+import { Alert, AlertDescription, AlertTitle } from "~/components/primitives/Alert";
 import { Button } from "~/components/primitives/Button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/primitives/Card";
 import { Switch } from "~/components/primitives/Switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/primitives/Tooltip";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/primitives/Card";
-import { AlertCircle, Check, ExternalLink, Globe, InfoIcon, Link, Loader2 } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "~/components/primitives/Alert";
-import { AnimatePresence, motion } from "framer-motion";
-import { toast } from "sonner";
+import { api } from "~/trpc/react";
 import { copyToClipboard } from "~/utils/clipboard";
+import QRCode from "qrcode";
 
 export const RemoteAccessTab = () => {
   const { data: status, isLoading, refetch } = api.settings.remoteAccess.getStatus.useQuery();
@@ -21,6 +21,7 @@ export const RemoteAccessTab = () => {
     onError: (error) => toast.error(error.message),
   });
   const [isCopied, setIsCopied] = useState(false);
+  const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
 
   const handleToggleRemoteAccess = useCallback(() => {
     if (status?.enabled) {
@@ -39,6 +40,14 @@ export const RemoteAccessTab = () => {
       setTimeout(() => setIsCopied(false), 2000); // reset after 2 seconds
     }
   };
+
+  useEffect(() => {
+    if (status?.url) {
+      QRCode.toDataURL(status.url, { width: 200, margin: 2 }).then(setQrCodeUrl).catch(console.error);
+    } else {
+      setQrCodeUrl(null);
+    }
+  }, [status?.url]);
 
   return (
     <Card>
@@ -102,6 +111,12 @@ export const RemoteAccessTab = () => {
                 <InfoIcon className="mr-1 inline size-3" />
                 The URL may take a few minutes to become accessible due to DNS propagation.
               </p>
+              {qrCodeUrl && (
+                <div className="hidden md:block">
+                  <img src={qrCodeUrl} alt="QR Code for remote access" className="mx-auto mt-4" />
+                  <p className="mt-2 text-center text-sm text-gray-400">Scan to access on mobile devices</p>
+                </div>
+              )}
             </div>
           )}
 
