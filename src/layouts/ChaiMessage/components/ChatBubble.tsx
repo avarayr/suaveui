@@ -21,6 +21,7 @@ import { ExpandingTextarea } from "./ExpandingTextarea";
 import { Reaction } from "./reactions/Reaction";
 import { SpoilerParticles } from "./SpoilerParticles";
 import { Tapback, TapbackAction } from "./Tapback";
+import { copyToClipboard } from "~/utils/clipboard";
 
 export type Reaction = {
   id: TReaction["type"];
@@ -133,19 +134,7 @@ export const ChatBubble = React.memo(
     }, []);
 
     const onCopy = useCallback(() => {
-      try {
-        // use Legacy API for compatibility
-
-        const textArea = document.createElement("textarea");
-        textArea.value = text;
-        document.body.appendChild(textArea);
-        textArea.select();
-
-        document.execCommand("copy");
-        document.body.removeChild(textArea);
-      } catch (e) {
-        console.error(e);
-      }
+      copyToClipboard(text);
     }, [text]);
 
     const reactToMessage = useCallback(

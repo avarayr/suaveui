@@ -8,6 +8,7 @@ import { AlertCircle, Check, ExternalLink, Globe, InfoIcon, Link, Loader2 } from
 import { Alert, AlertDescription, AlertTitle } from "~/components/primitives/Alert";
 import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
+import { copyToClipboard } from "~/utils/clipboard";
 
 export const RemoteAccessTab = () => {
   const { data: status, isLoading, refetch } = api.settings.remoteAccess.getStatus.useQuery();
@@ -33,14 +34,9 @@ export const RemoteAccessTab = () => {
 
   const handleCopyLink = () => {
     if (status?.url) {
-      const tempInput = document.createElement("input");
-      tempInput.value = status.url;
-      document.body.appendChild(tempInput);
-      tempInput.select();
-      document.execCommand("copy");
-      document.body.removeChild(tempInput);
+      copyToClipboard(status.url);
       setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000);
+      setTimeout(() => setIsCopied(false), 2000); // reset after 2 seconds
     }
   };
 
