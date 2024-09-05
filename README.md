@@ -6,8 +6,25 @@ SuaveUI is an experimental PWA chat UI built specifically for interacting with L
 
 <img width="280" src="https://github.com/user-attachments/assets/3447806f-c05a-4d38-a5dd-94f1fda7d6a6" />
 
+# Running (using Docker 🐳)
 
-# Installation
+You can easily run the latest version of SuaveUI using Docker. Follow these steps:
+
+1. **Pull the latest image:**
+
+   ```bash
+   docker pull ghcr.io/avarayr/suaveui:latest
+   ```
+
+2. **Run the container:**
+
+   ```bash
+   docker run -p 3000:3000 ghcr.io/avarayr/suaveui:latest
+   ```
+
+3. Go to http://localhost:3000
+
+# Development
 
 While SuaveUI is in early alpha, installation is via cloning and running a server
 
@@ -16,20 +33,6 @@ Requirements: Bun, Node
 1. `git clone https://github.com/avarayr/suaveui`
 2. `bun install`
 3. `bun dev`
-
-
-# Goals
-
-1. Have a single-executable, one-click local install app that doesn't require Docker. (Highest priority)
-2. Support with OpenAI API compatible local LLM backends such as Ollama, LM Studio, llama.cpp server, etc.
-3. Seamless upgrade process when new version is available
-4. Nudge Notifications by AI personas to promote interaction
-
-# Non-goals
-
-* No plans for a hosted version
-
-
 
 # Technologies used
 

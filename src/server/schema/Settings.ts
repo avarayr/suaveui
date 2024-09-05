@@ -2,13 +2,13 @@ import { z } from "zod";
 
 export const ProviderDefaults = {
   Ollama: {
-    baseUrl: "http://127.0.0.1:11434/v1",
+    baseUrl: "http://localhost:11434/v1",
   },
   "LM Studio": {
-    baseUrl: "http://127.0.0.1:1234/v1",
+    baseUrl: "http://localhost:1234/v1",
   },
   Jan: {
-    baseUrl: "http://127.0.0.1:1337/v1",
+    baseUrl: "http://localhost:1337/v1",
   },
   OpenAI: {
     baseUrl: "https://api.openai.com/v1",
