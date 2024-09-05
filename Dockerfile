@@ -17,8 +17,11 @@ WORKDIR /app
 # Copy only the built files from the build stage
 COPY --from=builder /app/.output ./.output
 
+# Set the environment variable PORT to 3005
+ENV PORT=3005
+
 # Expose the port your app runs on
-EXPOSE 3000
+EXPOSE 3005
 
 # Run your app
 CMD ["bun", "run", ".output/server/index.mjs"]
