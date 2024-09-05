@@ -7,23 +7,30 @@ const execAsync = promisify(exec);
 let cloudflaredProcess: ChildProcess | null = null;
 
 export async function startCloudflared(): Promise<string> {
-  if (await isCloudflaredRunning()) {
+  if (isCloudflaredRunning()) {
     throw new Error("Cloudflared is already running");
   }
 
   try {
-    cloudflaredProcess = exec(`cloudflared tunnel --url http://localhost:${parseInt(process.env.PORT || "3000")}`);
+    cloudflaredProcess = exec(
+      `bunx --bun cloudflared tunnel --url http://localhost:${parseInt(process.env.PORT || "3000")} --metrics 127.0.0.1:`,
+    );
 
     return new Promise((resolve, reject) => {
       let url: string | null = null;
 
-      // For some reason, the output is sent to stderr
-      cloudflaredProcess!.stderr?.on("data", (data: Buffer) => {
+      function handleOutput(data: Buffer) {
         const output = data.toString();
+        console.log("Cloudflared output:", output);
 
         const rateLimitError = `failed to unmarshal quick Tunnel: invalid character 'e' looking for beginning of value`;
         if (output.includes(rateLimitError)) {
           reject(new Error("Your IP address is being rate-limited by Cloudflare, please try again later."));
+        }
+
+        const unknownError = /failed to request quick Tunnel:(\w+)/.exec(output);
+        if (unknownError) {
+          reject(new Error(`Unknown error: ${unknownError[1]}`));
         }
 
         const match = /https:\/\/[^\s]+\.trycloudflare\.com/.exec(output);
@@ -34,7 +41,10 @@ export async function startCloudflared(): Promise<string> {
           });
           resolve(url);
         }
-      });
+      }
+      // For some reason, the output is sent to stderr
+      cloudflaredProcess!.stderr?.on("data", handleOutput);
+      cloudflaredProcess!.stdout?.on("data", handleOutput);
 
       cloudflaredProcess!.on("exit", (code) => {
         cloudflaredProcess = null;
@@ -51,14 +61,16 @@ export async function startCloudflared(): Promise<string> {
 }
 
 export async function stopCloudflared(): Promise<void> {
-  if (!(await isCloudflaredRunning())) {
+  if (!isCloudflaredRunning()) {
     console.log("Cloudflared is not running");
     return;
   }
 
   try {
-    await execAsync("pkill cloudflared");
-    cloudflaredProcess = null;
+    if (cloudflaredProcess) {
+      cloudflaredProcess.kill();
+      cloudflaredProcess = null;
+    }
     await Settings.setValue("remoteAccessUrl", null);
   } catch (error) {
     console.error("Failed to stop Cloudflared:", error);
@@ -66,32 +78,17 @@ export async function stopCloudflared(): Promise<void> {
   }
 }
 
-export async function isCloudflaredRunning(): Promise<boolean> {
-  try {
-    const { stdout } = await execAsync("pgrep cloudflared");
-    return stdout.trim() !== "";
-  } catch (error) {
+export function isCloudflaredRunning(): boolean {
+  if (cloudflaredProcess === null) {
     return false;
   }
+
+  return !cloudflaredProcess.killed && cloudflaredProcess.exitCode === null;
 }
 
 export async function getCloudflaredStatus(): Promise<{ running: boolean; url: string | null }> {
-  const running = await isCloudflaredRunning();
+  const running = isCloudflaredRunning();
   const url = await Settings.getValue<string>("remoteAccessUrl");
-
-  if (running && !url) {
-    // Cloudflared is running but we don't have a URL stored
-    // This could happen if the process was started externally
-    await stopCloudflared(); // Stop the unexpected process
-    return { running: false, url: null };
-  }
-
-  if (!running && url) {
-    // Cloudflared is not running but we have a URL stored
-    // This could happen if the process was killed externally
-    await Settings.setValue("remoteAccessUrl", null);
-    return { running: false, url: null };
-  }
 
   return { running, url };
 }

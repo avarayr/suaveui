@@ -14,6 +14,9 @@ FROM oven/bun:1.1-slim
 
 WORKDIR /app
 
+# Install necessary certificates
+RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+
 # Copy only the built files from the build stage
 COPY --from=builder /app/.output ./.output
 
@@ -24,4 +27,4 @@ ENV PORT=3005
 EXPOSE 3005
 
 # Run your app
-CMD ["bun", "run", ".output/server/index.mjs"]
+CMD ["bun", "run", "--bun", ".output/server/index.mjs"]
