@@ -4,12 +4,21 @@ import { Button } from "~/components/primitives/Button";
 import { Switch } from "~/components/primitives/Switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/primitives/Tooltip";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/primitives/Card";
-import { AlertCircle, Check, ExternalLink, Globe, Link, Loader2 } from "lucide-react";
+import { AlertCircle, Check, ExternalLink, Globe, InfoIcon, Link, Loader2 } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "~/components/primitives/Alert";
+import { AnimatePresence, motion } from "framer-motion";
+import { toast } from "sonner";
 
 export const RemoteAccessTab = () => {
   const { data: status, isLoading, refetch } = api.settings.remoteAccess.getStatus.useQuery();
-  const enableMutation = api.settings.remoteAccess.enable.useMutation({ onSuccess: () => refetch() });
-  const disableMutation = api.settings.remoteAccess.disable.useMutation({ onSuccess: () => refetch() });
+  const enableMutation = api.settings.remoteAccess.enable.useMutation({
+    onSuccess: () => refetch(),
+    onError: (error) => toast.error(error.message),
+  });
+  const disableMutation = api.settings.remoteAccess.disable.useMutation({
+    onSuccess: () => refetch(),
+    onError: (error) => toast.error(error.message),
+  });
   const [isCopied, setIsCopied] = useState(false);
 
   const handleToggleRemoteAccess = useCallback(() => {
@@ -37,7 +46,7 @@ export const RemoteAccessTab = () => {
           <Globe className="h-5 w-5" />
           Remote Access
         </CardTitle>
-        <CardDescription>Access your instance from anywhere in the world.</CardDescription>
+        <CardDescription>Access your instance from anywhere in the world, powered by cloudflared.</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="flex flex-col gap-4">
@@ -48,9 +57,9 @@ export const RemoteAccessTab = () => {
                 onCheckedChange={handleToggleRemoteAccess}
                 disabled={isLoading || isPending}
               />
-              <span className="font-medium">
+              <span className="text-sm font-medium">
                 {isLoading || isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="size-4 animate-spin" />
                 ) : status?.enabled ? (
                   "Enabled"
                 ) : (
@@ -63,7 +72,7 @@ export const RemoteAccessTab = () => {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button variant="outline" size="sm" onClick={handleCopyLink}>
-                      {isCopied ? <Check className="h-4 w-4" /> : <Link className="h-4 w-4" />}
+                      {isCopied ? <Check className="size-4" /> : <Link className="size-4" />}
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>{isCopied ? "Copied!" : "Copy Link"}</TooltipContent>
@@ -72,7 +81,7 @@ export const RemoteAccessTab = () => {
                   <TooltipTrigger asChild>
                     <Button variant="outline" size="sm" asChild>
                       <a href={status.url} target="_blank" rel="noopener noreferrer">
-                        <ExternalLink className="h-4 w-4" />
+                        <ExternalLink className="size-4" />
                       </a>
                     </Button>
                   </TooltipTrigger>
@@ -81,12 +90,34 @@ export const RemoteAccessTab = () => {
               </div>
             )}
           </div>
+
           {status?.enabled && status.url && (
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              <AlertCircle className="mr-1 inline h-3 w-3" />
-              The URL may take a few minutes to become accessible due to DNS propagation.
-            </p>
+            <div className="flex flex-col gap-2">
+              <p className="text-xs text-red-400">
+                <AlertCircle className="mr-1 inline size-3" />
+                Anyone with the link can access your instance and read your chats.
+              </p>
+              <p className="text-xs text-gray-400">
+                <InfoIcon className="mr-1 inline size-3" />
+                The URL may take a few minutes to become accessible due to DNS propagation.
+              </p>
+            </div>
           )}
+
+          <Alert variant="info">
+            <AlertTitle className="font-medium text-blue-500">
+              <InfoIcon className="-mt-1 mr-1 inline size-4" />
+              Why is this needed?
+            </AlertTitle>
+            <AlertDescription className="text-sm text-gray-100">
+              Remote access allows for a HTTPS connection, which is required for PWA installation and push
+              notifications.
+              <br />
+              <br />
+              You may use alternative methods of remote access such as Tailscale with a custom domain for more secure
+              access.
+            </AlertDescription>
+          </Alert>
         </div>
       </CardContent>
     </Card>

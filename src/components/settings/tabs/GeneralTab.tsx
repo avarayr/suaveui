@@ -4,15 +4,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Input } from "~/components/primitives/Input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/primitives/Select";
-import { SettingsSchemas, ProviderDefaults } from "~/server/schema/Settings";
+import { SettingsSchemas } from "~/server/schema/Settings";
 import { api } from "~/trpc/react";
 import { Button } from "~/components/primitives/Button";
-import { AlertCircle, Globe, ExternalLink, CheckCircle, XCircle, Loader2, Check, Copy, Link } from "lucide-react";
+import { AlertCircle, Globe, Loader2, Check, Link2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/primitives/Card";
-import { twMerge } from "tailwind-merge";
-import { useCallback } from "react";
-import { Switch } from "~/components/primitives/Switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/primitives/Tooltip";
+import { Skeleton } from "~/components/primitives/Skeleton";
 
 const icons: Record<string, React.ReactNode> = {
   Ollama: "🦙",
@@ -129,85 +127,119 @@ export const GeneralTab = () => {
   }, [errors]);
 
   if (isSettingsLoading) {
-    return <div>Loading...</div>;
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Skeleton className="h-5 w-5 rounded-full" />
+            <Skeleton className="h-6 w-48" />
+          </CardTitle>
+          <CardDescription>
+            <Skeleton className="h-4 w-full" />
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-3/4" />
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
   const providerFields =
     SettingsSchemas.provider.options.find((option) => option.shape.type.value === selectedProvider)?.shape || {};
 
   return (
-    <div className="flex flex-col gap-3">
-      <h3 className="text-xl font-bold">Provider</h3>
-
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          void onSubmit();
-        }}
-        className="space-y-4"
-      >
-        <Controller
-          name="type"
-          control={control}
-          render={({ field }) => (
-            <Select
-              onValueChange={(value) => {
-                field.onChange(value);
-                onProviderChange(value);
-              }}
-              value={field.value}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select provider" />
-              </SelectTrigger>
-              <SelectContent>
-                {SettingsSchemas.provider.options.map((option) => (
-                  <SelectItem key={option.shape.type.value} value={option.shape.type.value}>
-                    <span className="flex items-center gap-2">
-                      <span className="size-4">{icons[option.shape.type.value]}</span>
-                      {option.shape.type.value}
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        />
-
-        {Object.entries(providerFields).map(([fieldName]) => {
-          if (fieldName === "type") return null;
-
-          if (fieldName === "model") {
-            return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Link2 className="h-5 w-5" />
+          AI Provider Settings
+        </CardTitle>
+        <CardDescription>Configure your AI provider and model settings.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            void onSubmit();
+          }}
+          className="space-y-4"
+        >
+          <div className="grid gap-4">
+            <div>
+              <label htmlFor="provider" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Provider
+              </label>
               <Controller
-                name="model"
-                key={fieldName}
+                name="type"
                 control={control}
                 render={({ field }) => (
-                  <div>
-                    <label htmlFor="model" className="block text-sm font-medium text-gray-700">
+                  <Select
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      onProviderChange(value);
+                    }}
+                    value={field.value}
+                  >
+                    <SelectTrigger id="provider">
+                      <SelectValue placeholder="Select provider" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SettingsSchemas.provider.options.map((option) => (
+                        <SelectItem key={option.shape.type.value} value={option.shape.type.value}>
+                          <span className="flex items-center gap-2">
+                            <span className="size-4">{icons[option.shape.type.value]}</span>
+                            {option.shape.type.value}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </div>
+
+            {Object.entries(providerFields).map(([fieldName]) => {
+              if (fieldName === "type") return null;
+
+              if (fieldName === "model") {
+                return (
+                  <div key={fieldName}>
+                    <label htmlFor="model" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                       Model
                     </label>
-                    <Select onValueChange={field.onChange} value={field.value || ""}>
-                      <SelectTrigger className={modelError.model ? "border-red-500" : ""}>
-                        <SelectValue placeholder="Model" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {isModelsLoading ? (
-                          <SelectItem value="loading">Loading models...</SelectItem>
-                        ) : modelFetchError ? (
-                          <SelectItem value="error" disabled icon={<AlertCircle className="h-4 w-4" />}>
-                            {modelFetchError}
-                          </SelectItem>
-                        ) : (
-                          models?.map((model) => (
-                            <SelectItem key={model} value={model}>
-                              {model}
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
+                    <Controller
+                      name="model"
+                      control={control}
+                      render={({ field }) => (
+                        <Select onValueChange={field.onChange} value={field.value || ""}>
+                          <SelectTrigger id="model" className={modelError.model ? "border-red-500" : ""}>
+                            <SelectValue placeholder="Select model" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {isModelsLoading ? (
+                              <SelectItem value="loading">Loading models...</SelectItem>
+                            ) : modelFetchError ? (
+                              <SelectItem value="error" disabled>
+                                <AlertCircle className="mr-2 inline h-4 w-4" />
+                                {modelFetchError}
+                              </SelectItem>
+                            ) : (
+                              models?.map((model) => (
+                                <SelectItem key={model} value={model}>
+                                  {model}
+                                </SelectItem>
+                              ))
+                            )}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
                     {modelError.model && (
                       <p className="mt-1 text-sm text-red-600">
                         <AlertCircle className="mr-2 inline-block h-4 w-4" />
@@ -215,38 +247,55 @@ export const GeneralTab = () => {
                       </p>
                     )}
                   </div>
-                )}
-              />
-            );
-          }
+                );
+              }
 
-          return (
-            <Controller
-              key={fieldName}
-              name={fieldName as keyof ProviderSchema}
-              control={control}
-              render={({ field, fieldState: { error } }) => (
-                <div>
-                  <label htmlFor={fieldName} className="block text-sm font-medium text-gray-700">
-                    {fieldName}
+              return (
+                <div key={fieldName}>
+                  <label htmlFor={fieldName} className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {fieldName.charAt(0).toUpperCase() + fieldName.slice(1)}
                   </label>
-                  <Input {...field} id={fieldName} className="mt-1" intent="secondary" />
-                  {error && <p className="mt-1 text-sm text-red-600">{error.message}</p>}
+                  <Controller
+                    name={fieldName as keyof ProviderSchema}
+                    control={control}
+                    render={({ field, fieldState: { error } }) => (
+                      <>
+                        <Input {...field} id={fieldName} className="mt-1" intent="secondary" />
+                        {error && (
+                          <p className="mt-1 text-sm text-red-600">
+                            <AlertCircle className="mr-2 inline-block h-4 w-4" />
+                            {error.message}
+                          </p>
+                        )}
+                      </>
+                    )}
+                  />
                 </div>
-              )}
-            />
-          );
-        })}
+              );
+            })}
+          </div>
 
-        <Button
-          type="submit"
-          variant={isSaved ? "outline" : "destructive"}
-          className="w-full"
-          disabled={isSetProviderPending || isSaved}
-        >
-          {isSaved ? "Saved!" : isSetProviderPending ? "Saving..." : "Save Changes"}
-        </Button>
-      </form>
-    </div>
+          <div className="flex items-center justify-between pt-4">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {isSaved && <Check className="mr-2 inline h-4 w-4 text-green-500" />}
+              {isSaved ? "Settings saved successfully!" : "Unsaved changes"}
+            </p>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="submit"
+                  variant={isSaved ? "outline" : "default"}
+                  disabled={isSetProviderPending || isSaved}
+                >
+                  {isSetProviderPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  {isSaved ? "Saved" : isSetProviderPending ? "Saving..." : "Save Changes"}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{isSaved ? "Settings are up to date" : "Save your provider settings"}</TooltipContent>
+            </Tooltip>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
   );
 };

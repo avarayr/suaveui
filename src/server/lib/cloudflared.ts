@@ -21,6 +21,11 @@ export async function startCloudflared(): Promise<string> {
       cloudflaredProcess!.stderr?.on("data", (data: Buffer) => {
         const output = data.toString();
 
+        const rateLimitError = `failed to unmarshal quick Tunnel: invalid character 'e' looking for beginning of value`;
+        if (output.includes(rateLimitError)) {
+          reject(new Error("Your IP address is being rate-limited by Cloudflare, please try again later."));
+        }
+
         const match = /https:\/\/[^\s]+\.trycloudflare\.com/.exec(output);
         if (match && !url) {
           url = match[0];

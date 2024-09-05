@@ -111,7 +111,7 @@ export const settingsRouter = router({
         console.error("Failed to enable remote access:", error);
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to enable remote access",
+          message: error instanceof Error ? error.message : "Failed to enable remote access",
         });
       }
     }),
@@ -124,7 +124,7 @@ export const settingsRouter = router({
         console.error("Failed to disable remote access:", error);
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to disable remote access",
+          message: error instanceof Error ? error.message : "Failed to disable remote access",
         });
       }
     }),
