@@ -4,8 +4,14 @@ import { publicProcedure, router } from "../trpc";
 import { Settings } from "~/server/models/Settings";
 import { z } from "zod";
 import { ai } from "~/server/lib/ai";
-import { startCloudflared, stopCloudflared } from "~/server/lib/cloudflared";
-import { isUrlAlive } from "~/server/lib/urlCheck";
+import { TRPCError } from "@trpc/server";
+import { startCloudflared, stopCloudflared, getCloudflaredStatus } from "~/server/lib/cloudflared";
+
+// New type for remote access status
+type RemoteAccessStatus = {
+  enabled: boolean;
+  url: string | null;
+};
 
 export const settingsRouter = router({
   general: publicProcedure.query(async () => {
@@ -91,17 +97,36 @@ export const settingsRouter = router({
     return { url };
   }),
 
-  getRemoteAccessUrl: publicProcedure.query(async () => {
-    const url = await Settings.getValue<string>("remoteAccessUrl");
-    if (url) {
-      const isAlive = await isUrlAlive(url);
-      if (isAlive) {
-        return { url };
-      } else {
-        // If the URL is not alive, clear it from the database
-        await Settings.setValue("remoteAccessUrl", null);
+  remoteAccess: router({
+    getStatus: publicProcedure.query(async (): Promise<RemoteAccessStatus> => {
+      const { running, url } = await getCloudflaredStatus();
+      return { enabled: running, url };
+    }),
+
+    enable: publicProcedure.mutation(async (): Promise<RemoteAccessStatus> => {
+      try {
+        const url = await startCloudflared();
+        return { enabled: true, url };
+      } catch (error) {
+        console.error("Failed to enable remote access:", error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to enable remote access",
+        });
       }
-    }
-    return { url: null };
+    }),
+
+    disable: publicProcedure.mutation(async (): Promise<RemoteAccessStatus> => {
+      try {
+        await stopCloudflared();
+        return { enabled: false, url: null };
+      } catch (error) {
+        console.error("Failed to disable remote access:", error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to disable remote access",
+        });
+      }
+    }),
   }),
 });

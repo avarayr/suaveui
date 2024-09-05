@@ -7,7 +7,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~
 import { SettingsSchemas, ProviderDefaults } from "~/server/schema/Settings";
 import { api } from "~/trpc/react";
 import { Button } from "~/components/primitives/Button";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Globe, ExternalLink, CheckCircle, XCircle, Loader2, Check, Copy, Link } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/primitives/Card";
+import { twMerge } from "tailwind-merge";
+import { useCallback } from "react";
+import { Switch } from "~/components/primitives/Switch";
+import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/primitives/Tooltip";
 
 const icons: Record<string, React.ReactNode> = {
   Ollama: "🦙",
@@ -244,58 +249,95 @@ export const GeneralTab = () => {
       </form>
 
       <div className="mt-8">
-        <h3 className="text-xl font-bold">Remote Access</h3>
-        <EnableRemoteAccessButton />
+        <RemoteAccessCard />
       </div>
     </div>
   );
 };
 
-const EnableRemoteAccessButton = () => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [remoteUrl, setRemoteUrl] = useState<string | null>(null);
+const RemoteAccessCard = () => {
+  const { data: status, isLoading, refetch } = api.settings.remoteAccess.getStatus.useQuery();
+  const enableMutation = api.settings.remoteAccess.enable.useMutation({ onSuccess: () => refetch() });
+  const disableMutation = api.settings.remoteAccess.disable.useMutation({ onSuccess: () => refetch() });
+  const [isCopied, setIsCopied] = useState(false);
 
-  const enableRemoteAccessMutation = api.settings.enableRemoteAccess.useMutation({
-    onSuccess: (data) => {
-      setRemoteUrl(data.url);
-      setIsLoading(false);
-    },
-    onError: (error) => {
-      console.error("Error enabling remote access:", error);
-      setIsLoading(false);
-    },
-  });
-
-  const { data: existingUrl, isLoading: isUrlLoading } = api.settings.getRemoteAccessUrl.useQuery();
-
-  useEffect(() => {
-    if (existingUrl?.url) {
-      setRemoteUrl(existingUrl.url);
+  const handleToggleRemoteAccess = useCallback(() => {
+    if (status?.enabled) {
+      disableMutation.mutate();
+    } else {
+      enableMutation.mutate();
     }
-  }, [existingUrl]);
+  }, [status?.enabled, disableMutation, enableMutation]);
 
-  const handleEnableRemoteAccess = () => {
-    setIsLoading(true);
-    enableRemoteAccessMutation.mutate();
+  const isPending = enableMutation.isPending || disableMutation.isPending;
+
+  const handleCopyLink = () => {
+    if (status?.url) {
+      void navigator.clipboard.writeText(status.url);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    }
   };
 
-  if (isUrlLoading) {
-    return <div>Loading...</div>;
-  }
-
   return (
-    <div className="mt-4">
-      <Button onClick={handleEnableRemoteAccess} disabled={isLoading || !!remoteUrl} loading={isLoading}>
-        {remoteUrl ? "Remote Access Enabled" : "Enable Remote Access"}
-      </Button>
-      {remoteUrl && (
-        <p className="mt-2">
-          Your instance is accessible from:{" "}
-          <a href={remoteUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
-            {remoteUrl}
-          </a>
-        </p>
-      )}
-    </div>
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Globe className="h-5 w-5" />
+          Remote Access
+        </CardTitle>
+        <CardDescription>Access your instance from anywhere in the world.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Switch
+                checked={status?.enabled || false}
+                onCheckedChange={handleToggleRemoteAccess}
+                disabled={isLoading || isPending}
+              />
+              <span className="font-medium">
+                {isLoading || isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : status?.enabled ? (
+                  "Enabled"
+                ) : (
+                  "Disabled"
+                )}
+              </span>
+            </div>
+            {status?.enabled && status.url && (
+              <div className="flex items-center gap-2">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="outline" size="sm" onClick={handleCopyLink}>
+                      {isCopied ? <Check className="h-4 w-4" /> : <Link className="h-4 w-4" />}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{isCopied ? "Copied!" : "Copy Link"}</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="outline" size="sm" asChild>
+                      <a href={status.url} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Open URL</TooltipContent>
+                </Tooltip>
+              </div>
+            )}
+          </div>
+          {status?.enabled && status.url && (
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              <AlertCircle className="mr-1 inline h-3 w-3" />
+              The URL may take a few minutes to become accessible due to DNS propagation.
+            </p>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 };
