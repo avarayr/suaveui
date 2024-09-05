@@ -242,6 +242,60 @@ export const GeneralTab = () => {
           {isSaved ? "Saved!" : isSetProviderPending ? "Saving..." : "Save Changes"}
         </Button>
       </form>
+
+      <div className="mt-8">
+        <h3 className="text-xl font-bold">Remote Access</h3>
+        <EnableRemoteAccessButton />
+      </div>
+    </div>
+  );
+};
+
+const EnableRemoteAccessButton = () => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [remoteUrl, setRemoteUrl] = useState<string | null>(null);
+
+  const enableRemoteAccessMutation = api.settings.enableRemoteAccess.useMutation({
+    onSuccess: (data) => {
+      setRemoteUrl(data.url);
+      setIsLoading(false);
+    },
+    onError: (error) => {
+      console.error("Error enabling remote access:", error);
+      setIsLoading(false);
+    },
+  });
+
+  const { data: existingUrl, isLoading: isUrlLoading } = api.settings.getRemoteAccessUrl.useQuery();
+
+  useEffect(() => {
+    if (existingUrl?.url) {
+      setRemoteUrl(existingUrl.url);
+    }
+  }, [existingUrl]);
+
+  const handleEnableRemoteAccess = () => {
+    setIsLoading(true);
+    enableRemoteAccessMutation.mutate();
+  };
+
+  if (isUrlLoading) {
+    return <div>Loading...</div>;
+  }
+
+  return (
+    <div className="mt-4">
+      <Button onClick={handleEnableRemoteAccess} disabled={isLoading || !!remoteUrl} loading={isLoading}>
+        {remoteUrl ? "Remote Access Enabled" : "Enable Remote Access"}
+      </Button>
+      {remoteUrl && (
+        <p className="mt-2">
+          Your instance is accessible from:{" "}
+          <a href={remoteUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+            {remoteUrl}
+          </a>
+        </p>
+      )}
     </div>
   );
 };

@@ -4,6 +4,8 @@ import { publicProcedure, router } from "../trpc";
 import { Settings } from "~/server/models/Settings";
 import { z } from "zod";
 import { ai } from "~/server/lib/ai";
+import { startCloudflared, stopCloudflared } from "~/server/lib/cloudflared";
+import { isUrlAlive } from "~/server/lib/urlCheck";
 
 export const settingsRouter = router({
   general: publicProcedure.query(async () => {
@@ -82,5 +84,24 @@ export const settingsRouter = router({
     } else {
       return { ...providerDefaults, type: input.providerType } as z.infer<typeof SettingsSchemas.provider>;
     }
+  }),
+
+  enableRemoteAccess: publicProcedure.mutation(async () => {
+    const url = await startCloudflared();
+    return { url };
+  }),
+
+  getRemoteAccessUrl: publicProcedure.query(async () => {
+    const url = await Settings.getValue<string>("remoteAccessUrl");
+    if (url) {
+      const isAlive = await isUrlAlive(url);
+      if (isAlive) {
+        return { url };
+      } else {
+        // If the URL is not alive, clear it from the database
+        await Settings.setValue("remoteAccessUrl", null);
+      }
+    }
+    return { url: null };
   }),
 });
