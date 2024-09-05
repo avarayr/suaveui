@@ -10,13 +10,19 @@ SuaveUI is an experimental PWA chat UI built specifically for interacting with L
 
 You can easily run the latest version of SuaveUI using Docker. Follow these steps:
 
-1. **Run the container:**
+1. **Pull the latest image:**
+
+   ```bash
+   docker pull ghcr.io/avarayr/suaveui:latest
+   ```
+
+2. **Run the container:**
 
    ```bash
    docker run -p 3005:3005 --add-host localhost:host-gateway ghcr.io/avarayr/suaveui:latest
    ```
 
-2. Go to http://localhost:3005
+3. Go to http://localhost:3005
 
 # Development
 
