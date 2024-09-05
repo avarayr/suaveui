@@ -33,9 +33,9 @@ self.addEventListener("push", (event) => {
       /**
        * If the client on the page, don't show the notification
        */
-      if (anyVisibleClients) {
-        return;
-      }
+      // if (anyVisibleClients) {
+      //   return;
+      // }
 
       await self.registration.showNotification(data.title, {
         body: data.message,

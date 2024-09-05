@@ -3,8 +3,21 @@ import { publicProcedure, router } from "../trpc";
 import { db } from "~/server/db";
 import { createId } from "@paralleldrive/cuid2";
 import { WebPushSubscription } from "~/server/models/WebPush";
+import { VapidKeys } from "~/server/models/VapidKey";
 
 export const notificationRouter = router({
+  vapidKeys: router({
+    generate: publicProcedure.mutation(async () => {
+      const vapidKeys = await VapidKeys.generate();
+      return { publicKey: vapidKeys.publicKey };
+    }),
+
+    getPublicKey: publicProcedure.query(async () => {
+      const vapidKeys = await VapidKeys.get();
+      return vapidKeys ? { publicKey: vapidKeys.publicKey } : null;
+    }),
+  }),
+
   /**
    * Stores web-push Push subscription data in the database
    */

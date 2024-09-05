@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { db } from "../db";
 import webPushAPI from "web-push";
+import { VapidKeys } from "./VapidKey";
 
 export const WebPushSubscriptionSchema = z.object({
   id: z.string(),
@@ -22,33 +23,23 @@ type Notification = {
 
 export const WebPush = {
   sendNotification: async (message: Notification) => {
-    // Get all notifications
+    const vapidKeys = await VapidKeys.get();
+    if (!vapidKeys) {
+      throw new Error("VAPID keys not found. Please generate them first.");
+    }
+
     const subscriptions = (await db.query("web-push-subscriptions").get<WebPushSubscription>()).getValues();
 
     for (const subscription of subscriptions) {
       const { expirationTime } = subscription;
 
-      // Check expiration time
-      // Expiration is a number
       if (expirationTime && expirationTime < Date.now()) {
-        // Delete the subscription
         await db.ref(`web-push-subscriptions/${subscription.id}`).remove();
         continue;
       }
 
-      if (!import.meta.env.VITE_VAPID_PUBLIC || typeof import.meta.env.VITE_VAPID_PUBLIC !== "string") {
-        throw new Error("VITE_VAPID_PUBLIC environment variable not set.");
-      }
-
-      if (!process.env.VAPID_PRIVATE || typeof process.env.VAPID_PRIVATE !== "string") {
-        throw new Error("VAPID_PRIVATE environment variable not set.");
-      }
       try {
-        webPushAPI.setVapidDetails(
-          `mailto:example@example.com`,
-          import.meta.env.VITE_VAPID_PUBLIC,
-          process.env.VAPID_PRIVATE,
-        );
+        webPushAPI.setVapidDetails("mailto:example@example.com", vapidKeys.publicKey, vapidKeys.privateKey);
 
         const result = await webPushAPI.sendNotification(subscription, JSON.stringify(message));
 

@@ -6,6 +6,7 @@ import { MessageSchemaWithID, type TMessageWithID } from "../schema/Message";
 import { Persona } from "./Persona";
 import invariant from "~/utils/invariant";
 import { ai } from "../lib/ai";
+import { WebPush } from "./WebPush";
 
 /**
  * CRUD operations for the chats collection
@@ -303,6 +304,12 @@ export const Chat = {
           messageId: messageId,
           content: aiResponse,
           isGenerating: false,
+        });
+
+        // Send a notification to the user
+        void WebPush.sendNotification({
+          title: persona.name,
+          message: aiResponse,
         });
 
         return aiResponse;

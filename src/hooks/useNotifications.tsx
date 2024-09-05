@@ -2,6 +2,7 @@ import { atom, useAtom } from "jotai";
 import { useCallback, useEffect } from "react";
 import { toast } from "sonner";
 import { useLocalStorage } from "usehooks-ts";
+import { WebPushSubscription } from "~/server/models/WebPush";
 import { api } from "~/trpc/react";
 import { ClientConsts } from "~/utils/client-consts";
 import { base64ToUint8Array } from "~/utils/string";
@@ -24,29 +25,43 @@ export const useNotifications = () => {
   const dbSubscribeMutation = api.notification.storeSubscription.useMutation();
   const dbUnsubscribeMutation = api.notification.removeSubscription.useMutation();
 
+  const utils = api.useUtils();
+  const vapidKeysGenerateMutation = api.notification.vapidKeys.generate.useMutation();
+
   const subscribeSW = useCallback(async () => {
-    if (!import.meta.env.VITE_VAPID_PUBLIC || typeof import.meta.env.VITE_VAPID_PUBLIC !== "string") {
-      throw new Error("Environment variables supplied not sufficient.");
+    try {
+      const vapidKeys = await utils.notification.vapidKeys.getPublicKey.fetch();
+      if (!vapidKeys) {
+        throw new Error("VAPID keys not found. Please try again.");
+      }
+
+      if (!registration) {
+        throw new Error("No SW registration available.");
+      }
+
+      const sub = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: base64ToUint8Array(vapidKeys.publicKey),
+      });
+
+      const { id } = await dbSubscribeMutation.mutateAsync({
+        subscription: JSON.parse(JSON.stringify(sub)) as WebPushSubscription,
+      });
+
+      setSubscription(sub);
+      setDBSubscriptionID(id);
+      console.log("Web push subscribed!");
+    } catch (error) {
+      console.error("Failed to subscribe to web push:", error);
+      throw error;
     }
-    if (!registration) {
-      console.error("No SW registration available.");
-      return;
-    }
-    const sub = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: base64ToUint8Array(import.meta.env.VITE_VAPID_PUBLIC),
-    });
-
-    const { id } = await dbSubscribeMutation.mutateAsync({
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unnecessary-type-assertion
-      subscription: JSON.parse(JSON.stringify(sub)) as any,
-    });
-
-    setSubscription(sub);
-
-    setDBSubscriptionID(id);
-    console.log("Web push subscribed!");
-  }, [registration, dbSubscribeMutation, setSubscription, setDBSubscriptionID]);
+  }, [
+    utils.notification.vapidKeys.getPublicKey,
+    registration,
+    dbSubscribeMutation,
+    setSubscription,
+    setDBSubscriptionID,
+  ]);
 
   const unsubscribeSW = useCallback(async () => {
     if (!subscription || !dbSubscriptionID) {
@@ -81,9 +96,6 @@ export const useNotifications = () => {
           const granted = permission === "granted";
 
           if (permission === "denied") {
-            /**
-             * Check if we're in secure context
-             */
             if (window.location.protocol !== "https:") {
               throw new Error(
                 `Notifications permission has been denied. It seems like you're not using a HTTPS connection, which is required for notifications to work.`,
@@ -96,6 +108,12 @@ export const useNotifications = () => {
           }
 
           if (granted) {
+            // Generate VAPID keys if they don't exist
+            const vapidKeys = await utils.notification.vapidKeys.getPublicKey.fetch();
+            if (!vapidKeys) {
+              await vapidKeysGenerateMutation.mutateAsync();
+            }
+
             await subscribeSW();
             setNotificationsEnabled(true);
           } else {
@@ -118,8 +136,13 @@ export const useNotifications = () => {
         error: (err: Error) => `${err.message}`,
       });
     },
-
-    [setNotificationsEnabled, subscribeSW, unsubscribeSW],
+    [
+      setNotificationsEnabled,
+      subscribeSW,
+      unsubscribeSW,
+      utils.notification.vapidKeys.getPublicKey,
+      vapidKeysGenerateMutation,
+    ],
   );
 
   /**
