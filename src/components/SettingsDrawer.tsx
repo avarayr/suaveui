@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { BottomSheet } from "./primitives/BottomSheet";
 import { TabList, TabListProps } from "./primitives/TabList";
-import { Bell, Cog, LucideLampWallDown, Settings, Settings2 } from "lucide-react";
+import { Bell, Cog, Globe, Settings } from "lucide-react";
 import { GeneralTab } from "./settings/tabs/GeneralTab";
+import { RemoteAccessTab } from "./settings/tabs/RemoteAccessTab";
 
 type Props = {
   isOpen: boolean;
@@ -16,6 +17,12 @@ export const SettingsDrawer = (props: Props) => {
       id: "general",
       icon: <Cog className="mr-2 size-4" />,
       children: <GeneralTab />,
+    },
+    {
+      label: "Remote Access",
+      id: "remote-access",
+      icon: <Globe className="mr-2 size-4" />,
+      children: <RemoteAccessTab />,
     },
     {
       label: "Notifications",
