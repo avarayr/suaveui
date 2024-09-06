@@ -4,7 +4,8 @@ SuaveUI is an experimental PWA chat UI built specifically for interacting with L
 
 # Demo GIF
 
-<img width="280" src="https://github.com/user-attachments/assets/3447806f-c05a-4d38-a5dd-94f1fda7d6a6" />
+<img width="280" src="[https://github.com/user-attachments/assets/3447806f-c05a-4d38-a5dd-94f1fda7d6a6](https://github.com/user-attachments/assets/6446ba15-e13e-44cb-b3f2-c060f1333a38)" />
+
 
 # Running (using Docker 🐳)
 
