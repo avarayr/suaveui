@@ -25,15 +25,19 @@ const NUM_PARTICLES = 100;
 export const VideoCallModal = ({ isOpen, onClose }: VideoCallModalProps) => {
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [shouldSendMessage, setShouldSendMessage] = useState(false);
   const {
     transcript,
     interimTranscript,
+    finalTranscript,
     isListening: isSpeechListening,
     isSpeaking: isSpeechSpeaking,
     startListening,
     stopListening,
     timeoutProgress,
+    resetFinalTranscript,
   } = useSpeechRecognition();
+
   const { speak } = useSpeechSynthesis();
   const lastTranscriptRef = useRef("");
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -50,28 +54,51 @@ export const VideoCallModal = ({ isOpen, onClose }: VideoCallModalProps) => {
 
   const handleSendMessage = useCallback(
     async (message: string) => {
+      console.log("Attempting to send message:", message);
       setIsListening(false);
+      try {
+        const response = await sendMessageMutation.mutateAsync({
+          chatId: "current-chat-id", // Replace with actual chat ID
+          content: message,
+        });
+        console.log("Message sent successfully:", response);
 
-      const response = await sendMessageMutation.mutateAsync({
-        chatId: "current-chat-id", // Replace with actual chat ID
-        content: message,
-      });
-
-      if (response.followMessageId) {
-        const aiResponse = await waitForAIResponse(response.followMessageId);
-        if (aiResponse) {
-          setIsSpeaking(true);
-          await speak(aiResponse);
-          setIsSpeaking(false);
+        if (response.followMessageId) {
+          const aiResponse = await waitForAIResponse(response.followMessageId);
+          if (aiResponse) {
+            setIsSpeaking(true);
+            await speak(aiResponse);
+            setIsSpeaking(false);
+          }
         }
+      } catch (error) {
+        console.error("Error sending message:", error);
       }
 
       if (isOpen) {
         setIsListening(true);
+        startListening();
       }
+      resetFinalTranscript();
     },
-    [isOpen, sendMessageMutation, speak],
+    [isOpen, sendMessageMutation, speak, startListening, resetFinalTranscript],
   );
+
+  useEffect(() => {
+    console.log("Current state:", { timeoutProgress, finalTranscript, isSpeechSpeaking });
+    if (timeoutProgress > 99.99 && finalTranscript && !isSpeechSpeaking) {
+      console.log("Setting shouldSendMessage to true");
+      setShouldSendMessage(true);
+    }
+  }, [timeoutProgress, finalTranscript, isSpeechSpeaking]);
+
+  useEffect(() => {
+    if (shouldSendMessage && finalTranscript) {
+      console.log("Triggering handleSendMessage");
+      void handleSendMessage(finalTranscript);
+      setShouldSendMessage(false);
+    }
+  }, [shouldSendMessage, finalTranscript, handleSendMessage]);
 
   const initializeParticles = useCallback(() => {
     particlesRef.current = Array.from({ length: NUM_PARTICLES }, () => ({
@@ -198,6 +225,20 @@ export const VideoCallModal = ({ isOpen, onClose }: VideoCallModalProps) => {
   };
 
   useEffect(() => {
+    if (timeoutProgress === 0 && finalTranscript) {
+      setShouldSendMessage(true);
+    }
+  }, [timeoutProgress, finalTranscript]);
+
+  useEffect(() => {
+    if (shouldSendMessage && finalTranscript) {
+      console.log("Sending message:", finalTranscript);
+      void handleSendMessage(finalTranscript);
+      setShouldSendMessage(false);
+    }
+  }, [shouldSendMessage, finalTranscript, handleSendMessage]);
+
+  useEffect(() => {
     if (isOpen) {
       setIsListening(true);
       startListening();
@@ -212,13 +253,6 @@ export const VideoCallModal = ({ isOpen, onClose }: VideoCallModalProps) => {
       cleanupAudioAnalyser();
     };
   }, [isOpen, setupAudioAnalyser, startListening, stopListening, cleanupAudioAnalyser]);
-
-  useEffect(() => {
-    if (transcript && transcript !== lastTranscriptRef.current) {
-      lastTranscriptRef.current = transcript;
-      void handleSendMessage(transcript);
-    }
-  }, [handleSendMessage, transcript]);
 
   const [displayedWords, setDisplayedWords] = useState<string[]>([]);
 
