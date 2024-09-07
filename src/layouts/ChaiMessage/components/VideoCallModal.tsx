@@ -54,13 +54,15 @@ export const VideoCallModal = ({ isOpen, onClose, chatId }: VideoCallModalProps)
   const transcriptBoxRef = useRef<HTMLDivElement>(null);
   const sentMessageRef = useRef<string | null>(null);
   const [isThinking, setIsThinking] = useState(false);
-
+  const [displayedWords, setDisplayedWords] = useState<string[]>([]);
   const sendMessageMutation = api.chat.sendMessage.useMutation();
 
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const handleSendMessage = useCallback(
     async (message: string) => {
+      if (!isOpen) return; // Add this line to prevent processing if the modal is closed
+
       stopListening();
 
       try {
@@ -70,16 +72,20 @@ export const VideoCallModal = ({ isOpen, onClose, chatId }: VideoCallModalProps)
           content: message.trim(),
         });
 
-        if (response.followMessageId) {
+        if (response.followMessageId && isOpen) {
+          // Add isOpen check here
           const result = await tryFollowMessageGeneration(response.followMessageId);
 
-          setDisplayedWords(result?.split(" ") || []);
+          if (isOpen) {
+            // Add isOpen check here
+            setDisplayedWords(result?.split(" ") || []);
 
-          if (result) {
-            setIsSpeaking(true);
-            await speak(result);
+            if (result) {
+              setIsSpeaking(true);
+              await speak(result);
+            }
+            setIsSpeaking(false);
           }
-          setIsSpeaking(false);
         }
       } catch (error) {
         console.error("Error sending message:", error);
@@ -97,10 +103,10 @@ export const VideoCallModal = ({ isOpen, onClose, chatId }: VideoCallModalProps)
       sentMessageRef.current = null;
     },
     [
+      isOpen,
       stopListening,
       resetInterimTranscript,
       resetFinalTranscript,
-      isOpen,
       sendMessageMutation,
       chatId,
       tryFollowMessageGeneration,
@@ -236,23 +242,30 @@ export const VideoCallModal = ({ isOpen, onClose, chatId }: VideoCallModalProps)
     }
   }, [timeoutProgress, finalTranscript, isTTSSpeaking, handleSendMessage]);
 
+  const cleanupAll = useCallback(() => {
+    stopListening();
+    cleanupSpeechRecognition();
+    cleanupAudioAnalyser();
+    setDisplayedWords([]);
+    setIsThinking(false);
+    setIsSpeaking(false);
+    sentMessageRef.current = null;
+    window.speechSynthesis.cancel();
+  }, [stopListening, cleanupSpeechRecognition, cleanupAudioAnalyser]);
+
   useEffect(() => {
     if (isOpen) {
       startListening();
       void setupAudioAnalyser();
     } else {
-      cleanupSpeechRecognition();
-      stopListening();
-      cleanupAudioAnalyser();
+      console.log("Closing video call modal");
+      cleanupAll();
     }
-    return () => {
-      stopListening();
-      cleanupSpeechRecognition();
-      cleanupAudioAnalyser();
-    };
-  }, [isOpen, setupAudioAnalyser, startListening, stopListening, cleanupAudioAnalyser, cleanupSpeechRecognition]);
 
-  const [displayedWords, setDisplayedWords] = useState<string[]>([]);
+    return () => {
+      cleanupAll();
+    };
+  }, [isOpen, setupAudioAnalyser, startListening, cleanupAll]);
 
   useEffect(() => {
     const allWords = (transcript + " " + interimTranscript).trim().split(" ");

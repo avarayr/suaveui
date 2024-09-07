@@ -15,7 +15,9 @@ export const useSpeechRecognition = () => {
   const animationFrameRef = useRef<number | null>(null);
   const finalTranscriptRef = useRef("");
 
-  const TIMEOUT_DURATION = 3500;
+  const audioContextRef = useRef<AudioContext | null>(null);
+
+  const TIMEOUT_DURATION = 2500;
 
   const createRecognitionObject = useCallback(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -55,6 +57,7 @@ export const useSpeechRecognition = () => {
   const stopListening = useCallback(() => {
     if (recognitionRef.current) {
       recognitionRef.current.stop();
+      recognitionRef.current.abort();
       recognitionRef.current = null; // Destroy the recognition object
     }
     setIsListening(false);
@@ -138,6 +141,7 @@ export const useSpeechRecognition = () => {
   const cleanup = useCallback(() => {
     stopListening();
     if (recognitionRef.current) {
+      recognitionRef.current.stop();
       recognitionRef.current.abort(); // Abort any ongoing recognition
       recognitionRef.current = null;
     }
