@@ -58,14 +58,24 @@ export function useMessageGeneration(chatId: string) {
 
         abortControllers.current.set(messageId, new AbortController());
 
-        const fetchResult = await utils.chat.followMessage.fetch({ chatId, messageId });
+        const fetchResult = await utils.chat.followMessage.fetch(
+          { chatId, messageId },
+          {
+            signal: abortControllers.current.get(messageId)?.signal,
+          },
+        );
+
+        // Get the current message content before appending new chunks
+        const currentMessage = utils.chat.getMessages.getData(queryOpts)?.messages.find((m) => m.id === messageId);
+        result = currentMessage?.content || "";
+
         for await (const chunk of fetchResult) {
           if (abortControllers.current.get(messageId)?.signal?.aborted) {
             return;
           }
 
           result += chunk;
-          await editMessageLocally({ messageId, content: chunk, mode: "append", isGenerating: true });
+          await editMessageLocally({ messageId, content: result, mode: "replace", isGenerating: true });
         }
       } catch (e) {
         if (e instanceof DOMException && e.name === "AbortError") {
@@ -73,14 +83,14 @@ export function useMessageGeneration(chatId: string) {
         }
         console.error(e);
       } finally {
-        await editMessageLocally({ messageId, content: "", mode: "append", isGenerating: false });
+        await editMessageLocally({ messageId, content: result, mode: "replace", isGenerating: false });
         abortControllers.current.delete(messageId);
       }
 
       // Return the finished message content
       return result;
     },
-    [chatId, editMessageLocally, utils.chat.followMessage],
+    [chatId, editMessageLocally, utils.chat.followMessage, utils.chat.getMessages, queryOpts],
   );
 
   const followNewMessages = useCallback(
