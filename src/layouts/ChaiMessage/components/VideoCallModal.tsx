@@ -1,12 +1,11 @@
-import { motion, AnimatePresence, useAnimation } from "framer-motion";
-import { useEffect, useState, useRef, useCallback } from "react";
+import { AnimatePresence, motion, useAnimation } from "framer-motion";
+import { Loader2, Mic, Phone, Volume, Volume2 } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { createNoise2D } from "simplex-noise";
+import { useMessageGeneration } from "~/hooks/useMessageGeneration";
 import { useSpeechRecognition } from "~/hooks/useSpeechRecognition";
 import { useSpeechSynthesis } from "~/hooks/useSpeechSynthesis";
 import { api } from "~/trpc/react";
-import { createNoise2D } from "simplex-noise";
-import { Mic, Phone, Volume } from "lucide-react";
-import { ClientConsts } from "~/utils/client-consts";
-import { useMessageGeneration } from "~/hooks/useMessageGeneration";
 
 type VideoCallModalProps = {
   isOpen: boolean;
@@ -28,23 +27,22 @@ const NUM_PARTICLES = 100;
 export const VideoCallModal = ({ isOpen, onClose, chatId }: VideoCallModalProps) => {
   const { tryFollowMessageGeneration } = useMessageGeneration(chatId);
 
-  const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [shouldSendMessage, setShouldSendMessage] = useState(false);
+
   const {
     transcript,
     interimTranscript,
     finalTranscript,
-    isListening: isSpeechListening,
-    isSpeaking: isSpeechSpeaking,
+    isListening,
     startListening,
     stopListening,
     timeoutProgress,
+    resetInterimTranscript,
     resetFinalTranscript,
+    cleanup: cleanupSpeechRecognition,
   } = useSpeechRecognition();
 
-  const { speak } = useSpeechSynthesis();
-  const lastTranscriptRef = useRef("");
+  const { speak, isSpeaking: isTTSSpeaking } = useSpeechSynthesis();
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const dataArrayRef = useRef<Uint8Array | null>(null);
@@ -55,44 +53,61 @@ export const VideoCallModal = ({ isOpen, onClose, chatId }: VideoCallModalProps)
   const noise2D = useRef(createNoise2D());
   const transcriptBoxRef = useRef<HTMLDivElement>(null);
   const sentMessageRef = useRef<string | null>(null);
+  const [isThinking, setIsThinking] = useState(false);
 
   const sendMessageMutation = api.chat.sendMessage.useMutation();
-  const utils = api.useUtils();
 
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const handleSendMessage = useCallback(
     async (message: string) => {
-      console.log("Attempting to send message:", message);
-      setIsListening(false);
+      stopListening();
+
       try {
+        setIsThinking(true);
         const response = await sendMessageMutation.mutateAsync({
           chatId,
-          content: message,
+          content: message.trim(),
         });
-        console.log("Message sent successfully:", response);
 
         if (response.followMessageId) {
-          console.log("Following message:", response.followMessageId);
           const result = await tryFollowMessageGeneration(response.followMessageId);
-          console.log("Message generation result:", result);
-          // speak the result
+
+          setDisplayedWords(result?.split(" ") || []);
+
           if (result) {
+            setIsSpeaking(true);
             await speak(result);
           }
+          setIsSpeaking(false);
         }
       } catch (error) {
         console.error("Error sending message:", error);
+      } finally {
+        setIsThinking(false);
       }
 
+      resetInterimTranscript();
+      resetFinalTranscript();
+
       if (isOpen) {
-        setIsListening(true);
+        console.log("Starting to listen again");
         startListening();
       }
-      resetFinalTranscript();
+
       sentMessageRef.current = null;
     },
-    [chatId, isOpen, sendMessageMutation, startListening, resetFinalTranscript, tryFollowMessageGeneration],
+    [
+      stopListening,
+      resetInterimTranscript,
+      resetFinalTranscript,
+      isOpen,
+      sendMessageMutation,
+      chatId,
+      tryFollowMessageGeneration,
+      speak,
+      startListening,
+    ],
   );
 
   const initializeParticles = useCallback(() => {
@@ -212,33 +227,27 @@ export const VideoCallModal = ({ isOpen, onClose, chatId }: VideoCallModalProps)
   }, []);
 
   useEffect(() => {
-    if (timeoutProgress === 0 && finalTranscript) {
-      setShouldSendMessage(true);
-    }
-  }, [timeoutProgress, finalTranscript]);
-
-  useEffect(() => {
-    if (timeoutProgress === 0 && finalTranscript && !isSpeechSpeaking && finalTranscript !== sentMessageRef.current) {
+    if (timeoutProgress === 0 && finalTranscript && !isTTSSpeaking && finalTranscript !== sentMessageRef.current) {
       void handleSendMessage(finalTranscript);
       sentMessageRef.current = finalTranscript;
     }
-  }, [timeoutProgress, finalTranscript, isSpeechSpeaking, handleSendMessage]);
+  }, [timeoutProgress, finalTranscript, isTTSSpeaking, handleSendMessage]);
 
   useEffect(() => {
     if (isOpen) {
-      setIsListening(true);
       startListening();
       void setupAudioAnalyser();
     } else {
-      setIsListening(false);
+      cleanupSpeechRecognition();
       stopListening();
       cleanupAudioAnalyser();
     }
     return () => {
       stopListening();
+      cleanupSpeechRecognition();
       cleanupAudioAnalyser();
     };
-  }, [isOpen, setupAudioAnalyser, startListening, stopListening, cleanupAudioAnalyser]);
+  }, [isOpen, setupAudioAnalyser, startListening, stopListening, cleanupAudioAnalyser, cleanupSpeechRecognition]);
 
   const [displayedWords, setDisplayedWords] = useState<string[]>([]);
 
@@ -313,15 +322,20 @@ export const VideoCallModal = ({ isOpen, onClose, chatId }: VideoCallModalProps)
                 <canvas ref={canvasRef} width={304} height={304} className="absolute inset-0" />
 
                 <div className="z-10 flex flex-col items-center justify-center space-y-3">
-                  {isSpeechListening ? (
+                  {isListening ? (
                     <>
                       <Mic className="h-12 w-12 text-[#e0e0e0]" />
                       <span className="text-lg font-medium text-[#e0e0e0]">Listening...</span>
                     </>
                   ) : isSpeaking ? (
                     <>
-                      <Volume className="h-12 w-12 text-[#e0e0e0]" />
+                      <Volume2 className="h-12 w-12 text-[#e0e0e0]" />
                       <span className="text-lg font-medium text-[#e0e0e0]">Speaking...</span>
+                    </>
+                  ) : isThinking ? (
+                    <>
+                      <Loader2 className="h-12 w-12 animate-spin text-[#e0e0e0]" />
+                      <span className="text-lg font-medium text-[#e0e0e0]">Thinking</span>
                     </>
                   ) : (
                     <>
@@ -345,7 +359,18 @@ export const VideoCallModal = ({ isOpen, onClose, chatId }: VideoCallModalProps)
                 Transcript
               </div>
               <div ref={transcriptBoxRef} className="scrollbar-hide max-h-24 overflow-y-auto px-4 py-3">
-                <p className="text-sm text-[#e0e0e0]">{displayedWords.join(" ")}</p>
+                {displayedWords.length > 0 && displayedWords?.[0]?.trim() !== "" ? (
+                  <p className="text-sm text-[#e0e0e0]">{displayedWords.join(" ")}</p>
+                ) : (
+                  <motion.div
+                    className="flex h-4 w-6 animate-pulse rounded-xl bg-white/30"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    <span className="m-auto" />
+                  </motion.div>
+                )}
               </div>
             </motion.div>
           </motion.div>

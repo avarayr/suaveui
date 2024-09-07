@@ -25,6 +25,7 @@ export interface TextingProps {
   onMessageEditDismiss: (messageId: string) => void;
   onMessageEditSubmit: (messageId: string, newContent: string) => void | Promise<void>;
   onLoadMore?: () => Promise<void>;
+  onRefetchChat?: () => Promise<void>;
   onMessageInterrupt: (messageId: string) => Promise<void>;
 }
 

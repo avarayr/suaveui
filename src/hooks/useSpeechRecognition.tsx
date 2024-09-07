@@ -7,7 +7,6 @@ export const useSpeechRecognition = () => {
   const [transcript, setTranscript] = useState("");
   const [interimTranscript, setInterimTranscript] = useState("");
   const [isListening, setIsListening] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
   const [timeoutProgress, setTimeoutProgress] = useState(100);
 
   const recognitionRef = useRef<SpeechRecognition | null>(null);
@@ -32,51 +31,51 @@ export const useSpeechRecognition = () => {
   }, []);
 
   const startListening = useCallback(() => {
+    setIsListening(true);
+    console.log("set is listening to true");
     if (!recognitionRef.current) {
       recognitionRef.current = createRecognitionObject();
     }
-    if (recognitionRef.current && !isListening) {
+
+    if (recognitionRef.current) {
       try {
         recognitionRef.current.start();
-        setIsListening(true);
-        setIsSpeaking(true);
-        lastSpeechTimestamp.current = Date.now();
-        setTimeoutProgress(100);
       } catch (error) {
-        console.error("Failed to start speech recognition:", error);
+        if (!(error as Error).message.includes("recognition has already started.")) {
+          // serious error
+          console.error("Error starting speech recognition", error);
+          return;
+        }
       }
+
+      lastSpeechTimestamp.current = Date.now();
+      setTimeoutProgress(100);
     }
-  }, [createRecognitionObject, isListening]);
+  }, [createRecognitionObject]);
 
   const stopListening = useCallback(() => {
-    if (recognitionRef.current && isListening) {
-      try {
-        recognitionRef.current.stop();
-        setIsListening(false);
-        setIsSpeaking(false);
-        if (timeoutRef.current) {
-          clearTimeout(timeoutRef.current);
-        }
-        if (animationFrameRef.current) {
-          cancelAnimationFrame(animationFrameRef.current);
-        }
-      } catch (error) {
-        console.error("Failed to stop speech recognition:", error);
-      }
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      recognitionRef.current = null; // Destroy the recognition object
     }
-  }, [isListening]);
+    setIsListening(false);
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+    }
+  }, []);
 
   const updateTimeoutProgress = useCallback(() => {
     const timeSinceLastSpeech = Date.now() - lastSpeechTimestamp.current;
     const newProgress = Math.max(0, 100 - (timeSinceLastSpeech / TIMEOUT_DURATION) * 100);
     setTimeoutProgress(newProgress);
 
-    if (newProgress > 0 && isSpeaking) {
+    if (newProgress > 0) {
       animationFrameRef.current = requestAnimationFrame(updateTimeoutProgress);
-    } else {
-      setIsSpeaking(false);
     }
-  }, [isSpeaking]);
+  }, []);
 
   useEffect(() => {
     const recognition = recognitionRef.current;
@@ -96,7 +95,6 @@ export const useSpeechRecognition = () => {
       setTranscript((prev) => prev + finalTranscriptRef.current);
       setInterimTranscript(interimTranscript);
 
-      setIsSpeaking(true);
       lastSpeechTimestamp.current = Date.now();
       setTimeoutProgress(100);
 
@@ -116,10 +114,10 @@ export const useSpeechRecognition = () => {
     };
 
     const handleEnd = () => {
-      if (isListening && isSpeaking) {
+      if (isListening) {
         console.log("Speech recognition ended. Restarting...");
         recognition.start();
-      } else if (!isSpeaking) {
+      } else {
         setIsListening(false);
       }
     };
@@ -132,17 +130,21 @@ export const useSpeechRecognition = () => {
       recognition.removeEventListener("result", handleResult);
       recognition.removeEventListener("error", handleError);
       recognition.removeEventListener("end", handleEnd);
-      stopListening();
     };
-  }, [isListening, isSpeaking, startListening, stopListening, updateTimeoutProgress]);
+  }, [isListening, startListening, stopListening, updateTimeoutProgress]);
 
-  useEffect(() => {
-    return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-        recognitionRef.current = null;
-      }
-    };
+  // Add a cleanup function
+  const cleanup = useCallback(() => {
+    stopListening();
+    if (recognitionRef.current) {
+      recognitionRef.current.abort(); // Abort any ongoing recognition
+      recognitionRef.current = null;
+    }
+  }, [stopListening]);
+
+  const resetInterimTranscript = useCallback(() => {
+    setInterimTranscript("");
+    setTranscript("");
   }, []);
 
   const resetFinalTranscript = useCallback(() => {
@@ -153,11 +155,12 @@ export const useSpeechRecognition = () => {
     transcript,
     interimTranscript,
     isListening,
-    isSpeaking,
     startListening,
     stopListening,
     timeoutProgress,
     finalTranscript: finalTranscriptRef.current,
+    resetInterimTranscript,
     resetFinalTranscript,
+    cleanup,
   };
 };

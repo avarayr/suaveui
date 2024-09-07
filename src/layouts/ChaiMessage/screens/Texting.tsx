@@ -16,6 +16,7 @@ import { ChatBubble } from "../components/ChatBubble";
 import { ChatInput } from "../components/ChatInput";
 import { ChaiColors } from "../types";
 import { VideoCallButton } from "../components/VideoCallButton";
+import { api } from "~/trpc/react";
 
 export const Texting = React.memo(
   ({
@@ -34,6 +35,7 @@ export const Texting = React.memo(
     onMessageEditSubmit,
     onMessageInterrupt,
     onLoadMore,
+    onRefetchChat,
   }: TextingProps) => {
     const scrollerRef = useRef<VListHandle>(null);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -105,8 +107,9 @@ export const Texting = React.memo(
       return onMessageSend(...props);
     };
 
-    const handleVideoCallStart = () => {
-      // Implement video call start logic
+    const handleVideoCallEnd = () => {
+      // Re-fetch the chat
+      return onRefetchChat?.();
     };
 
     return (
@@ -140,7 +143,7 @@ export const Texting = React.memo(
           </motion.div>
 
           {/* Videocall */}
-          <VideoCallButton onVideoCallStart={handleVideoCallStart} chatId={data?.chat?.id ?? ""} />
+          <VideoCallButton onVideoCallEnd={() => void handleVideoCallEnd()} chatId={data?.chat?.id ?? ""} />
         </section>
 
         {/* Conversation */}

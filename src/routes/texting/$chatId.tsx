@@ -299,6 +299,10 @@ function TextingPage() {
     [chatId, continueGeneratingMutation],
   );
 
+  const handleRefetchChat = useCallback(async () => {
+    await utils.chat.getMessages.invalidate(queryOpts);
+  }, [utils.chat.getMessages, queryOpts]);
+
   if (typeof chatId !== "string") {
     return null;
   }
@@ -320,6 +324,7 @@ function TextingPage() {
       onMessageInterrupt={handleMessageInterrupt}
       editingMessageId={editingMessageId}
       onLoadMore={handleLoadMore}
+      onRefetchChat={handleRefetchChat}
       moreMessagesAvailable={moreMessagesAvailable}
       loading={false}
     />
