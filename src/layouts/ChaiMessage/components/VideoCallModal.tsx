@@ -181,6 +181,10 @@ export const VideoCallModal = ({ isOpen, onClose, chatId }: VideoCallModalProps)
     const ctx = canvasRef.current.getContext("2d");
     if (!ctx) return;
 
+    // Set canvas size to match its display size
+    canvasRef.current.width = canvasRef.current.offsetWidth;
+    canvasRef.current.height = canvasRef.current.offsetHeight;
+
     analyserRef.current.getByteFrequencyData(dataArrayRef.current);
     const average = dataArrayRef.current.reduce((a, b) => a + b) / dataArrayRef.current.length;
     const amplitude = Math.max(0.1, average / 128); // Ensure a minimum amplitude of 0.1
@@ -287,11 +291,11 @@ export const VideoCallModal = ({ isOpen, onClose, chatId }: VideoCallModalProps)
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
-            className="flex flex-col items-center"
+            className="flex w-full max-w-sm flex-col items-center px-4 sm:max-w-md md:max-w-lg"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Main circle with outer progress ring */}
-            <div className="relative flex h-80 w-80 items-center justify-center">
+            <div className="relative flex h-60 w-60 items-center justify-center sm:h-72 sm:w-72 md:h-80 md:w-80">
               {/* Progress ring */}
               <svg className="absolute inset-0 h-full w-full -rotate-90">
                 <AnimatePresence>
@@ -299,17 +303,15 @@ export const VideoCallModal = ({ isOpen, onClose, chatId }: VideoCallModalProps)
                     <motion.circle
                       key="progress-circle"
                       className="text-[#a0a0a0]"
-                      strokeWidth="6"
+                      strokeWidth="12"
                       stroke="currentColor"
                       fill="transparent"
-                      r="158"
-                      cx="160"
-                      cy="160"
+                      r="47%"
+                      cx="50%"
+                      cy="50%"
                       strokeLinecap="round"
-                      strokeDasharray={994}
-                      strokeDashoffset={994 - (timeoutProgress / 100) * 994}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
+                      initial={{ opacity: 0, pathLength: 0 }}
+                      animate={{ opacity: 1, pathLength: timeoutProgress / 100 }}
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.3 }}
                     />
@@ -318,28 +320,28 @@ export const VideoCallModal = ({ isOpen, onClose, chatId }: VideoCallModalProps)
               </svg>
 
               {/* Main circle */}
-              <div className="relative flex h-[304px] w-[304px] items-center justify-center overflow-hidden rounded-full bg-[#1a1a1a] shadow-lg">
-                <canvas ref={canvasRef} width={304} height={304} className="absolute inset-0" />
+              <div className="relative flex h-[95%] w-[95%] items-center justify-center overflow-hidden rounded-full bg-[#1a1a1a] shadow-lg">
+                <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
 
                 <div className="z-10 flex flex-col items-center justify-center space-y-3">
                   {isListening ? (
                     <>
-                      <Mic className="h-12 w-12 text-[#e0e0e0]" />
+                      <Mic className="size-8 text-[#e0e0e0]" />
                       <span className="text-lg font-medium text-[#e0e0e0]">Listening...</span>
                     </>
                   ) : isSpeaking ? (
                     <>
-                      <Volume2 className="h-12 w-12 text-[#e0e0e0]" />
+                      <Volume2 className="size-8 text-[#e0e0e0]" />
                       <span className="text-lg font-medium text-[#e0e0e0]">Speaking...</span>
                     </>
                   ) : isThinking ? (
                     <>
-                      <Loader2 className="h-12 w-12 animate-spin text-[#e0e0e0]" />
+                      <Loader2 className="size-8 animate-spin text-[#e0e0e0]" />
                       <span className="text-lg font-medium text-[#e0e0e0]">Thinking</span>
                     </>
                   ) : (
                     <>
-                      <Phone className="h-12 w-12 text-[#e0e0e0]" />
+                      <Phone className="size-8 text-[#e0e0e0]" />
                       <span className="text-lg font-medium text-[#e0e0e0]">Call Active</span>
                     </>
                   )}
@@ -349,7 +351,7 @@ export const VideoCallModal = ({ isOpen, onClose, chatId }: VideoCallModalProps)
 
             {/* Transcript box */}
             <motion.div
-              className="mt-6 w-96 overflow-hidden rounded-lg bg-[#2a2a2a] shadow-lg"
+              className="mt-6 w-full max-w-xs overflow-hidden rounded-lg bg-[#2a2a2a] shadow-lg sm:max-w-sm md:max-w-md"
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 20, opacity: 0 }}
