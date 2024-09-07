@@ -29,8 +29,10 @@ export const VideoCallModal = ({ isOpen, onClose }: VideoCallModalProps) => {
     transcript,
     interimTranscript,
     isListening: isSpeechListening,
+    isSpeaking: isSpeechSpeaking,
     startListening,
     stopListening,
+    timeoutProgress,
   } = useSpeechRecognition();
   const { speak } = useSpeechSynthesis();
   const lastTranscriptRef = useRef("");
@@ -49,7 +51,6 @@ export const VideoCallModal = ({ isOpen, onClose }: VideoCallModalProps) => {
   const handleSendMessage = useCallback(
     async (message: string) => {
       setIsListening(false);
-      stopListening();
 
       const response = await sendMessageMutation.mutateAsync({
         chatId: "current-chat-id", // Replace with actual chat ID
@@ -67,10 +68,9 @@ export const VideoCallModal = ({ isOpen, onClose }: VideoCallModalProps) => {
 
       if (isOpen) {
         setIsListening(true);
-        startListening();
       }
     },
-    [isOpen, sendMessageMutation, startListening, stopListening, speak],
+    [isOpen, sendMessageMutation, speak],
   );
 
   const initializeParticles = useCallback(() => {
@@ -198,15 +198,20 @@ export const VideoCallModal = ({ isOpen, onClose }: VideoCallModalProps) => {
   };
 
   useEffect(() => {
-    if (isOpen && !isSpeaking) {
+    if (isOpen) {
       setIsListening(true);
       startListening();
       void setupAudioAnalyser();
     } else {
+      setIsListening(false);
+      stopListening();
       cleanupAudioAnalyser();
     }
-    return cleanupAudioAnalyser;
-  }, [isOpen, isSpeaking, setupAudioAnalyser, startListening, cleanupAudioAnalyser]);
+    return () => {
+      stopListening();
+      cleanupAudioAnalyser();
+    };
+  }, [isOpen, setupAudioAnalyser, startListening, stopListening, cleanupAudioAnalyser]);
 
   useEffect(() => {
     if (transcript && transcript !== lastTranscriptRef.current) {
@@ -249,6 +254,44 @@ export const VideoCallModal = ({ isOpen, onClose }: VideoCallModalProps) => {
             {/* Main circle */}
             <div className="relative flex h-80 w-80 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-red-500 shadow-lg">
               <canvas ref={canvasRef} width={320} height={320} className="absolute inset-0" />
+
+              {/* Progress bar */}
+              <svg className="absolute inset-0 h-full w-full -rotate-90">
+                <AnimatePresence>
+                  {timeoutProgress <= 90 && (
+                    <motion.g
+                      key="progress-bar"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <circle
+                        className="text-gray-300"
+                        strokeWidth="4"
+                        stroke="currentColor"
+                        fill="transparent"
+                        r="156"
+                        cx="160"
+                        cy="160"
+                      />
+                      <circle
+                        className="text-blue-600"
+                        strokeWidth="4"
+                        strokeDasharray={980}
+                        strokeDashoffset={980 - (timeoutProgress / 100) * 980}
+                        strokeLinecap="round"
+                        stroke="currentColor"
+                        fill="transparent"
+                        r="156"
+                        cx="160"
+                        cy="160"
+                      />
+                    </motion.g>
+                  )}
+                </AnimatePresence>
+              </svg>
+
               <motion.div
                 className="z-10 flex flex-col items-center justify-center space-y-2"
                 initial={{ opacity: 0, y: 20 }}

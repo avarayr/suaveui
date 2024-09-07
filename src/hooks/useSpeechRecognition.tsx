@@ -7,7 +7,15 @@ export const useSpeechRecognition = () => {
   const [transcript, setTranscript] = useState("");
   const [interimTranscript, setInterimTranscript] = useState("");
   const [isListening, setIsListening] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [timeoutProgress, setTimeoutProgress] = useState(100);
+
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const timeoutRef = useRef<number | null>(null);
+  const lastSpeechTimestamp = useRef<number>(Date.now());
+  const animationFrameRef = useRef<number | null>(null);
+
+  const TIMEOUT_DURATION = 5000; // 5 seconds
 
   const createRecognitionObject = useCallback(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -30,6 +38,9 @@ export const useSpeechRecognition = () => {
       try {
         recognitionRef.current.start();
         setIsListening(true);
+        setIsSpeaking(true);
+        lastSpeechTimestamp.current = Date.now();
+        setTimeoutProgress(100);
       } catch (error) {
         console.error("Failed to start speech recognition:", error);
       }
@@ -41,11 +52,30 @@ export const useSpeechRecognition = () => {
       try {
         recognitionRef.current.stop();
         setIsListening(false);
+        setIsSpeaking(false);
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
+        if (animationFrameRef.current) {
+          cancelAnimationFrame(animationFrameRef.current);
+        }
       } catch (error) {
         console.error("Failed to stop speech recognition:", error);
       }
     }
   }, [isListening]);
+
+  const updateTimeoutProgress = useCallback(() => {
+    const timeSinceLastSpeech = Date.now() - lastSpeechTimestamp.current;
+    const newProgress = Math.max(0, 100 - (timeSinceLastSpeech / TIMEOUT_DURATION) * 100);
+    setTimeoutProgress(newProgress);
+
+    if (newProgress > 0 && isSpeaking) {
+      animationFrameRef.current = requestAnimationFrame(updateTimeoutProgress);
+    } else {
+      setIsSpeaking(false);
+    }
+  }, [isSpeaking]);
 
   useEffect(() => {
     const recognition = recognitionRef.current;
@@ -65,6 +95,19 @@ export const useSpeechRecognition = () => {
 
       setTranscript((prev) => prev + finalTranscript);
       setInterimTranscript(interimTranscript);
+
+      setIsSpeaking(true);
+      lastSpeechTimestamp.current = Date.now();
+      setTimeoutProgress(100);
+
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+
+      animationFrameRef.current = requestAnimationFrame(updateTimeoutProgress);
     };
 
     const handleError = (event: SpeechRecognitionErrorEvent) => {
@@ -73,9 +116,11 @@ export const useSpeechRecognition = () => {
     };
 
     const handleEnd = () => {
-      if (isListening) {
+      if (isListening && isSpeaking) {
         console.log("Speech recognition ended. Restarting...");
-        startListening();
+        recognition.start();
+      } else if (!isSpeaking) {
+        setIsListening(false);
       }
     };
 
@@ -89,7 +134,7 @@ export const useSpeechRecognition = () => {
       recognition.removeEventListener("end", handleEnd);
       stopListening();
     };
-  }, [isListening, startListening, stopListening]);
+  }, [isListening, isSpeaking, startListening, stopListening, updateTimeoutProgress]);
 
   useEffect(() => {
     return () => {
@@ -104,7 +149,9 @@ export const useSpeechRecognition = () => {
     transcript,
     interimTranscript,
     isListening,
+    isSpeaking,
     startListening,
     stopListening,
+    timeoutProgress,
   };
 };
