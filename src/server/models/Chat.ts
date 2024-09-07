@@ -269,6 +269,9 @@ export const Chat = {
           })),
       ];
 
+      // Create the StreamBuffer before generating the message
+      ai.createStreamBuffer(messageId);
+
       // Edit the target message to indicate that it's being generated
       await Chat.editMessage({
         chatId: chatId,
@@ -285,37 +288,36 @@ export const Chat = {
         });
       }
 
-      // Generate the response in the background
-      const aiResponse = await ai.chatStream({
-        messageId,
-        messages: contextMessagesLLM,
-        options,
-      });
+      void (async () => {
+        // Generate the response in the background
+        const aiResponse = await ai.chatStream({
+          messageId,
+          messages: contextMessagesLLM,
+          options,
+        });
 
-      // Once finished, edit the message to include the generated text
-      if (!aiResponse?.trim()) {
-        // delete the message
-        await Chat.removeMessage(chatId, messageId);
-        return aiResponse;
-      }
+        // Once finished, edit the message to include the generated text
+        if (!aiResponse?.trim()) {
+          // delete the message
+          await Chat.removeMessage(chatId, messageId);
+          return aiResponse;
+        }
 
-      void Chat.editMessage({
-        chatId: chatId,
-        messageId: messageId,
-        content: aiResponse,
-        isGenerating: false,
-      });
+        void Chat.editMessage({
+          chatId: chatId,
+          messageId: messageId,
+          content: aiResponse,
+          isGenerating: false,
+        });
 
-      // Send a notification to the user
-      void WebPush.sendNotification({
-        title: persona.name,
-        message: aiResponse,
-      });
-
-      return aiResponse;
+        // Send a notification to the user
+        void WebPush.sendNotification({
+          title: persona.name,
+          message: aiResponse,
+        });
+      })();
     } catch (e) {
       console.error("Error generating message in background", e);
-      return null;
     }
   },
 };

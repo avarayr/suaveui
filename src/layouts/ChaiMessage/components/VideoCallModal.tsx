@@ -91,7 +91,6 @@ export const VideoCallModal = ({ isOpen, onClose, chatId }: VideoCallModalProps)
       resetFinalTranscript();
 
       if (isOpen) {
-        console.log("Starting to listen again");
         startListening();
       }
 

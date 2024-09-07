@@ -91,11 +91,8 @@ export const chatRouter = router({
 
       invariant(blankMessage, "Couldn't send the blank message!");
 
-      // Create the StreamBuffer before generating the message
-      ai.createStreamBuffer(blankMessage.id);
-
       // Generate the message in the background
-      void Chat.generateMessageInBackground({
+      await Chat.generateMessageInBackground({
         chatId,
         messageId: blankMessage.id,
       });
@@ -159,7 +156,7 @@ export const chatRouter = router({
       invariant(persona, "Persona does not exist for this chat");
 
       // Generate the steered response in the background
-      void Chat.generateMessageInBackground({
+      await Chat.generateMessageInBackground({
         chatId,
         messageId,
         prefix: "Sure, ",
@@ -194,11 +191,8 @@ export const chatRouter = router({
 
       invariant(blankMessage, "Couldn't send the blank message!");
 
-      // Create the StreamBuffer before generating the message
-      ai.createStreamBuffer(blankMessage.id);
-
       // Generate the response in the background
-      void Chat.generateMessageInBackground({
+      await Chat.generateMessageInBackground({
         chatId,
         messageId: blankMessage.id,
       });
@@ -220,11 +214,8 @@ export const chatRouter = router({
 
       invariant(persona, "Persona does not exist for this chat");
 
-      // Create the StreamBuffer before generating the message
-      ai.createStreamBuffer(messageId);
-
       // Generate the response in the background
-      void Chat.generateMessageInBackground({
+      await Chat.generateMessageInBackground({
         chatId,
         messageId,
       });

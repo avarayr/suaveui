@@ -59,7 +59,6 @@ export function useMessageGeneration(chatId: string) {
         abortControllers.current.set(messageId, new AbortController());
 
         const fetchResult = await utils.chat.followMessage.fetch({ chatId, messageId });
-
         for await (const chunk of fetchResult) {
           if (abortControllers.current.get(messageId)?.signal?.aborted) {
             return;

@@ -32,7 +32,6 @@ export const useSpeechRecognition = () => {
 
   const startListening = useCallback(() => {
     setIsListening(true);
-    console.log("set is listening to true");
     if (!recognitionRef.current) {
       recognitionRef.current = createRecognitionObject();
     }
@@ -83,16 +82,18 @@ export const useSpeechRecognition = () => {
 
     const handleResult = (event: SpeechRecognitionEvent) => {
       let interimTranscript = "";
+      let newFinalTranscript = "";
 
       for (let i = event.resultIndex; i < event.results.length; ++i) {
         if (event.results[i]?.isFinal) {
-          finalTranscriptRef.current += event.results[i]?.[0]?.transcript || "";
+          newFinalTranscript += event.results[i]?.[0]?.transcript || "";
         } else {
           interimTranscript += event.results[i]?.[0]?.transcript || "";
         }
       }
 
-      setTranscript((prev) => prev + finalTranscriptRef.current);
+      setTranscript((prev) => prev + newFinalTranscript);
+      finalTranscriptRef.current += newFinalTranscript;
       setInterimTranscript(interimTranscript);
 
       lastSpeechTimestamp.current = Date.now();
