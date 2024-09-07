@@ -9,12 +9,12 @@ export const useSpeechRecognition = () => {
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [timeoutProgress, setTimeoutProgress] = useState(100);
-  const [finalTranscript, setFinalTranscript] = useState("");
 
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const timeoutRef = useRef<number | null>(null);
   const lastSpeechTimestamp = useRef<number>(Date.now());
   const animationFrameRef = useRef<number | null>(null);
+  const finalTranscriptRef = useRef("");
 
   const TIMEOUT_DURATION = 5000; // 5 seconds
 
@@ -75,14 +75,8 @@ export const useSpeechRecognition = () => {
       animationFrameRef.current = requestAnimationFrame(updateTimeoutProgress);
     } else {
       setIsSpeaking(false);
-      console.log("Speech timeout reached. isSpeaking set to false.");
-      if (finalTranscript) {
-        console.log("Final transcript available:", finalTranscript);
-      } else {
-        console.log("No final transcript available.");
-      }
     }
-  }, [isSpeaking, finalTranscript]);
+  }, [isSpeaking]);
 
   useEffect(() => {
     const recognition = recognitionRef.current;
@@ -90,22 +84,17 @@ export const useSpeechRecognition = () => {
 
     const handleResult = (event: SpeechRecognitionEvent) => {
       let interimTranscript = "";
-      let newFinalTranscript = "";
 
       for (let i = event.resultIndex; i < event.results.length; ++i) {
         if (event.results[i]?.isFinal) {
-          newFinalTranscript += event.results[i]?.[0]?.transcript || "";
+          finalTranscriptRef.current += event.results[i]?.[0]?.transcript || "";
         } else {
           interimTranscript += event.results[i]?.[0]?.transcript || "";
         }
       }
 
-      setTranscript((prev) => prev + newFinalTranscript);
+      setTranscript((prev) => prev + finalTranscriptRef.current);
       setInterimTranscript(interimTranscript);
-
-      if (newFinalTranscript) {
-        setFinalTranscript(newFinalTranscript);
-      }
 
       setIsSpeaking(true);
       lastSpeechTimestamp.current = Date.now();
@@ -156,15 +145,19 @@ export const useSpeechRecognition = () => {
     };
   }, []);
 
+  const resetFinalTranscript = useCallback(() => {
+    finalTranscriptRef.current = "";
+  }, []);
+
   return {
     transcript,
     interimTranscript,
-    finalTranscript,
     isListening,
     isSpeaking,
     startListening,
     stopListening,
     timeoutProgress,
-    resetFinalTranscript: () => setFinalTranscript(""),
+    finalTranscript: finalTranscriptRef.current,
+    resetFinalTranscript,
   };
 };

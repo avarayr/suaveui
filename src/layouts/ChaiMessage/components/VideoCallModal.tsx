@@ -9,6 +9,7 @@ import { Mic, Phone, Volume } from "lucide-react";
 type VideoCallModalProps = {
   isOpen: boolean;
   onClose: () => void;
+  chatId: string;
 };
 
 type Particle = {
@@ -22,7 +23,7 @@ type Particle = {
 
 const NUM_PARTICLES = 100;
 
-export const VideoCallModal = ({ isOpen, onClose }: VideoCallModalProps) => {
+export const VideoCallModal = ({ isOpen, onClose, chatId }: VideoCallModalProps) => {
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [shouldSendMessage, setShouldSendMessage] = useState(false);
@@ -49,6 +50,7 @@ export const VideoCallModal = ({ isOpen, onClose }: VideoCallModalProps) => {
   const animationControls = useAnimation();
   const noise2D = useRef(createNoise2D());
   const transcriptBoxRef = useRef<HTMLDivElement>(null);
+  const sentMessageRef = useRef<string | null>(null);
 
   const sendMessageMutation = api.chat.sendMessage.useMutation();
 
@@ -58,18 +60,13 @@ export const VideoCallModal = ({ isOpen, onClose }: VideoCallModalProps) => {
       setIsListening(false);
       try {
         const response = await sendMessageMutation.mutateAsync({
-          chatId: "current-chat-id", // Replace with actual chat ID
+          chatId,
           content: message,
         });
         console.log("Message sent successfully:", response);
 
         if (response.followMessageId) {
-          const aiResponse = await waitForAIResponse(response.followMessageId);
-          if (aiResponse) {
-            setIsSpeaking(true);
-            await speak(aiResponse);
-            setIsSpeaking(false);
-          }
+          // TODO: follow the message generation (same logic as in texting/$chatId.tsx)
         }
       } catch (error) {
         console.error("Error sending message:", error);
@@ -80,25 +77,10 @@ export const VideoCallModal = ({ isOpen, onClose }: VideoCallModalProps) => {
         startListening();
       }
       resetFinalTranscript();
+      sentMessageRef.current = null; // Reset the sent message ref
     },
-    [isOpen, sendMessageMutation, speak, startListening, resetFinalTranscript],
+    [chatId, isOpen, sendMessageMutation, startListening, resetFinalTranscript],
   );
-
-  useEffect(() => {
-    console.log("Current state:", { timeoutProgress, finalTranscript, isSpeechSpeaking });
-    if (timeoutProgress > 99.99 && finalTranscript && !isSpeechSpeaking) {
-      console.log("Setting shouldSendMessage to true");
-      setShouldSendMessage(true);
-    }
-  }, [timeoutProgress, finalTranscript, isSpeechSpeaking]);
-
-  useEffect(() => {
-    if (shouldSendMessage && finalTranscript) {
-      console.log("Triggering handleSendMessage");
-      void handleSendMessage(finalTranscript);
-      setShouldSendMessage(false);
-    }
-  }, [shouldSendMessage, finalTranscript, handleSendMessage]);
 
   const initializeParticles = useCallback(() => {
     particlesRef.current = Array.from({ length: NUM_PARTICLES }, () => ({
@@ -216,14 +198,6 @@ export const VideoCallModal = ({ isOpen, onClose }: VideoCallModalProps) => {
     }
   }, []);
 
-  const waitForAIResponse = async (messageId: string): Promise<string | null> => {
-    // Implement logic to wait for AI response
-    // This could involve polling or using a websocket connection
-    // For now, we'll use a dummy implementation
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    return "This is a dummy AI response.";
-  };
-
   useEffect(() => {
     if (timeoutProgress === 0 && finalTranscript) {
       setShouldSendMessage(true);
@@ -231,12 +205,11 @@ export const VideoCallModal = ({ isOpen, onClose }: VideoCallModalProps) => {
   }, [timeoutProgress, finalTranscript]);
 
   useEffect(() => {
-    if (shouldSendMessage && finalTranscript) {
-      console.log("Sending message:", finalTranscript);
+    if (timeoutProgress === 0 && finalTranscript && !isSpeechSpeaking && finalTranscript !== sentMessageRef.current) {
       void handleSendMessage(finalTranscript);
-      setShouldSendMessage(false);
+      sentMessageRef.current = finalTranscript;
     }
-  }, [shouldSendMessage, finalTranscript, handleSendMessage]);
+  }, [timeoutProgress, finalTranscript, isSpeechSpeaking, handleSendMessage]);
 
   useEffect(() => {
     if (isOpen) {

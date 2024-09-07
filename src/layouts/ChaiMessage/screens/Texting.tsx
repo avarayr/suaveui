@@ -140,7 +140,7 @@ export const Texting = React.memo(
           </motion.div>
 
           {/* Videocall */}
-          <VideoCallButton onVideoCallStart={handleVideoCallStart} />
+          <VideoCallButton onVideoCallStart={handleVideoCallStart} chatId={data?.chat?.id ?? ""} />
         </section>
 
         {/* Conversation */}
