@@ -15,6 +15,7 @@ import { Avatar } from "../components/Avatar";
 import { ChatBubble } from "../components/ChatBubble";
 import { ChatInput } from "../components/ChatInput";
 import { ChaiColors } from "../types";
+import { VideoCallButton } from "../components/VideoCallButton";
 
 export const Texting = React.memo(
   ({
@@ -104,6 +105,10 @@ export const Texting = React.memo(
       return onMessageSend(...props);
     };
 
+    const handleVideoCallStart = () => {
+      // Implement video call start logic
+    };
+
     return (
       <motion.main
         className="flex h-svh w-dvw flex-col justify-between overflow-x-hidden bg-black text-white antialiased contain-strict"
@@ -135,9 +140,7 @@ export const Texting = React.memo(
           </motion.div>
 
           {/* Videocall */}
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <VideoIcon className="size-7" style={{ color: ChaiColors.LINK }} />
-          </motion.div>
+          <VideoCallButton onVideoCallStart={handleVideoCallStart} />
         </section>
 
         {/* Conversation */}
