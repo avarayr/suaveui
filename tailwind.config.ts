@@ -101,9 +101,14 @@ const config = {
         "scale-from-bottom": "scale-from-bottom 0.6s forwards",
         "scale-from-bottom-left": "scale-from-bottom-left 0.6s forwards",
         "scale-from-bottom-right": "scale-from-bottom-right 0.6s forwards",
+        "spin-slow": "spin-slow 3s linear infinite",
       },
     },
     keyframes: {
+      "spin-slow": {
+        "0%": { transform: "rotate(0deg)" },
+        "100%": { transform: "rotate(360deg)" },
+      },
       pulse: {
         "50%": { opacity: "0.5" },
       },

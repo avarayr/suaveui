@@ -1,10 +1,11 @@
 /// <reference types="dom-speech-recognition" />
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 type SpeechRecognition = typeof window.SpeechRecognition.prototype;
 
 export const useSpeechRecognition = () => {
   const [transcript, setTranscript] = useState("");
+  const [interimTranscript, setInterimTranscript] = useState("");
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
 
@@ -17,7 +18,7 @@ export const useSpeechRecognition = () => {
     const recognition = new SpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = "en-US"; // Set the language, adjust as needed
+    recognition.lang = "en-US";
     return recognition as unknown as SpeechRecognition;
   }, []);
 
@@ -25,53 +26,85 @@ export const useSpeechRecognition = () => {
     if (!recognitionRef.current) {
       recognitionRef.current = createRecognitionObject();
     }
-    if (recognitionRef.current) {
-      setIsListening(true);
-      recognitionRef.current.start();
+    if (recognitionRef.current && !isListening) {
+      try {
+        recognitionRef.current.start();
+        setIsListening(true);
+      } catch (error) {
+        console.error("Failed to start speech recognition:", error);
+      }
     }
-  }, [createRecognitionObject]);
+  }, [createRecognitionObject, isListening]);
 
   const stopListening = useCallback(() => {
-    if (recognitionRef.current) {
-      setIsListening(false);
-      recognitionRef.current.stop();
+    if (recognitionRef.current && isListening) {
+      try {
+        recognitionRef.current.stop();
+        setIsListening(false);
+      } catch (error) {
+        console.error("Failed to stop speech recognition:", error);
+      }
     }
-  }, []);
+  }, [isListening]);
 
   useEffect(() => {
     const recognition = recognitionRef.current;
     if (!recognition) return;
 
-    recognition.onresult = (event) => {
-      const current = event.resultIndex;
-      const transcript = event.results?.[current]?.[0]?.transcript;
-      if (transcript) {
-        setTranscript(transcript);
+    const handleResult = (event: SpeechRecognitionEvent) => {
+      let interimTranscript = "";
+      let finalTranscript = "";
+
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i]?.isFinal) {
+          finalTranscript += event.results[i]?.[0]?.transcript || "";
+        } else {
+          interimTranscript += event.results[i]?.[0]?.transcript || "";
+        }
       }
+
+      setTranscript((prev) => prev + finalTranscript);
+      setInterimTranscript(interimTranscript);
     };
 
-    recognition.onerror = (event) => {
-      if (event.error === "no-speech") {
-        console.log("No speech detected. Restarting recognition.");
-        stopListening();
-        startListening();
-      } else {
-        console.error("Speech recognition error", event.error);
-        stopListening();
-      }
+    const handleError = (event: SpeechRecognitionErrorEvent) => {
+      console.error("Speech recognition error", event.error);
+      setIsListening(false);
     };
 
-    recognition.onend = () => {
+    const handleEnd = () => {
       if (isListening) {
         console.log("Speech recognition ended. Restarting...");
         startListening();
       }
     };
 
+    recognition.addEventListener("result", handleResult);
+    recognition.addEventListener("error", handleError);
+    recognition.addEventListener("end", handleEnd);
+
     return () => {
-      recognition.stop();
+      recognition.removeEventListener("result", handleResult);
+      recognition.removeEventListener("error", handleError);
+      recognition.removeEventListener("end", handleEnd);
+      stopListening();
     };
   }, [isListening, startListening, stopListening]);
 
-  return { transcript, isListening, startListening, stopListening };
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+        recognitionRef.current = null;
+      }
+    };
+  }, []);
+
+  return {
+    transcript,
+    interimTranscript,
+    isListening,
+    startListening,
+    stopListening,
+  };
 };

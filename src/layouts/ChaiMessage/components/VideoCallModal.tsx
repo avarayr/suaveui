@@ -4,6 +4,7 @@ import { useSpeechRecognition } from "~/hooks/useSpeechRecognition";
 import { useSpeechSynthesis } from "~/hooks/useSpeechSynthesis";
 import { api } from "~/trpc/react";
 import { createNoise2D } from "simplex-noise";
+import { Mic, Phone, Volume } from "lucide-react";
 
 type VideoCallModalProps = {
   isOpen: boolean;
@@ -24,7 +25,13 @@ const NUM_PARTICLES = 100;
 export const VideoCallModal = ({ isOpen, onClose }: VideoCallModalProps) => {
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const { transcript, startListening, stopListening } = useSpeechRecognition();
+  const {
+    transcript,
+    interimTranscript,
+    isListening: isSpeechListening,
+    startListening,
+    stopListening,
+  } = useSpeechRecognition();
   const { speak } = useSpeechSynthesis();
   const lastTranscriptRef = useRef("");
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -35,6 +42,7 @@ export const VideoCallModal = ({ isOpen, onClose }: VideoCallModalProps) => {
   const animationFrameRef = useRef<number | null>(null);
   const animationControls = useAnimation();
   const noise2D = useRef(createNoise2D());
+  const transcriptBoxRef = useRef<HTMLDivElement>(null);
 
   const sendMessageMutation = api.chat.sendMessage.useMutation();
 
@@ -88,7 +96,7 @@ export const VideoCallModal = ({ isOpen, onClose }: VideoCallModalProps) => {
 
     particlesRef.current.forEach((particle) => {
       // Increase noise intensity based on amplitude
-      const noiseIntensity = amplitude * 5; // Amplify the effect of voice
+      const noiseIntensity = amplitude * 2; // Amplify the effect of voice
       const noiseX = noise2D.current(particle.noiseOffsetX, time * 0.5) * noiseIntensity;
       const noiseY = noise2D.current(particle.noiseOffsetY, time * 0.5) * noiseIntensity;
 
@@ -207,6 +215,20 @@ export const VideoCallModal = ({ isOpen, onClose }: VideoCallModalProps) => {
     }
   }, [handleSendMessage, transcript]);
 
+  const [displayedWords, setDisplayedWords] = useState<string[]>([]);
+
+  useEffect(() => {
+    const allWords = (transcript + " " + interimTranscript).trim().split(" ");
+    setDisplayedWords(allWords);
+  }, [transcript, interimTranscript]);
+
+  useEffect(() => {
+    if (transcriptBoxRef.current) {
+      transcriptBoxRef.current.scrollLeft = transcriptBoxRef.current.scrollWidth;
+      transcriptBoxRef.current.scrollTop = transcriptBoxRef.current.scrollHeight;
+    }
+  }, [displayedWords]);
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -221,17 +243,65 @@ export const VideoCallModal = ({ isOpen, onClose }: VideoCallModalProps) => {
             initial={{ scale: 0.8 }}
             animate={{ scale: 1 }}
             exit={{ scale: 0.8 }}
-            className="relative flex h-80 w-80 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-red-500"
+            className="flex flex-col items-center"
             onClick={(e) => e.stopPropagation()}
           >
-            <motion.div
-              animate={animationControls}
-              className="absolute h-full w-full rounded-full bg-gradient-to-br from-blue-400 via-purple-500 to-pink-500 opacity-80 blur-md"
-            />
-            <canvas ref={canvasRef} width={320} height={320} className="absolute inset-0" />
-            <div className="text-shadow z-10 text-2xl font-bold text-white">
-              {isListening ? "Listening..." : isSpeaking ? "Speaking..." : "Call in progress"}
+            {/* Main circle */}
+            <div className="relative flex h-80 w-80 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-red-500 shadow-lg">
+              <canvas ref={canvasRef} width={320} height={320} className="absolute inset-0" />
+              <motion.div
+                className="z-10 flex flex-col items-center justify-center space-y-2"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                {isSpeechListening ? (
+                  <>
+                    <Mic className="animate-pulse text-4xl text-white" />
+                    <span className="text-xl font-semibold tracking-wide text-white">Listening...</span>
+                  </>
+                ) : isSpeaking ? (
+                  <>
+                    <Volume className="animate-pulse text-4xl text-white" />
+                    <span className="text-xl font-semibold tracking-wide text-white">Speaking...</span>
+                  </>
+                ) : (
+                  <>
+                    <Phone className="text-4xl text-white" />
+                    <span className="text-xl font-semibold tracking-wide text-white">Call Active</span>
+                  </>
+                )}
+              </motion.div>
             </div>
+
+            {/* Redesigned Transcript box */}
+            <motion.div
+              className="mt-6 w-96 overflow-hidden rounded-2xl bg-white bg-opacity-10 shadow-lg backdrop-blur-md"
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 20, opacity: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <div className="px-4 py-3 text-xs uppercase tracking-wide text-gray-400">Transcript</div>
+              <div ref={transcriptBoxRef} className="scrollbar-hide max-h-24 overflow-y-auto px-4 pb-3">
+                <div className="flex flex-wrap">
+                  <AnimatePresence mode="popLayout">
+                    {displayedWords.map((word, index) => (
+                      <motion.span
+                        key={`${word}-${index}`}
+                        className="mb-2 mr-2 inline-block rounded-full bg-opacity-20 text-sm text-white"
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        {word}
+                      </motion.span>
+                    ))}
+                  </AnimatePresence>
+                </div>
+              </div>
+            </motion.div>
           </motion.div>
         </motion.div>
       )}
