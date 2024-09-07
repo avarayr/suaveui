@@ -241,108 +241,81 @@ export const VideoCallModal = ({ isOpen, onClose }: VideoCallModalProps) => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 backdrop-blur-sm"
           onClick={onClose}
         >
           <motion.div
-            initial={{ scale: 0.8 }}
-            animate={{ scale: 1 }}
-            exit={{ scale: 0.8 }}
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
             className="flex flex-col items-center"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Main circle */}
-            <div className="relative flex h-80 w-80 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-red-500 shadow-lg">
-              <canvas ref={canvasRef} width={320} height={320} className="absolute inset-0" />
-
-              {/* Progress bar */}
+            {/* Main circle with outer progress ring */}
+            <div className="relative flex h-80 w-80 items-center justify-center">
+              {/* Progress ring */}
               <svg className="absolute inset-0 h-full w-full -rotate-90">
                 <AnimatePresence>
                   {timeoutProgress <= 90 && (
-                    <motion.g
-                      key="progress-bar"
+                    <motion.circle
+                      key="progress-circle"
+                      className="text-[#a0a0a0]"
+                      strokeWidth="6"
+                      stroke="currentColor"
+                      fill="transparent"
+                      r="158"
+                      cx="160"
+                      cy="160"
+                      strokeLinecap="round"
+                      strokeDasharray={994}
+                      strokeDashoffset={994 - (timeoutProgress / 100) * 994}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.3 }}
-                    >
-                      <circle
-                        className="text-gray-300"
-                        strokeWidth="4"
-                        stroke="currentColor"
-                        fill="transparent"
-                        r="156"
-                        cx="160"
-                        cy="160"
-                      />
-                      <circle
-                        className="text-blue-600"
-                        strokeWidth="4"
-                        strokeDasharray={980}
-                        strokeDashoffset={980 - (timeoutProgress / 100) * 980}
-                        strokeLinecap="round"
-                        stroke="currentColor"
-                        fill="transparent"
-                        r="156"
-                        cx="160"
-                        cy="160"
-                      />
-                    </motion.g>
+                    />
                   )}
                 </AnimatePresence>
               </svg>
 
-              <motion.div
-                className="z-10 flex flex-col items-center justify-center space-y-2"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-              >
-                {isSpeechListening ? (
-                  <>
-                    <Mic className="animate-pulse text-4xl text-white" />
-                    <span className="text-xl font-semibold tracking-wide text-white">Listening...</span>
-                  </>
-                ) : isSpeaking ? (
-                  <>
-                    <Volume className="animate-pulse text-4xl text-white" />
-                    <span className="text-xl font-semibold tracking-wide text-white">Speaking...</span>
-                  </>
-                ) : (
-                  <>
-                    <Phone className="text-4xl text-white" />
-                    <span className="text-xl font-semibold tracking-wide text-white">Call Active</span>
-                  </>
-                )}
-              </motion.div>
+              {/* Main circle */}
+              <div className="relative flex h-[304px] w-[304px] items-center justify-center overflow-hidden rounded-full bg-[#1a1a1a] shadow-lg">
+                <canvas ref={canvasRef} width={304} height={304} className="absolute inset-0" />
+
+                <div className="z-10 flex flex-col items-center justify-center space-y-3">
+                  {isSpeechListening ? (
+                    <>
+                      <Mic className="h-12 w-12 text-[#e0e0e0]" />
+                      <span className="text-lg font-medium text-[#e0e0e0]">Listening...</span>
+                    </>
+                  ) : isSpeaking ? (
+                    <>
+                      <Volume className="h-12 w-12 text-[#e0e0e0]" />
+                      <span className="text-lg font-medium text-[#e0e0e0]">Speaking...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Phone className="h-12 w-12 text-[#e0e0e0]" />
+                      <span className="text-lg font-medium text-[#e0e0e0]">Call Active</span>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
 
-            {/* Redesigned Transcript box */}
+            {/* Transcript box */}
             <motion.div
-              className="mt-6 w-96 overflow-hidden rounded-2xl bg-white bg-opacity-10 shadow-lg backdrop-blur-md"
+              className="mt-6 w-96 overflow-hidden rounded-lg bg-[#2a2a2a] shadow-lg"
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 20, opacity: 0 }}
               transition={{ delay: 0.2 }}
             >
-              <div className="px-4 py-3 text-xs uppercase tracking-wide text-gray-400">Transcript</div>
-              <div ref={transcriptBoxRef} className="scrollbar-hide max-h-24 overflow-y-auto px-4 pb-3">
-                <div className="flex flex-wrap">
-                  <AnimatePresence mode="popLayout">
-                    {displayedWords.map((word, index) => (
-                      <motion.span
-                        key={`${word}-${index}`}
-                        className="mb-2 mr-2 inline-block rounded-full bg-opacity-20 text-sm text-white"
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.8 }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        {word}
-                      </motion.span>
-                    ))}
-                  </AnimatePresence>
-                </div>
+              <div className="border-b border-[#3a3a3a] px-4 py-2 text-xs font-medium uppercase tracking-wider text-[#a0a0a0]">
+                Transcript
+              </div>
+              <div ref={transcriptBoxRef} className="scrollbar-hide max-h-24 overflow-y-auto px-4 py-3">
+                <p className="text-sm text-[#e0e0e0]">{displayedWords.join(" ")}</p>
               </div>
             </motion.div>
           </motion.div>
