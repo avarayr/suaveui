@@ -5,6 +5,8 @@ import { useSpeechSynthesis } from "~/hooks/useSpeechSynthesis";
 import { api } from "~/trpc/react";
 import { createNoise2D } from "simplex-noise";
 import { Mic, Phone, Volume } from "lucide-react";
+import { ClientConsts } from "~/utils/client-consts";
+import { useMessageGeneration } from "~/hooks/useMessageGeneration";
 
 type VideoCallModalProps = {
   isOpen: boolean;
@@ -24,6 +26,8 @@ type Particle = {
 const NUM_PARTICLES = 100;
 
 export const VideoCallModal = ({ isOpen, onClose, chatId }: VideoCallModalProps) => {
+  const { tryFollowMessageGeneration } = useMessageGeneration(chatId);
+
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [shouldSendMessage, setShouldSendMessage] = useState(false);
@@ -53,6 +57,9 @@ export const VideoCallModal = ({ isOpen, onClose, chatId }: VideoCallModalProps)
   const sentMessageRef = useRef<string | null>(null);
 
   const sendMessageMutation = api.chat.sendMessage.useMutation();
+  const utils = api.useUtils();
+
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const handleSendMessage = useCallback(
     async (message: string) => {
@@ -66,7 +73,13 @@ export const VideoCallModal = ({ isOpen, onClose, chatId }: VideoCallModalProps)
         console.log("Message sent successfully:", response);
 
         if (response.followMessageId) {
-          // TODO: follow the message generation (same logic as in texting/$chatId.tsx)
+          console.log("Following message:", response.followMessageId);
+          const result = await tryFollowMessageGeneration(response.followMessageId);
+          console.log("Message generation result:", result);
+          // speak the result
+          if (result) {
+            await speak(result);
+          }
         }
       } catch (error) {
         console.error("Error sending message:", error);
@@ -77,9 +90,9 @@ export const VideoCallModal = ({ isOpen, onClose, chatId }: VideoCallModalProps)
         startListening();
       }
       resetFinalTranscript();
-      sentMessageRef.current = null; // Reset the sent message ref
+      sentMessageRef.current = null;
     },
-    [chatId, isOpen, sendMessageMutation, startListening, resetFinalTranscript],
+    [chatId, isOpen, sendMessageMutation, startListening, resetFinalTranscript, tryFollowMessageGeneration],
   );
 
   const initializeParticles = useCallback(() => {
@@ -240,6 +253,16 @@ export const VideoCallModal = ({ isOpen, onClose, chatId }: VideoCallModalProps)
       transcriptBoxRef.current.scrollTop = transcriptBoxRef.current.scrollHeight;
     }
   }, [displayedWords]);
+
+  useEffect(() => {
+    const currentAbortController = abortControllerRef.current;
+
+    return () => {
+      if (currentAbortController) {
+        currentAbortController.abort();
+      }
+    };
+  }, []);
 
   return (
     <AnimatePresence>

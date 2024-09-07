@@ -2,6 +2,7 @@ import cuid2 from "@paralleldrive/cuid2";
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDebounceCallback } from "usehooks-ts";
+import { useMessageGeneration } from "~/hooks/useMessageGeneration";
 import { useRouteTransitioning } from "~/hooks/useRouteTransitioning";
 import { Texting } from "~/layouts/Texting";
 import { Reaction } from "~/layouts/types";
@@ -17,6 +18,8 @@ const followingMessageIds = new Map<string, boolean>();
 
 function TextingPage() {
   const { chatId } = Route.useParams();
+  const { editMessageLocally, followNewMessages } = useMessageGeneration(chatId);
+
   const utils = api.useUtils();
   const [editingMessageId, setEditingMessageId] = useState<string | undefined>(undefined);
 
@@ -32,54 +35,12 @@ function TextingPage() {
     refetchOnReconnect: true,
   });
 
-  const editMessageLocally = useCallback(
-    ({
-      messageId,
-      content,
-      mode,
-      isGenerating,
-    }: {
-      messageId: string;
-      content: string;
-      mode: "replace" | "append";
-      isGenerating?: boolean;
-    }) => {
-      // Cancel outgoing fetches
-      void utils.chat.getMessages.cancel(queryOpts);
-
-      // find the message
-      const message = utils.chat.getMessages.getData(queryOpts)?.messages.find((m) => m.id === messageId);
-      if (!message) {
-        console.error("Message not found");
-        return false;
-      }
-
-      const newContent = mode === "replace" ? content : message.content + content;
-      // Optimistically update the data with our new message
-      utils.chat.getMessages.setData(queryOpts, (old) => {
-        const result = {
-          ...old!,
-          messages: [
-            ...old!.messages.filter((m) => m.id !== messageId),
-            {
-              ...message,
-              isGenerating: isGenerating !== undefined ? isGenerating : message.isGenerating,
-              content: newContent,
-            },
-          ] satisfies (typeof message)[],
-        };
-        return result;
-      });
-    },
-    [queryOpts, utils.chat.getMessages],
-  );
-
   const interruptGenerationMutation = api.chat.interruptGeneration.useMutation({
     onSuccess: async (data, { messageId }) => {
       if (data.success) {
         const content = data.result?.trim();
         if (content) {
-          editMessageLocally({ messageId, content, mode: "replace" });
+          await editMessageLocally({ messageId, content, mode: "replace" });
         }
         return;
       }
@@ -88,75 +49,11 @@ function TextingPage() {
     },
   });
 
-  const tryFollowMessageGeneration = useCallback(
-    async ({ chatId, messageId }: { chatId: string; messageId: string }) => {
-      try {
-        // if there's abort controller, abort it
-        if (abortControllers.get(messageId)) {
-          abortControllers.get(messageId)?.abort();
-          abortControllers.delete(messageId);
-        }
-
-        // set the abort controller
-        abortControllers.set(messageId, new AbortController());
-
-        const fetchResult = await fetch(`/api/follow-message/${chatId}/${messageId}`, {
-          method: "GET",
-          headers: {
-            Connection: "keep-alive",
-          },
-          signal: abortControllers.get(messageId)?.signal,
-        });
-
-        if (!fetchResult.ok) {
-          return;
-        }
-
-        const reader = fetchResult.body?.getReader();
-
-        if (!reader) {
-          return;
-        }
-
-        const textDecoder = new TextDecoder();
-        let { done, value } = await reader.read();
-        while (!done && abortControllers.get(messageId)?.signal?.aborted === false) {
-          const chunk = textDecoder.decode(value);
-          editMessageLocally({ messageId: messageId, content: chunk, mode: "append", isGenerating: true });
-          ({ done, value } = await reader.read());
-        }
-      } catch (e) {
-        if (e instanceof DOMException && e.name === "AbortError") {
-          // ignore abort errors
-          return;
-        }
-        console.error(e);
-      } finally {
-        // set isLoading to false
-        editMessageLocally({ messageId: messageId, content: "", mode: "append", isGenerating: false });
-        // clean up the abort controller
-        abortControllers.delete(messageId);
-      }
-    },
-    [editMessageLocally],
-  );
-
   useEffect(() => {
-    void (async () => {
-      const lastMessages = messagesQuery.data?.messages;
-      for (const message of lastMessages ?? []) {
-        if (followingMessageIds.has(message.id)) {
-          continue;
-        }
-
-        if (message.isGenerating) {
-          followingMessageIds.set(message.id, true);
-          await tryFollowMessageGeneration({ chatId, messageId: message.id });
-          followingMessageIds.delete(message.id);
-        }
-      }
-    })();
-  }, [chatId, messagesQuery.data?.messages, tryFollowMessageGeneration]);
+    if (messagesQuery.data?.messages) {
+      followNewMessages(messagesQuery.data.messages.map((m) => ({ id: m.id, isGenerating: m.isGenerating ?? false })));
+    }
+  }, [messagesQuery.data?.messages, followNewMessages]);
 
   useEffect(() => {
     return () => {
@@ -306,7 +203,7 @@ function TextingPage() {
       // Get the data from the queryCache
       await utils.chat.getMessages.cancel(queryOpts);
       const prevData = utils.chat.getMessages.getData(queryOpts);
-      editMessageLocally({ messageId: message.messageId, content: message.content, mode: "replace" });
+      await editMessageLocally({ messageId: message.messageId, content: message.content, mode: "replace" });
 
       // Return the previous data so we can revert if something goes wrong
       return { prevData };

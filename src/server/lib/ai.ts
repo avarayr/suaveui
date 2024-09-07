@@ -124,16 +124,27 @@ export const ai = {
     return content;
   },
 
-  chatStream: async function ({ messages, model, options, messageId }: ChatProps & { messageId: string }) {
+  prepareStreamBuffer: function ({ messageId }: { messageId: string }) {
+    if (this.chatStreamBuffer.has(messageId)) {
+      return this.chatStreamBuffer.get(messageId)!;
+    }
+
     const streamBuffer = new StreamBuffer(messageId);
     this.chatStreamBuffer.set(messageId, streamBuffer);
+    return streamBuffer;
+  },
 
-    const baseUrl = await ai.getBaseUrl();
-    const apiKey = await ai.getApiKey();
+  deleteStreamBuffer: function ({ messageId }: { messageId: string }) {
+    this.chatStreamBuffer.delete(messageId);
+  },
 
+  chatStream: async function ({ messages, model, options, messageId }: ChatProps & { messageId: string }) {
     let generatedTokens = 0;
-
+    const streamBuffer = this.prepareStreamBuffer({ messageId });
     try {
+      const baseUrl = await ai.getBaseUrl();
+      const apiKey = await ai.getApiKey();
+
       const stream = OpenAIStream({
         baseUrl,
         apiKey,

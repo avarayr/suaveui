@@ -16,7 +16,7 @@ export const useSpeechRecognition = () => {
   const animationFrameRef = useRef<number | null>(null);
   const finalTranscriptRef = useRef("");
 
-  const TIMEOUT_DURATION = 5000; // 5 seconds
+  const TIMEOUT_DURATION = 1000; // 5 seconds
 
   const createRecognitionObject = useCallback(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;

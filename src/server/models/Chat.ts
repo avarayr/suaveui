@@ -239,80 +239,90 @@ export const Chat = {
     contextMessageLimit?: number;
     options?: Parameters<typeof ai.chatStream>[0]["options"];
   }) {
-    const messages = await Chat.getWithPersonas(chatId);
-    if (!messages) return null;
+    try {
+      // Prepare the stream buffer before doing any async work, so we can return the follow message id immediately
+      ai.prepareStreamBuffer({ messageId });
 
-    const persona = messages.personas?.[0];
-    invariant(persona, "Persona does not exist for this chat, this shouldn't happen!");
+      const messages = await Chat.getWithPersonas(chatId);
+      if (!messages) return null;
 
-    let contextMessages = await Chat.getMessages({ chatId, limit: contextMessageLimit });
+      const persona = messages.personas?.[0];
+      invariant(persona, "Persona does not exist for this chat, this shouldn't happen!");
 
-    const targetMessageIndex = contextMessages.findIndex((m) => m.id === messageId);
-    const targetMessage = contextMessages[targetMessageIndex];
-    invariant(targetMessage, "Target message not found");
+      let contextMessages = await Chat.getMessages({ chatId, limit: contextMessageLimit });
 
-    // Remove the target message from the context
-    contextMessages = contextMessages.slice(0, targetMessageIndex);
+      const targetMessageIndex = contextMessages.findIndex((m) => m.id === messageId);
+      const targetMessage = contextMessages[targetMessageIndex];
+      invariant(targetMessage, "Target message not found");
 
-    // Make a OpenAI-friendly context
-    const contextMessagesLLM = [
-      {
-        content: Persona.getPreamble(persona),
-        role: "system",
-      },
-      ...contextMessages
-        .filter((m) => m.content?.trim())
-        .map((message) => ({
-          content: message.content,
-          role: message.role,
-        })),
-    ];
+      // Remove the target message from the context
+      contextMessages = contextMessages.slice(0, targetMessageIndex);
 
-    // Edit the target message to indicate that it's being generated
-    await Chat.editMessage({
-      chatId: chatId,
-      messageId: messageId,
-      content: "",
-      isGenerating: true,
-    });
+      // Make a OpenAI-friendly context
+      const contextMessagesLLM = [
+        {
+          content: Persona.getPreamble(persona),
+          role: "system",
+        },
+        ...contextMessages
+          .filter((m) => m.content?.trim())
+          .map((message) => ({
+            content: message.content,
+            role: message.role,
+          })),
+      ];
 
-    // If steerPrefix is provided, add it to the end to guide the LLM
-    if (prefix) {
-      contextMessagesLLM.push({
-        content: `${prefix}`,
-        role: "assistant",
-      });
-    }
-
-    // Generate the response in the background
-    return ai
-      .chatStream({
+      // Edit the target message to indicate that it's being generated
+      await Chat.editMessage({
+        chatId: chatId,
         messageId: messageId,
-        messages: contextMessagesLLM,
-        options,
-      })
-      .then(async (aiResponse) => {
-        // Once finished, edit the message to include the generated text
-        if (!aiResponse?.trim()) {
-          // delete the message
-          await Chat.removeMessage(chatId, messageId);
-          return aiResponse;
-        }
-
-        void Chat.editMessage({
-          chatId: chatId,
-          messageId: messageId,
-          content: aiResponse,
-          isGenerating: false,
-        });
-
-        // Send a notification to the user
-        void WebPush.sendNotification({
-          title: persona.name,
-          message: aiResponse,
-        });
-
-        return aiResponse;
+        content: "",
+        isGenerating: true,
       });
+
+      // If steerPrefix is provided, add it to the end to guide the LLM
+      if (prefix) {
+        contextMessagesLLM.push({
+          content: `${prefix}`,
+          role: "assistant",
+        });
+      }
+
+      // Generate the response in the background
+      return ai
+        .chatStream({
+          messageId: messageId,
+          messages: contextMessagesLLM,
+          options,
+        })
+        .then(async (aiResponse) => {
+          // Once finished, edit the message to include the generated text
+          if (!aiResponse?.trim()) {
+            // delete the message
+            await Chat.removeMessage(chatId, messageId);
+            return aiResponse;
+          }
+
+          void Chat.editMessage({
+            chatId: chatId,
+            messageId: messageId,
+            content: aiResponse,
+            isGenerating: false,
+          });
+
+          // Send a notification to the user
+          void WebPush.sendNotification({
+            title: persona.name,
+            message: aiResponse,
+          });
+
+          return aiResponse;
+        });
+    } catch (e) {
+      console.error("Error generating message in background", e);
+      // Clean up the stream buffer
+      ai.deleteStreamBuffer({ messageId });
+      return null;
+    }
   },
 };
