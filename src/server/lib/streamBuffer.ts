@@ -18,6 +18,10 @@ export class StreamBuffer extends EventEmitter {
     return this.aborted;
   }
 
+  isFinished() {
+    return this.finished || this.aborted;
+  }
+
   abort() {
     this.aborted = true;
     this.emit("abort");

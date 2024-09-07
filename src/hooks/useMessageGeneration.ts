@@ -58,32 +58,15 @@ export function useMessageGeneration(chatId: string) {
 
         abortControllers.current.set(messageId, new AbortController());
 
-        const fetchResult = await fetch(`/api/follow-message/${chatId}/${messageId}`, {
-          method: "GET",
-          headers: {
-            Connection: "keep-alive",
-          },
-          signal: abortControllers.current.get(messageId)?.signal,
-        });
+        const fetchResult = await utils.chat.followMessage.fetch({ chatId, messageId });
 
-        if (!fetchResult.ok) {
-          console.error("Failed to fetch message generation");
-          return;
-        }
+        for await (const chunk of fetchResult) {
+          if (abortControllers.current.get(messageId)?.signal?.aborted) {
+            return;
+          }
 
-        const reader = fetchResult.body?.getReader();
-        if (!reader) {
-          console.error("Failed to get reader");
-          return;
-        }
-
-        const textDecoder = new TextDecoder();
-        let { done, value } = await reader.read();
-        while (!done && !abortControllers.current.get(messageId)?.signal?.aborted) {
-          const chunk = textDecoder.decode(value);
           result += chunk;
           await editMessageLocally({ messageId, content: chunk, mode: "append", isGenerating: true });
-          ({ done, value } = await reader.read());
         }
       } catch (e) {
         if (e instanceof DOMException && e.name === "AbortError") {
@@ -98,7 +81,7 @@ export function useMessageGeneration(chatId: string) {
       // Return the finished message content
       return result;
     },
-    [chatId, editMessageLocally],
+    [chatId, editMessageLocally, utils.chat.followMessage],
   );
 
   const followNewMessages = useCallback(

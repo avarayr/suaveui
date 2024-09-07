@@ -240,9 +240,6 @@ export const Chat = {
     options?: Parameters<typeof ai.chatStream>[0]["options"];
   }) {
     try {
-      // Prepare the stream buffer before doing any async work, so we can return the follow message id immediately
-      ai.prepareStreamBuffer({ messageId });
-
       const messages = await Chat.getWithPersonas(chatId);
       if (!messages) return null;
 
@@ -258,7 +255,7 @@ export const Chat = {
       // Remove the target message from the context
       contextMessages = contextMessages.slice(0, targetMessageIndex);
 
-      // Make a OpenAI-friendly context
+      // Make an OpenAI-friendly context
       const contextMessagesLLM = [
         {
           content: Persona.getPreamble(persona),
@@ -289,39 +286,35 @@ export const Chat = {
       }
 
       // Generate the response in the background
-      return ai
-        .chatStream({
-          messageId: messageId,
-          messages: contextMessagesLLM,
-          options,
-        })
-        .then(async (aiResponse) => {
-          // Once finished, edit the message to include the generated text
-          if (!aiResponse?.trim()) {
-            // delete the message
-            await Chat.removeMessage(chatId, messageId);
-            return aiResponse;
-          }
+      const aiResponse = await ai.chatStream({
+        messageId,
+        messages: contextMessagesLLM,
+        options,
+      });
 
-          void Chat.editMessage({
-            chatId: chatId,
-            messageId: messageId,
-            content: aiResponse,
-            isGenerating: false,
-          });
+      // Once finished, edit the message to include the generated text
+      if (!aiResponse?.trim()) {
+        // delete the message
+        await Chat.removeMessage(chatId, messageId);
+        return aiResponse;
+      }
 
-          // Send a notification to the user
-          void WebPush.sendNotification({
-            title: persona.name,
-            message: aiResponse,
-          });
+      void Chat.editMessage({
+        chatId: chatId,
+        messageId: messageId,
+        content: aiResponse,
+        isGenerating: false,
+      });
 
-          return aiResponse;
-        });
+      // Send a notification to the user
+      void WebPush.sendNotification({
+        title: persona.name,
+        message: aiResponse,
+      });
+
+      return aiResponse;
     } catch (e) {
       console.error("Error generating message in background", e);
-      // Clean up the stream buffer
-      ai.deleteStreamBuffer({ messageId });
       return null;
     }
   },

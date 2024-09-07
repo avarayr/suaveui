@@ -91,6 +91,9 @@ export const chatRouter = router({
 
       invariant(blankMessage, "Couldn't send the blank message!");
 
+      // Create the StreamBuffer before generating the message
+      ai.createStreamBuffer(blankMessage.id);
+
       // Generate the message in the background
       void Chat.generateMessageInBackground({
         chatId,
@@ -103,6 +106,24 @@ export const chatRouter = router({
         followMessageId: blankMessage.id,
       };
     }),
+
+  followMessage: publicProcedure.input(z.object({ chatId: z.string(), messageId: z.string() })).query(async function* ({
+    input: { chatId, messageId },
+  }) {
+    const message = await Chat.getMessage(chatId, messageId);
+    if (!message?.isGenerating) {
+      // Result has been ready
+      yield message?.content ?? "";
+      return;
+    }
+
+    const generator = ai.followMessage({ messageId });
+
+    for await (const chunk of generator) {
+      if (!chunk) continue;
+      yield chunk;
+    }
+  }),
 
   interruptGeneration: publicProcedure
     .input(z.object({ chatId: z.string(), messageId: z.string() }))
@@ -173,6 +194,9 @@ export const chatRouter = router({
 
       invariant(blankMessage, "Couldn't send the blank message!");
 
+      // Create the StreamBuffer before generating the message
+      ai.createStreamBuffer(blankMessage.id);
+
       // Generate the response in the background
       void Chat.generateMessageInBackground({
         chatId,
@@ -195,6 +219,9 @@ export const chatRouter = router({
       const persona = chat.personas?.[0];
 
       invariant(persona, "Persona does not exist for this chat");
+
+      // Create the StreamBuffer before generating the message
+      ai.createStreamBuffer(messageId);
 
       // Generate the response in the background
       void Chat.generateMessageInBackground({

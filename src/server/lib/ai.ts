@@ -124,23 +124,10 @@ export const ai = {
     return content;
   },
 
-  prepareStreamBuffer: function ({ messageId }: { messageId: string }) {
-    if (this.chatStreamBuffer.has(messageId)) {
-      return this.chatStreamBuffer.get(messageId)!;
-    }
-
-    const streamBuffer = new StreamBuffer(messageId);
-    this.chatStreamBuffer.set(messageId, streamBuffer);
-    return streamBuffer;
-  },
-
-  deleteStreamBuffer: function ({ messageId }: { messageId: string }) {
-    this.chatStreamBuffer.delete(messageId);
-  },
-
   chatStream: async function ({ messages, model, options, messageId }: ChatProps & { messageId: string }) {
     let generatedTokens = 0;
-    const streamBuffer = this.prepareStreamBuffer({ messageId });
+    const streamBuffer = this.createStreamBuffer(messageId);
+
     try {
       const baseUrl = await ai.getBaseUrl();
       const apiKey = await ai.getApiKey();
@@ -167,17 +154,13 @@ export const ai = {
         }
       }
 
-      const result = streamBuffer.getResult();
-      return result;
+      return streamBuffer.getResult();
     } catch (error) {
       console.error("Error in chatStream:", error);
-
-      if (generatedTokens === 0) {
-        return "";
-      }
+      return generatedTokens === 0 ? "" : streamBuffer.getResult();
     } finally {
       streamBuffer.finish();
-      this.chatStreamBuffer.delete(messageId);
+      this.cleanupStreamBuffer(messageId);
     }
   },
 
@@ -191,17 +174,50 @@ export const ai = {
     streamBuffer.abort();
 
     const result = streamBuffer.getResult();
+    this.cleanupStreamBuffer(messageId);
     return result;
   },
 
-  followMessage: ({ messageId }: { messageId: string }): AsyncGenerator<string | undefined, void> => {
-    const streamBuffer = ai.chatStreamBuffer.get(messageId);
-    invariant(
-      streamBuffer,
-      "Streambuffer not found! this shouldn't happen, the message in the db should've been edited to be marked as done generating after it's been generated.",
-    );
+  followMessage: async function* ({
+    messageId,
+  }: {
+    messageId: string;
+  }): AsyncGenerator<string | undefined, void, unknown> {
+    const streamBuffer = this.chatStreamBuffer.get(messageId);
+    if (!streamBuffer) {
+      console.warn(
+        `StreamBuffer not found for messageId: ${messageId}. The message generation may have already completed.`,
+      );
+      return;
+    }
 
-    return streamBuffer.iterator();
+    try {
+      yield* streamBuffer.iterator();
+    } finally {
+      // Ensure cleanup happens even if the iteration is interrupted
+      if (streamBuffer.isFinished()) {
+        this.cleanupStreamBuffer(messageId);
+      }
+    }
+  },
+
+  createStreamBuffer: function (messageId: string) {
+    // Clean up existing StreamBuffer if it exists
+    this.cleanupStreamBuffer(messageId);
+
+    // Create a new StreamBuffer
+    const newStreamBuffer = new StreamBuffer(messageId);
+    this.chatStreamBuffer.set(messageId, newStreamBuffer);
+    return newStreamBuffer;
+  },
+
+  cleanupStreamBuffer: function (messageId: string) {
+    const existingBuffer = this.chatStreamBuffer.get(messageId);
+    if (existingBuffer) {
+      existingBuffer.finish(); // Ensure any ongoing operations are completed
+      existingBuffer.removeAllListeners(); // Remove all event listeners
+      this.chatStreamBuffer.delete(messageId);
+    }
   },
 
   generate: async ({ model, prompt, system, options }: CompletionProps) => {

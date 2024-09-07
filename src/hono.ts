@@ -2,7 +2,6 @@ import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import "dotenv/config";
 import { Hono } from "hono";
 import { eventHandler, toWebRequest } from "vinxi/http";
-import followMessage from "./server/api/direct/follow-message";
 import { appRouter } from "./server/api/root";
 import { db } from "./server/db";
 
@@ -17,8 +16,6 @@ function setupRoutes(app: Hono) {
       createContext: () => ({ headers: new Headers() }),
     }),
   );
-
-  app.route("/", followMessage);
 }
 
 async function gracefulShutdown(signal: string) {
