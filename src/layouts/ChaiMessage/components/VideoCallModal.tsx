@@ -1,6 +1,6 @@
 import { AnimatePresence, motion, useAnimation } from "framer-motion";
-import { Loader2, Mic, Phone, Volume, Volume2 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { AlertTriangle, Loader2, Mic, Phone, Volume, Volume2 } from "lucide-react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createNoise2D } from "simplex-noise";
 import { useMessageGeneration } from "~/hooks/useMessageGeneration";
 import { useSpeechRecognition } from "~/hooks/useSpeechRecognition";
@@ -23,6 +23,10 @@ type Particle = {
 };
 
 const NUM_PARTICLES = 100;
+
+function getBraveDetected() {
+  return typeof navigator !== "undefined" && "brave" in navigator;
+}
 
 export const VideoCallModal = ({ isOpen, onClose, chatId }: VideoCallModalProps) => {
   const { tryFollowMessageGeneration } = useMessageGeneration(chatId);
@@ -58,6 +62,13 @@ export const VideoCallModal = ({ isOpen, onClose, chatId }: VideoCallModalProps)
   const sendMessageMutation = api.chat.sendMessage.useMutation();
 
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  const isBraveBrowser = useSyncExternalStore(
+    () => () => {
+      /*noop*/
+    }, // We don't need to subscribe to changes
+    getBraveDetected,
+  );
 
   const handleSendMessage = useCallback(
     async (message: string) => {
@@ -306,6 +317,19 @@ export const VideoCallModal = ({ isOpen, onClose, chatId }: VideoCallModalProps)
             className="flex w-full max-w-sm flex-col items-center px-4 sm:max-w-md md:max-w-lg"
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Add this block for the Brave browser warning */}
+            {isBraveBrowser && (
+              <motion.div
+                className="mb-4 flex w-full items-center justify-center rounded-lg bg-yellow-900 p-4 text-sm text-yellow-100"
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+              >
+                <AlertTriangle className="mr-2 h-5 w-5" />
+                <span>Voice recognition doesn&apos;t work in Brave Browser, please use Chrome/Safari.</span>
+              </motion.div>
+            )}
+
             {/* Main circle with outer progress ring */}
             <div className="relative flex h-60 w-60 items-center justify-center sm:h-72 sm:w-72 md:h-80 md:w-80">
               {/* Progress ring */}

@@ -15,8 +15,6 @@ export const useSpeechRecognition = () => {
   const animationFrameRef = useRef<number | null>(null);
   const finalTranscriptRef = useRef("");
 
-  const audioContextRef = useRef<AudioContext | null>(null);
-
   const TIMEOUT_DURATION = 2500;
 
   const createRecognitionObject = useCallback(() => {
