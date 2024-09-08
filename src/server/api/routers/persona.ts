@@ -6,12 +6,12 @@ import { PersonaSchema } from "~/server/schema/Persona";
 export const personaRouter = router({
   all: publicProcedure.query(async () => {
     const personas = await Persona.all();
+    personas.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
     return personas;
   }),
   create: publicProcedure
-    .input(
-      z.object({ persona: PersonaSchema.omit({ id: true, createdAt: true }) }),
-    )
+    .input(z.object({ persona: PersonaSchema.omit({ id: true, createdAt: true }) }))
     .mutation(async ({ input }) => {
       const persona = await Persona.create(input.persona);
       if (!persona) throw new Error("Failed to create persona");

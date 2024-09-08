@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AnimatePresence } from "framer-motion";
 import { ArrowLeft, CircleSlash, MessageCircle, Plus, UserPlusIcon } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { type z } from "zod";
@@ -88,6 +88,15 @@ function NewChatDrawerContent({
   const personas = api.persona.all.useQuery();
 
   const [personaId, setPersonaId] = useState<string | Omit<string, "_create"> | undefined>(selectedPersonaId);
+
+  /**
+   * Select the first persona when it loads
+   */
+  useEffect(() => {
+    if (personas.data && personas.data.length > 0) {
+      setPersonaId(personas.data[0]?.id);
+    }
+  }, [personas.data]);
 
   const onPersonaChange = (value: string) => {
     if (value === "_create") {
