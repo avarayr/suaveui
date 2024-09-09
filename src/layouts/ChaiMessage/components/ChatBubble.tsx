@@ -22,11 +22,14 @@ import { Reaction } from "./reactions/Reaction";
 import { SpoilerParticles } from "./SpoilerParticles";
 import { Tapback, TapbackAction } from "./Tapback";
 import { copyToClipboard } from "~/utils/clipboard";
+import { atom, useAtom } from "jotai";
 
 export type Reaction = {
   id: TReaction["type"];
   icon: React.JSX.ElementType | React.ReactNode;
 };
+
+export const isDraggingToRevealTimeAtom = atom<false | number>(false);
 
 export const ChatBubble = React.memo(
   ({
@@ -76,8 +79,8 @@ export const ChatBubble = React.memo(
 
     const [editingText, setEditingText] = useState<string | undefined>();
 
-    const [isDragRevealed, setIsDragRevealed] = useState(false);
-    const x = useMotionValue(0);
+    const [isDraggingToRevealTime, setIsDraggingToRevealTime] = useAtom(isDraggingToRevealTimeAtom);
+    const dragX = useMotionValue(0);
 
     const steerMutation = useMutation({
       mutationFn: onSteer,
@@ -149,20 +152,26 @@ export const ChatBubble = React.memo(
     );
 
     // for dragging the chat bubble to the left
-    const handleDrag = useCallback((_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-      if (info.offset.x < 0) {
-        setIsDragRevealed(true);
-      }
-    }, []);
+    const handleDrag = useCallback(
+      (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+        // prevent dragging to the right
+        if (info.velocity.x > 0) {
+          dragX.set(0);
+        }
+        // reveal time
+        if (info.offset.x < 0) {
+          setIsDraggingToRevealTime(Math.abs(info.offset.x));
+        }
+      },
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- don't need dragX in deps
+      [setIsDraggingToRevealTime],
+    );
 
     const handleDragEnd = useCallback(
       (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-        if (info.velocity.x > 10) {
-          x.set(0);
-        }
-        setIsDragRevealed(false);
+        setIsDraggingToRevealTime(false);
       },
-      [x],
+      [setIsDraggingToRevealTime],
     );
 
     const tapbackActions = useCallback(
@@ -249,9 +258,11 @@ export const ChatBubble = React.memo(
         layoutRoot
         drag="x"
         dragConstraints={{ left: 0, right: 0 }}
+        dragElastic={0.1}
         onDrag={handleDrag}
+        dragDirectionLock
         onDragEnd={handleDragEnd}
-        style={{ x }}
+        style={{ x: dragX }}
       >
         {/* Timestamp */}
         {showTimestamp && createdAt && (
@@ -455,23 +466,26 @@ export const ChatBubble = React.memo(
             </Tapback>
           </section>
 
-          {isDragRevealed && createdAt && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className={twMerge(
-                "right-0 w-[80px] text-right text-xs text-[#7D7C80]",
-                "tarnsform translate-x-[calc(100%+0px)]",
-              )}
-            >
-              {createdAt.toLocaleTimeString("en-US", {
-                hour: "numeric",
-                minute: "2-digit",
-                hour12: true,
-              })}
-            </motion.div>
-          )}
+          <AnimatePresence>
+            {isDraggingToRevealTime && createdAt && (
+              <motion.div
+                initial={{ opacity: 0, width: 0 }}
+                animate={{ opacity: 1, width: Math.min(isDraggingToRevealTime, 60), x: 10 }}
+                exit={{ opacity: 0, width: 0 }}
+                transition={{
+                  type: "spring",
+                  stiffness: 200,
+                  damping: 20,
+                }}
+                className={"overflow-hidden whitespace-nowrap text-right text-xs text-[#7D7C80] will-change-transform"}
+              >
+                {createdAt.toLocaleTimeString(undefined, {
+                  hour: "numeric",
+                  minute: "2-digit",
+                })}
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <AnimatePresence mode="popLayout">
             {/* Submit Action */}
