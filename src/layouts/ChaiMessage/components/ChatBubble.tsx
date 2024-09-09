@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useMotionValue, PanInfo } from "framer-motion";
 import {
   ArrowRight,
   CheckIcon,
@@ -76,6 +76,9 @@ export const ChatBubble = React.memo(
 
     const [editingText, setEditingText] = useState<string | undefined>();
 
+    const [isDragRevealed, setIsDragRevealed] = useState(false);
+    const x = useMotionValue(0);
+
     const steerMutation = useMutation({
       mutationFn: onSteer,
     });
@@ -143,6 +146,23 @@ export const ChatBubble = React.memo(
         setTimeout(() => onTapBackOpenChange(false), 700);
       },
       [onTapBackOpenChange, reactMutation],
+    );
+
+    // for dragging the chat bubble to the left
+    const handleDrag = useCallback((_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+      if (info.offset.x < 0) {
+        setIsDragRevealed(true);
+      }
+    }, []);
+
+    const handleDragEnd = useCallback(
+      (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+        if (info.velocity.x > 10) {
+          x.set(0);
+        }
+        setIsDragRevealed(false);
+      },
+      [x],
     );
 
     const tapbackActions = useCallback(
@@ -225,7 +245,14 @@ export const ChatBubble = React.memo(
     );
 
     return (
-      <motion.div layoutRoot className="chat-bubble-container">
+      <motion.div
+        layoutRoot
+        drag="x"
+        dragConstraints={{ left: 0, right: 0 }}
+        onDrag={handleDrag}
+        onDragEnd={handleDragEnd}
+        style={{ x }}
+      >
         {/* Timestamp */}
         {showTimestamp && createdAt && (
           <div className={twMerge("timestamp mb-3 mt-1 w-full text-center text-xs text-[#7D7C80]")}>
@@ -428,6 +455,24 @@ export const ChatBubble = React.memo(
             </Tapback>
           </section>
 
+          {isDragRevealed && createdAt && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className={twMerge(
+                "right-0 w-[80px] text-right text-xs text-[#7D7C80]",
+                "tarnsform translate-x-[calc(100%+0px)]",
+              )}
+            >
+              {createdAt.toLocaleTimeString("en-US", {
+                hour: "numeric",
+                minute: "2-digit",
+                hour12: true,
+              })}
+            </motion.div>
+          )}
+
           <AnimatePresence mode="popLayout">
             {/* Submit Action */}
             {isEditing && (
@@ -480,6 +525,7 @@ export const ChatBubble = React.memo(
             )}
           </AnimatePresence>
         </div>
+        {/* Drag-revealed Timestamp */}
       </motion.div>
     );
   },
