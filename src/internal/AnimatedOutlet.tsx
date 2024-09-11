@@ -1,19 +1,5 @@
 import { getRouterContext, Outlet, useMatches } from "@tanstack/react-router";
-import {
-  anticipate,
-  backIn,
-  backInOut,
-  backOut,
-  circIn,
-  circInOut,
-  circOut,
-  easeIn,
-  easeOut,
-  motion,
-  MotionConfig,
-  MotionProps,
-  useIsPresent,
-} from "framer-motion";
+import { motion, MotionProps, useIsPresent } from "framer-motion";
 import cloneDeep from "lodash/cloneDeep";
 import { forwardRef, useContext, useRef } from "react";
 import { AnimatedOutletProps, RouteTransitionVariants } from "./AnimatedOutlet.types";
@@ -41,14 +27,17 @@ const AnimatedOutlet = forwardRef<HTMLDivElement, AnimatedOutletProps>(({ direct
   let renderedContext = routerContext;
 
   if (isPresent) {
+    // eslint-disable-next-line react-compiler/react-compiler
     prevMatches.current = cloneDeep(matches);
   } else {
     renderedContext = cloneDeep(routerContext);
     renderedContext.__store.state.matches = [
+      // eslint-disable-next-line react-compiler/react-compiler
       ...matches.map((match, i) => ({
         ...(prevMatches.current[i] ?? match),
         id: match.id,
       })),
+      // eslint-disable-next-line react-compiler/react-compiler
       ...prevMatches.current.slice(matches.length),
     ];
   }

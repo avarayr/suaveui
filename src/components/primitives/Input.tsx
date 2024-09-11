@@ -38,13 +38,7 @@ type GenerativeOpts = {
 };
 
 const InputComponent = forwardRef<HTMLInputElement, InputProps>((props, ref) => {
-  let context: ReturnType<typeof useFormContext> | undefined;
-  try {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    context = useFormContext();
-  } catch (e) {
-    /** We allow using inputs without form context */
-  }
+  const context = useFormContext();
 
   const hasText = props.value !== undefined && props.value !== "";
   const aiGenerateMutation = api.ai.generate.useMutation({
@@ -190,4 +184,4 @@ const InputComponent = forwardRef<HTMLInputElement, InputProps>((props, ref) => 
   );
 });
 
-export const Input = motion(InputComponent);
+export const Input = motion.create(InputComponent);

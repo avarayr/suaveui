@@ -42,7 +42,10 @@ export const ChatInput = React.memo(({ onMessageSend, className }: ChatInputProp
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={(e) => {
             if (window.innerWidth < 768) return;
-            e.key === "Enter" && !e.shiftKey && void sendMessage(e);
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              void sendMessage(e);
+            }
           }}
         />
 

@@ -161,6 +161,7 @@ export const useSpeechRecognition = () => {
     startListening,
     stopListening,
     timeoutProgress,
+    // eslint-disable-next-line react-compiler/react-compiler
     finalTranscript: finalTranscriptRef.current,
     resetInterimTranscript,
     resetFinalTranscript,

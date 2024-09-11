@@ -100,7 +100,12 @@ export const Texting = React.memo(
     /**
      * On load, scroll to the bottom of the chat
      */
-    const { JumpToBottomButton, jumpToBottom } = useAutoScroll({ scrollerRef, messages, scrollContainerRef });
+    // eslint-disable-next-line react-compiler/react-compiler -- https://github.com/facebook/react/issues/30745#issuecomment-2329039708
+    const { JumpToBottomButton, jumpToBottom } = useAutoScroll({
+      scrollerRef: scrollerRef as React.RefObject<VListHandle>,
+      messages,
+      scrollContainerRef: scrollContainerRef as React.RefObject<HTMLDivElement>,
+    });
 
     const onBeforeMessageSend = (...props: Parameters<typeof onMessageSend>) => {
       jumpToBottom();

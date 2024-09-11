@@ -22,8 +22,7 @@ export const ExpandingTextarea = forwardRef<HTMLTextAreaElement, ExpandingTextar
       )}px`;
     }, [maxRows, resolvedRef]);
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    const debouncedResizeTextarea = useCallback(debounce(resizeTextarea, 100), [resizeTextarea]);
+    const debouncedResizeTextarea = useCallback(() => debounce(resizeTextarea, 100), [resizeTextarea]);
 
     useLayoutEffect(() => {
       resizeTextarea();
@@ -39,7 +38,7 @@ export const ExpandingTextarea = forwardRef<HTMLTextAreaElement, ExpandingTextar
         ref={resolvedRef}
         autoComplete="off"
         onInput={(e) => {
-          debouncedResizeTextarea();
+          debouncedResizeTextarea()();
           props.onInput?.(e);
         }}
       />

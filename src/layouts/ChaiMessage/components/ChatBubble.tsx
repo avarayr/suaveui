@@ -163,8 +163,7 @@ export const ChatBubble = React.memo(
           setIsDraggingToRevealTime(Math.abs(info.offset.x));
         }
       },
-      // eslint-disable-next-line react-hooks/exhaustive-deps -- don't need dragX in deps
-      [setIsDraggingToRevealTime],
+      [dragX, setIsDraggingToRevealTime],
     );
 
     const handleDragEnd = useCallback(
