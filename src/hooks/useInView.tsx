@@ -21,7 +21,7 @@ export function useInView<T>(ref?: React.RefObject<T>, options: IntersectionObse
   const newRef = useRef<T | null>(null);
   const [inView, setInView] = useState(false);
   const timeoutRef = useRef<Timer | null>(null);
-  ref ??= newRef;
+  ref ??= newRef as React.RefObject<T>;
 
   useEffect(() => {
     const observer = new IntersectionObserver(([entry]) => {

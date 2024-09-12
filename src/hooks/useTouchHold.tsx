@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useScreenSize } from "./useScreenSize";
 
 /**
  * This hook is used to detect when the user is holding down a touch or mouse button.
@@ -18,13 +19,16 @@ export function useTouchHold({
   duration = 300,
   threshold = 5,
   enabled = true,
+  disableTouchHoldOnDesktop = true,
 }: {
   targetRef: React.RefObject<HTMLElement>;
   callback: () => void;
   duration?: number;
   threshold?: number;
   enabled?: boolean;
+  disableTouchHoldOnDesktop?: boolean;
 }) {
+  const { isMobile } = useScreenSize();
   const touchHold = useRef(false);
   const timer = useRef<number | null>(null);
   const scaleTimer = useRef<number | null>(null);
@@ -65,6 +69,10 @@ export function useTouchHold({
   const handleTouchStart = useCallback(
     (e: TouchEvent | MouseEvent) => {
       if (!enabled || isInput(e.target)) {
+        return;
+      }
+
+      if (disableTouchHoldOnDesktop && !isMobile) {
         return;
       }
 
@@ -111,7 +119,18 @@ export function useTouchHold({
           ) ?? null;
       }, 50);
     },
-    [callback, duration, enabled, isInput, resetScale, targetRef, threshold, vibrate],
+    [
+      callback,
+      disableTouchHoldOnDesktop,
+      duration,
+      enabled,
+      isInput,
+      isMobile,
+      resetScale,
+      targetRef,
+      threshold,
+      vibrate,
+    ],
   );
 
   const reset = useCallback(() => {
@@ -131,6 +150,10 @@ export function useTouchHold({
         return;
       }
 
+      if (disableTouchHoldOnDesktop && !isMobile) {
+        return;
+      }
+
       e.preventDefault();
       e.stopPropagation();
 
@@ -144,12 +167,16 @@ export function useTouchHold({
 
       reset();
     },
-    [enabled, isInput, reset, resetScale],
+    [disableTouchHoldOnDesktop, enabled, isInput, isMobile, reset, resetScale],
   );
 
   const handleTouchMove = useCallback(
     (e: TouchEvent | MouseEvent) => {
       if (!touchHold.current || !initialPosition.current) {
+        return;
+      }
+
+      if (disableTouchHoldOnDesktop && !isMobile) {
         return;
       }
 
@@ -169,7 +196,7 @@ export function useTouchHold({
         reset();
       }
     },
-    [reset, threshold],
+    [disableTouchHoldOnDesktop, isMobile, reset, threshold],
   );
 
   const onContextMenu = useCallback(
@@ -181,13 +208,18 @@ export function useTouchHold({
       e.preventDefault();
       e.stopPropagation();
 
+      if (disableTouchHoldOnDesktop && !isMobile) {
+        callback();
+        return;
+      }
+
       if (window.innerWidth < 768) {
         return;
       }
 
       callback();
     },
-    [callback, enabled, isInput],
+    [callback, disableTouchHoldOnDesktop, enabled, isInput, isMobile],
   );
 
   useEffect(() => {

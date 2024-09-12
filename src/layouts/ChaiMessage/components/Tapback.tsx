@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { twMerge } from "tailwind-merge";
 import { usePrevious } from "~/hooks/usePrevious";
+import { useScreenSize } from "~/hooks/useScreenSize";
 import { useTouchHold } from "~/hooks/useTouchHold";
 
 export type TapbackAction = {
@@ -159,7 +160,7 @@ const _Tapback = <T extends React.ElementType>({ ..._props }: TapbackProps<T>) =
     callback: onMenuOpen,
     duration: longPressDuration ?? 300,
     enabled: !isOpen,
-    targetRef: elementRef,
+    targetRef: elementRef as React.RefObject<HTMLElement>,
   });
 
   useEffect(() => {
@@ -224,7 +225,11 @@ const _Tapback = <T extends React.ElementType>({ ..._props }: TapbackProps<T>) =
 
       <Component
         {...props}
-        className={twMerge(props.className, "select-none", (isOpen || isBackdropAnimating) && "z-[100]")}
+        className={twMerge(
+          props.className,
+          "select-none sm:select-text",
+          (isOpen || isBackdropAnimating) && "z-[100] select-text",
+        )}
         ref={elementRef}
         {...longPressProps}
       >
@@ -247,7 +252,7 @@ const _Tapback = <T extends React.ElementType>({ ..._props }: TapbackProps<T>) =
                   transition={{ type: "spring", stiffness: 200, damping: 20, duration: 0.4 }}
                   className={twMerge(
                     "[--bg:#1A1A1ADD]",
-                    "absolute top-[100%] z-[100] mb-1 mt-1 flex min-w-[180px] flex-col divide-y divide-white/5 rounded-xl bg-[var(--bg)]  text-white backdrop-blur-xl",
+                    "absolute top-[100%] z-[100] mb-1 mt-1 flex min-w-[180px] flex-col divide-y divide-white/5 rounded-xl bg-[var(--bg)] text-white backdrop-blur-xl",
                     transformOrigin === "left" && "left-0 [transform-origin:top_left]",
                     transformOrigin === "right" && "right-0 [transform-origin:top_right]",
                     menuClassName,

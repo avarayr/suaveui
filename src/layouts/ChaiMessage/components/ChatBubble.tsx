@@ -11,6 +11,7 @@ import {
   Square,
   Trash,
   XIcon,
+  Clock,
 } from "lucide-react";
 import React, { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { twMerge } from "tailwind-merge";
@@ -23,6 +24,7 @@ import { SpoilerParticles } from "./SpoilerParticles";
 import { Tapback, TapbackAction } from "./Tapback";
 import { copyToClipboard } from "~/utils/clipboard";
 import { atom, useAtom } from "jotai";
+import { useScreenSize } from "~/hooks/useScreenSize";
 
 export type Reaction = {
   id: TReaction["type"];
@@ -30,6 +32,7 @@ export type Reaction = {
 };
 
 export const isDraggingToRevealTimeAtom = atom<false | number>(false);
+export const showAllTimestampsAtom = atom(false);
 
 export const ChatBubble = React.memo(
   ({
@@ -75,11 +78,14 @@ export const ChatBubble = React.memo(
     onEditSubmit?: (newContent: string) => void | Promise<void>;
     onTapbackOpenChange?: (open: boolean) => void;
   }) => {
+    const { isMobile } = useScreenSize();
+
     const [isFocused, setIsFocused] = useState(false);
 
     const [editingText, setEditingText] = useState<string | undefined>();
 
     const [isDraggingToRevealTime, setIsDraggingToRevealTime] = useAtom(isDraggingToRevealTimeAtom);
+    const [showAllTimestamps, setShowAllTimestamps] = useAtom(showAllTimestampsAtom);
     const dragX = useMotionValue(0);
 
     const steerMutation = useMutation({
@@ -226,6 +232,15 @@ export const ChatBubble = React.memo(
             onPress: beforeAction(deleteMutation.mutate, { interruptGeneration: true }),
             className: "text-red-500",
           },
+          {
+            label: showAllTimestamps ? "Hide Times" : "Show Times",
+            icon: <Clock className="size-5" />,
+            onPress: {
+              callback: () => setShowAllTimestamps((prev) => !prev),
+              immediate: true,
+            },
+            className: "hidden md:flex", // Hide on mobile using Tailwind classes
+          },
         ] satisfies TapbackAction[];
       },
       [
@@ -238,6 +253,8 @@ export const ChatBubble = React.memo(
         interruptGenerationMutation,
         text,
         onEditStart,
+        showAllTimestamps,
+        setShowAllTimestamps,
       ],
     );
 
@@ -253,19 +270,25 @@ export const ChatBubble = React.memo(
       [reactionsSymbols],
     );
 
+    const handleDoubleClick = useCallback(() => {
+      setShowAllTimestamps(false);
+    }, [setShowAllTimestamps]);
+
     return (
       <motion.div
         layoutRoot
-        drag="x"
+        // Drag should only work on mobile, but disabled when focused
+        drag={isMobile && !isFocused ? "x" : undefined}
         dragConstraints={{ left: 0, right: 0 }}
         dragElastic={0.1}
         onDrag={handleDrag}
         dragDirectionLock
         onDragEnd={handleDragEnd}
         style={{ x: dragX }}
+        onDoubleClick={handleDoubleClick}
       >
         {/* Timestamp */}
-        {showTimestamp && createdAt && (
+        {(showTimestamp || showAllTimestamps) && createdAt && (
           <div className={twMerge("timestamp mb-3 mt-1 w-full text-center text-xs text-[#7D7C80]")}>
             {formatDateWithTime(createdAt)}
           </div>
@@ -314,7 +337,7 @@ export const ChatBubble = React.memo(
                 `[--me-bg:linear-gradient(to_bottom,#137BFF,#117BFF)]`,
                 `[--edit-bg:black]`,
                 `[--edit-border:#202020]`,
-                `relative max-w-[70dvw] select-none list-none whitespace-pre-wrap break-words rounded-[18px] px-[calc(var(--w)*4)] py-[calc(var(--h)*2)] [-webkit-user-select:none] before:absolute before:bottom-0 before:h-[calc(var(--h)*5)] before:w-[calc(var(--h)*4)] before:transition-opacity before:content-[''] after:absolute after:bottom-0 after:h-[30px] after:w-[24px] after:bg-black after:transition-opacity after:content-['']`,
+                `relative max-w-[70dvw] list-none whitespace-pre-wrap break-words rounded-[18px] px-[calc(var(--w)*4)] py-[calc(var(--h)*2)] before:absolute before:bottom-0 before:h-[calc(var(--h)*5)] before:w-[calc(var(--h)*4)] before:transition-opacity before:content-[''] after:absolute after:bottom-0 after:h-[30px] after:w-[24px] after:bg-black after:transition-opacity after:content-['']`,
                 from === "them" &&
                   `chat-bubble-them bg-[image:var(--them-bg)] text-white before:left-[-5px] before:rounded-br-[18px_14px] before:bg-[image:var(--them-bg)] after:left-[-24px] after:rounded-br-[10px]`,
                 from === "me" &&
@@ -330,6 +353,10 @@ export const ChatBubble = React.memo(
                 "animate-fade-in",
               )}
               transformOrigin={from === "me" ? "right" : "left"}
+              onDoubleClick={(e) => {
+                e.stopPropagation(); // Prevent double-click from bubbling up
+                handleDoubleClick();
+              }}
             >
               {/* Reactions */}
               <AnimatePresence>
@@ -467,10 +494,14 @@ export const ChatBubble = React.memo(
           </section>
 
           <AnimatePresence>
-            {isDraggingToRevealTime && createdAt && (
+            {(isDraggingToRevealTime || showAllTimestamps) && createdAt && (
               <motion.div
                 initial={{ opacity: 0, width: 0 }}
-                animate={{ opacity: 1, width: Math.min(isDraggingToRevealTime, 60), x: 10 }}
+                animate={{
+                  opacity: 1,
+                  width: showAllTimestamps ? 60 : Math.min(isDraggingToRevealTime as number, 60),
+                  x: 10,
+                }}
                 exit={{ opacity: 0, width: 0 }}
                 transition={{
                   type: "spring",
