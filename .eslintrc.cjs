@@ -26,8 +26,12 @@ module.exports = {
     react: { version: "detect" },
   },
   parser: "@typescript-eslint/parser",
-  plugins: ["react-refresh"],
+  plugins: [
+    "react-refresh",
+    "eslint-plugin-react-compiler",
+  ],
   rules: {
+    'react-compiler/react-compiler': "error",
     // "@typescript-eslint/naming-convention": "error",
     // only enforce for object properties
     // The `@typescript-eslint/naming-convention` rule allows `leadingUnderscore` and `trailingUnderscore` settings. However, the existing `no-underscore-dangle` rule already takes care of this.

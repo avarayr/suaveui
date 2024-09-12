@@ -22,7 +22,11 @@ export default createApp({
       handler: "./index.html",
       plugins: () => [
         tsconfigPaths(),
-        react(),
+        react({
+          babel: {
+            plugins: [["babel-plugin-react-compiler", {}]],
+          },
+        }),
         VitePWA({
           base: "/",
           srcDir: "src/service-worker",

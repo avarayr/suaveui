@@ -235,9 +235,13 @@ export function useTouchHold({
   }, [handleTouchMove, reset]);
 
   return {
+    // eslint-disable-next-line react-compiler/react-compiler
     onTouchStart: handleTouchStart as unknown as React.TouchEventHandler,
+    // eslint-disable-next-line react-compiler/react-compiler
     onMouseDown: handleTouchStart as unknown as React.MouseEventHandler,
+    // eslint-disable-next-line react-compiler/react-compiler
     onTouchEnd: handleTouchEnd as React.TouchEventHandler,
+    // eslint-disable-next-line react-compiler/react-compiler
     onMouseUp: handleTouchEnd as React.MouseEventHandler,
     onMouseLeave: reset,
     onContextMenu: onContextMenu,

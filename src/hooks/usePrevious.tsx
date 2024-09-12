@@ -9,12 +9,15 @@ export function usePrevious<T>(value: T) {
     prev: undefined,
   });
 
+  // eslint-disable-next-line react-compiler/react-compiler
   const current = ref.current.value;
   if (value !== current) {
+    // eslint-disable-next-line react-compiler/react-compiler
     ref.current = {
       value,
       prev: current,
     };
   }
+  // eslint-disable-next-line react-compiler/react-compiler
   return ref.current.prev;
 }

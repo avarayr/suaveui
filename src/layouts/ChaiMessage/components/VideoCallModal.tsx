@@ -269,7 +269,6 @@ export const VideoCallModal = ({ isOpen, onClose, chatId }: VideoCallModalProps)
       startListening();
       void setupAudioAnalyser();
     } else {
-      console.log("Closing video call modal");
       cleanupAll();
     }
 
