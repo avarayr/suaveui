@@ -36,6 +36,9 @@ const icons: Record<string, React.ReactNode> = {
 type ProviderSchema = z.infer<typeof SettingsSchemas.provider>;
 
 export const GeneralTab = () => {
+  // eslint-disable-next-line react-compiler/react-compiler
+  "use no memo";
+
   const [isSaved, setIsSaved] = useState(false);
   const { data: generalSettings, isLoading: isSettingsLoading, refetch } = api.settings.general.useQuery();
   const { mutate: updateSettings, isPending: isSetProviderPending } = api.settings.setProvider.useMutation({
@@ -96,7 +99,10 @@ export const GeneralTab = () => {
 
   useEffect(() => {
     if (generalSettings) {
-      reset(generalSettings);
+      // temporary fix for reset not working
+      setTimeout(() => {
+        reset(generalSettings);
+      }, 100);
     }
   }, [generalSettings, reset]);
 
@@ -241,10 +247,10 @@ export const GeneralTab = () => {
                       )}
                     />
                     {modelError.model && (
-                      <p className="mt-1 text-sm text-red-600">
+                      <div className="mt-1 text-sm text-red-600">
                         <AlertCircle className="mr-2 inline-block h-4 w-4" />
                         {modelError.message}
-                      </p>
+                      </div>
                     )}
                   </div>
                 );
@@ -262,10 +268,10 @@ export const GeneralTab = () => {
                       <>
                         <Input {...field} id={fieldName} className="mt-1" intent="secondary" />
                         {error && (
-                          <p className="mt-1 text-sm text-red-600">
+                          <div className="mt-1 text-sm text-red-600">
                             <AlertCircle className="mr-2 inline-block h-4 w-4" />
                             {error.message}
-                          </p>
+                          </div>
                         )}
                       </>
                     )}
@@ -276,10 +282,10 @@ export const GeneralTab = () => {
           </div>
 
           <div className="flex items-center justify-between pt-4">
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <div className="text-sm text-gray-500 dark:text-gray-400">
               {isSaved && <Check className="mr-2 inline h-4 w-4 text-green-500" />}
               {isSaved ? "Settings saved successfully!" : "Unsaved changes"}
-            </p>
+            </div>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
