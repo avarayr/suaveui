@@ -320,4 +320,8 @@ export const Chat = {
       console.error("Error generating message in background", e);
     }
   },
+
+  async replaceMessages(chatId: string, messages: TMessageWithID[]) {
+    await db.ref(`chats/${chatId}/messages`).set(messages);
+  },
 };

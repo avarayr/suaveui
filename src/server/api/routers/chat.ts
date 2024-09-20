@@ -7,6 +7,7 @@ import { Persona } from "~/server/models/Persona";
 import { WebPush } from "~/server/models/WebPush";
 import { ChatSchema } from "~/server/schema/Chat";
 import invariant from "~/utils/invariant";
+import { parseImportedConversation } from "~/utils/conversation"; // New import (we'll create this utility function)
 
 export const chatRouter = router({
   all: publicProcedure.query(async ({ ctx }) => {
@@ -252,5 +253,19 @@ export const chatRouter = router({
       });
 
       return targetMessage;
+    }),
+
+  importConversation: publicProcedure
+    .input(z.object({ chatId: z.string(), content: z.string() }))
+    .mutation(async ({ input: { chatId, content } }) => {
+      const chat = await Chat.getWithPersonas(chatId);
+      if (!chat?.personas || chat.personas.length === 0) {
+        throw new Error("Chat or persona not found");
+      }
+      const personaId = chat.personas[0]?.id;
+      invariant(personaId, "Persona not found");
+      const parsedMessages = parseImportedConversation(content, personaId);
+      await Chat.replaceMessages(chatId, parsedMessages);
+      return { success: true };
     }),
 });

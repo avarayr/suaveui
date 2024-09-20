@@ -214,6 +214,19 @@ function TextingPage() {
     },
   });
 
+  const importConversationMutation = api.chat.importConversation.useMutation({
+    onSuccess: async () => {
+      await utils.chat.getMessages.invalidate(queryOpts);
+    },
+  });
+
+  const handleImportConversation = useCallback(
+    async (content: string) => {
+      await importConversationMutation.mutateAsync({ chatId, content });
+    },
+    [chatId, importConversationMutation],
+  );
+
   const handleLoadMore = useDebounceCallback(async () => {
     const data = await utils.chat.getMessages.fetch({
       chatId,
@@ -327,6 +340,7 @@ function TextingPage() {
       onRefetchChat={handleRefetchChat}
       moreMessagesAvailable={moreMessagesAvailable}
       loading={false}
+      onImportConversation={handleImportConversation}
     />
   );
 }

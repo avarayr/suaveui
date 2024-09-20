@@ -36,6 +36,7 @@ export const Texting = React.memo(
     onMessageInterrupt,
     onLoadMore,
     onRefetchChat,
+    onImportConversation,
   }: TextingProps) => {
     const scrollerRef = useRef<VListHandle>(null);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -194,7 +195,12 @@ export const Texting = React.memo(
         </JumpToBottomButton>
 
         {/* Chat input */}
-        <ChatInput onMessageSend={onBeforeMessageSend} className={twMerge(frameless && "hidden")} />
+        <ChatInput
+          onMessageSend={onBeforeMessageSend}
+          onImportConversation={onImportConversation}
+          className={twMerge(frameless && "hidden")}
+          currentMessages={messages}
+        />
       </motion.main>
     );
   },

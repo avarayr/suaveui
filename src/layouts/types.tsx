@@ -27,6 +27,7 @@ export interface TextingProps {
   onLoadMore?: () => Promise<void>;
   onRefetchChat?: () => Promise<void>;
   onMessageInterrupt: (messageId: string) => Promise<void>;
+  onImportConversation: (content: string) => Promise<void>;
 }
 
 export interface Chat {
