@@ -25,7 +25,8 @@ export const WebPush = {
   sendNotification: async (message: Notification) => {
     const vapidKeys = await VapidKeys.get();
     if (!vapidKeys) {
-      throw new Error("VAPID keys not found. Please generate them first.");
+      // notifications are disabled
+      return;
     }
 
     const subscriptions = (await db.query("web-push-subscriptions").get<WebPushSubscription>()).getValues();

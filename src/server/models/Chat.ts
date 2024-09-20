@@ -310,11 +310,15 @@ export const Chat = {
           isGenerating: false,
         });
 
-        // Send a notification to the user
-        void WebPush.sendNotification({
-          title: persona.name,
-          message: aiResponse,
-        });
+        try {
+          // Send a notification to the user
+          void WebPush.sendNotification({
+            title: persona.name,
+            message: aiResponse,
+          });
+        } catch (e) {
+          console.error("Error sending notification", e);
+        }
       })();
     } catch (e) {
       console.error("Error generating message in background", e);
