@@ -32,6 +32,14 @@ export default createApp({
       type: "spa",
       handler: "./index.html",
       plugins: () => [
+        config("custom", {
+          optimizeDeps: {
+            include: ["react", "react-dom", "openai"],
+          },
+          worker: {
+            format: "es",
+          },
+        }),
         tsconfigPaths(),
         react({
           babel: {
@@ -46,6 +54,9 @@ export default createApp({
           strategies: "injectManifest",
           registerType: "autoUpdate",
           useCredentials: true,
+          injectManifest: {
+            rollupFormat: "es",
+          },
           devOptions: {
             enabled: true,
             type: "module",
@@ -76,11 +87,6 @@ export default createApp({
           },
         }),
         TanStackRouterVite(),
-        config("custom", {
-          optimizeDeps: {
-            include: ["react", "react-dom", "openai"],
-          },
-        }),
       ],
     },
   ],
