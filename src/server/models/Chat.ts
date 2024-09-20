@@ -322,6 +322,7 @@ export const Chat = {
   },
 
   async replaceMessages(chatId: string, messages: TMessageWithID[]) {
-    await db.ref(`chats/${chatId}/messages`).set(messages);
+    const messagesWithIds = Object.fromEntries(messages.map((message) => [message.id, message]));
+    await db.ref(`chats/${chatId}/messages`).set(messagesWithIds);
   },
 };
