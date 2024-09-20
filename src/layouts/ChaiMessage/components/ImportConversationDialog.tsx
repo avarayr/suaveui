@@ -6,7 +6,7 @@ import { Button } from "~/components/primitives/Button";
 import Editor from "react-simple-code-editor";
 import { highlight, languages } from "prismjs";
 import "prismjs/components/prism-markdown";
-import "prismjs/themes/prism.css"; // Or any other theme you prefer
+import "prismjs/themes/prism-funky.css";
 import "~/utils/prismCustomLanguage"; // Import our custom language definition
 import { AnimatePresence, motion } from "framer-motion";
 
