@@ -118,12 +118,14 @@ export const ActivityBar = React.memo(
     const handleSearchInputFocus = useCallback(() => {
       setIsSearchInputFocused(true);
       document.querySelector("meta[name='theme-color']")?.setAttribute("content", ChaiColors.ACTIVITYBAR);
+      document.body.style.backgroundColor = ChaiColors.ACTIVITYBAR;
     }, [setIsSearchInputFocused]);
 
     const handleSearchInputBlur = useCallback(() => {
       setIsSearchInputFocused(false);
       setSearchValue("");
       document.querySelector("meta[name='theme-color']")?.setAttribute("content", ChaiColors.BACKGROUND);
+      document.body.style.backgroundColor = ChaiColors.BACKGROUND;
     }, [setIsSearchInputFocused, setSearchValue]);
 
     return (

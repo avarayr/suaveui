@@ -50,6 +50,15 @@ export const Texting = React.memo(
     });
     const persona = data?.chat?.personas?.[0];
 
+    useEffect(() => {
+      document.querySelector("meta[name='theme-color']")?.setAttribute("content", ChaiColors.TEXTING_ACTIVITYBAR);
+      document.body.style.backgroundColor = ChaiColors.TEXTING_ACTIVITYBAR;
+      return () => {
+        document.querySelector("meta[name='theme-color']")?.setAttribute("content", ChaiColors.BACKGROUND);
+        document.body.style.backgroundColor = ChaiColors.BACKGROUND;
+      };
+    }, []);
+
     const messages = useMemo(() => {
       // sort in reverse chronological order
       // because we're using a reverse flex direction for chat messages

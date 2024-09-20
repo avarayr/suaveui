@@ -47,7 +47,6 @@ export default createApp({
           manifest: {
             name: "SuaveUI",
             short_name: "SuaveUI",
-            theme_color: "#000000",
             icons: [
               {
                 src: "/assets/pwa/android-chrome-192x192.png",
