@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@ctrl/golang-template": "^1.4.1",
+    "@diffusionstudio/vits-web": "^1.0.3",
     "@hattip/core": "^0.0.48",
     "@hattip/router": "^0.0.48",
     "@hattip/vite": "^0.0.48",
@@ -115,5 +116,10 @@
     "workbox-core": "^7.1.0",
     "workbox-precaching": "^7.1.0",
     "workbox-window": "^7.1.0"
-  }
+  },
+  "trustedDependencies": [
+    "core-js",
+    "core-js-pure",
+    "protobufjs"
+  ]
 }

@@ -6,6 +6,20 @@ import { useMessageGeneration } from "~/hooks/useMessageGeneration";
 import { useSpeechRecognition } from "~/hooks/useSpeechRecognition";
 import { useSpeechSynthesis } from "~/hooks/useSpeechSynthesis";
 import { api } from "~/trpc/react";
+import {
+  Select,
+  SelectItem,
+  SelectTrigger,
+  SelectContent,
+  SelectValue,
+  SelectGroup,
+  SelectLabel,
+  SelectSeparator,
+} from "~/components/primitives/Select";
+import { VoiceId } from "@diffusionstudio/vits-web";
+import { useVoiceFormatting } from "~/hooks/useVoiceFormatting";
+import { useLocalStorage } from "usehooks-ts";
+import { ClientConsts } from "~/utils/client-consts";
 
 type VideoCallModalProps = {
   isOpen: boolean;
@@ -29,6 +43,8 @@ function getBraveDetected() {
 }
 
 export const VideoCallModal = ({ isOpen, onClose, chatId }: VideoCallModalProps) => {
+  "use no memo";
+
   const { tryFollowMessageGeneration } = useMessageGeneration(chatId);
 
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -46,7 +62,18 @@ export const VideoCallModal = ({ isOpen, onClose, chatId }: VideoCallModalProps)
     cleanup: cleanupSpeechRecognition,
   } = useSpeechRecognition();
 
-  const { speak, isSpeaking: isTTSSpeaking } = useSpeechSynthesis();
+  const [selectedVoice, setSelectedVoice] = useLocalStorage<VoiceId>(
+    ClientConsts.LocalStorageKeys.selectedVoice,
+    "en_US-hfc_female-medium",
+  );
+
+  const {
+    speak,
+    isSpeaking: isTTSSpeaking,
+    isLoading: isTTSLoading,
+    loadingProgress,
+    availableVoices,
+  } = useSpeechSynthesis({ enabled: isOpen, selectedVoice });
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const dataArrayRef = useRef<Uint8Array | null>(null);
@@ -299,6 +326,15 @@ export const VideoCallModal = ({ isOpen, onClose, chatId }: VideoCallModalProps)
     };
   }, []);
 
+  const formattedVoices = useVoiceFormatting(availableVoices);
+
+  const handleVoiceChange = useCallback(
+    (value: string) => {
+      setSelectedVoice(value as VoiceId);
+    },
+    [setSelectedVoice],
+  );
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -328,6 +364,44 @@ export const VideoCallModal = ({ isOpen, onClose, chatId }: VideoCallModalProps)
                 <span>Voice recognition doesn&apos;t work in Brave Browser, please use Chrome/Safari.</span>
               </motion.div>
             )}
+
+            {/* Voice selection */}
+            <Select value={selectedVoice} onValueChange={handleVoiceChange} disabled={isTTSLoading || isTTSSpeaking}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select a voice" />
+              </SelectTrigger>
+              <SelectContent>
+                {formattedVoices.map((voice) => (
+                  <SelectItem key={voice.id} value={voice.id}>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xl">{voice.flag}</span>
+                      <span>{voice.name}</span>
+                      <span className={`ml-auto ${voice.quality.color}`}>{voice.quality.text}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* TTS model loading progress */}
+            <AnimatePresence mode="popLayout">
+              {isTTSLoading && (
+                <motion.div
+                  className="mb-4 mt-2 w-full rounded-lg bg-blue-900 p-4 text-sm text-blue-100"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <div className="flex items-center justify-between">
+                    <span>Loading TTS model...</span>
+                    <span>{loadingProgress}%</span>
+                  </div>
+                  <div className="mt-2 h-2 w-full rounded-full bg-blue-200">
+                    <div className="h-full rounded-full bg-blue-500" style={{ width: `${loadingProgress}%` }}></div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Main circle with outer progress ring */}
             <div className="relative flex h-60 w-60 items-center justify-center sm:h-72 sm:w-72 md:h-80 md:w-80">

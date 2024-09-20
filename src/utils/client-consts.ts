@@ -3,6 +3,7 @@ export const ClientConsts = {
     areNotificationsEnabled: "areNotificationsEnabled",
     dbSubscriptionID: "dbSubscriptionID",
     areSilentNotifications: "areSilentNotifications",
+    selectedVoice: "selectedVoice",
   },
   /**
    * TODO: Reduce this number once we figure out how to handle:

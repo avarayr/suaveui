@@ -7,6 +7,17 @@ import { config } from "vinxi/plugins/config";
 
 export default createApp({
   devtools: true,
+  server: {
+    routeRules: {
+      "/**": {
+        headers: {
+          "Cross-Origin-Opener-Policy": "same-origin",
+          "Cross-Origin-Resource-Policy": "same-origin",
+          "Cross-Origin-Embedder-Policy": "require-corp",
+        },
+      },
+    },
+  },
   routers: [
     {
       type: "http",
@@ -47,6 +58,7 @@ export default createApp({
           manifest: {
             name: "SuaveUI",
             short_name: "SuaveUI",
+            theme_color: "#000000",
             icons: [
               {
                 src: "/assets/pwa/android-chrome-192x192.png",
